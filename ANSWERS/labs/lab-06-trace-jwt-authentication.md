@@ -114,11 +114,11 @@ Passwords, private keys, API keys, secrets, sensitive personal data, or anything
 ## Conclusion
 
 ```text
-** Session authentication relied on: ** A session cookie that the browser stored and automatically sent back to the server.
+Session authentication relied on: A session cookie that the browser stored and automatically sent back to the server.
 
-**JWT authentication relied on:** A bearer token returned by `/jwt/login` and explicitly added to the `Authorization` header for `/jwt/profile`.
+JWT authentication relied on:A bearer token returned by `/jwt/login` and explicitly added to the `Authorization` header for `/jwt/profile`.
 
-_**Cookies are handled automatically by the browser, while the JWT had to be manually added by frontend JavaScript.**_
+Cookies are handled automatically by the browser, while the JWT had to be manually added by frontend JavaScript.
 ```
 
 ## Key Takeaways
