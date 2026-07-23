@@ -780,7 +780,7 @@ Runbook exists for common failures
 
 # Bonus: Virtual Appliance Thinking
 
-Blitzy described a remote virtual appliance deployed into customer environments. For this lab, treat the Kubernetes deployment as a simplified appliance.
+Some production systems run as remote appliances or agents inside customer-managed environments. For this lab, treat the Kubernetes deployment as a simplified appliance.
 
 Think through:
 
