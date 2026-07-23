@@ -132,6 +132,26 @@ The application includes controlled examples for practicing:
 
 ---
 
+## Lab Credentials
+
+The login credentials are intentionally hard-coded for this local lab:
+
+```text
+username: getty
+password: cloud
+```
+
+They are used by both the session-login and JWT-login examples.
+
+To change them, update:
+
+* The browser button request bodies in `app.py`
+* The credential checks in the `/session/login` and `/jwt/login` routes in `app.py`
+
+These credentials are for local learning only. Do not reuse real passwords or production secrets in this project.
+
+---
+
 ## Project Structure
 
 ```text
