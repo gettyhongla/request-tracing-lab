@@ -9,9 +9,6 @@ GET
 Request path:
 /health
 
-Request URL:
-http://127.0.0.1:5000/health
-
 Response status:
 200 OK
 

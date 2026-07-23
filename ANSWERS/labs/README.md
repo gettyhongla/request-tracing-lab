@@ -5,6 +5,7 @@ These files contain answers for `REQUEST_TRACING.md`.
 ## Phase 1: Observe Successful Requests
 
 * `lab-01-establish-baseline.md`
+* `lab-02-inspect-request-devtools.md`
 
 
 
