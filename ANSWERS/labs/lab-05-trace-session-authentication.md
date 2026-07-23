@@ -182,6 +182,7 @@ The browser automatically sent the session cookie with GET /session/profile, all
 ```text
 Set-Cookie:
 Response header from the server that tells the browser to store a cookie.
+  *** compare session/login response header  to /session/profile response header, where & why is set-cookie missing?
 
 Cookie:
 Request header from the browser that sends a stored cookie back to the server.
