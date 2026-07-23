@@ -30,5 +30,13 @@ Architecture answers live in:
 
 ```text
 AnswersByGetty/architecture/
+```
+
+## Operations Answers
+
+Operations answers live in:
+
+```text
+AnswersByGetty/operations/
 |-- kubernetes-helm/
 ```

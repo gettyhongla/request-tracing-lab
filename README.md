@@ -2,14 +2,17 @@
 
 A hands-on lab for practicing HTTP request tracing, troubleshooting, and evidence-based debugging. The goal is to develop a repeatable troubleshooting process that can be applied to larger production systems.
 
-This repository has three learning tracks:
+This repository has three practice tracks and one example answer set:
 
 ```text
 labs/
 Practice request inspection, logs, headers, cookies, JWTs, latency, and errors.
 
+operations/
+Practice packaging, deploying, running, breaking, and fixing the app in Kubernetes.
+
 architecture/
-Practice system design, Kubernetes, Helm, production operations, reliability, and scaling.
+Practice system design, production architecture, reliability, scaling, and tradeoffs.
 
 AnswersByGetty/
 Review Getty's example answer set, or create your own named answer set.
@@ -206,12 +209,14 @@ request-tracing-lab/
 |-- requirements.txt
 |-- README.md
 |-- labs/
+|-- operations/
 |-- architecture/
 |-- AnswersByGetty/
 ```
 
 Start with `labs/` when you want request-level practice.
-Use `architecture/` when you want production architecture, Kubernetes, Helm, and operations practice.
+Use `operations/` when you want packaging, Kubernetes, Helm, deployment, and live troubleshooting practice.
+Use `architecture/` when you want system design, production architecture, scaling, and tradeoff practice.
 Use `AnswersByGetty/` only after attempting the exercises.
 
 If you are completing this as your own portfolio project, create your own answer directory:
@@ -428,48 +433,52 @@ What fixed it?
 
 ---
 
-## Architecture Expansion
+## After The Request Labs
 
-After completing the request-tracing exercises, continue to the architecture scenarios in:
+After completing the request-tracing exercises, choose the track that matches what you want to practice next.
+
+For hands-on operations, packaging, Kubernetes, and Helm, use:
+
+```text
+operations/README.md
+```
+
+For system design, architecture diagrams, scaling, and tradeoff reasoning, use:
 
 ```text
 architecture/README.md
 ```
 
-Use the architecture exercises to gradually add:
+The operations track focuses on:
 
 ```text
-HTTPS
-   |
-   v
-Reverse proxy
-   |
-   v
-Database
-   |
-   v
-Redis
-   |
-   v
-Load balancer
-   |
-   v
 Docker
-   |
-   v
 Kubernetes
-   |
-   v
+Helm
+Ingress
+Deployments
+Services
+Pods
+Probes
+Secrets
+Logs and events
+Live troubleshooting
+```
+
+The architecture track focuses on:
+
+```text
+Reverse proxies
+Databases
+Redis/session state
+High availability
 Distributed tracing
-   |
-   v
+Microservices
 Event-driven architecture
-   |
-   v
 Enterprise-style SaaS architecture
 ```
 
-Each new component creates additional request paths, logs, metrics, dependencies, and possible failure points.
+Each new component creates additional request paths, logs, metrics, dependencies, tradeoffs, and possible failure points.
 
 The purpose of expanding the architecture is to practice answering the same core questions in a more complex system:
 

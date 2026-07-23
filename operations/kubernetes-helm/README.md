@@ -17,6 +17,150 @@ Do not start by copying a finished solution. Create each artifact yourself, test
 
 ---
 
+## End-to-End Request Flow Template
+
+Use this as the mental model for the operations track.
+
+```text
+Browser or curl
+  |
+  v
+DNS or local host mapping
+  |
+  v
+TCP connection
+  |
+  v
+TLS handshake, if enabled
+  |
+  v
+Ingress controller
+  |
+  v
+Service
+  |
+  v
+EndpointSlice / Endpoints
+  |
+  v
+Pod
+  |
+  v
+Container
+  |
+  v
+Flask route
+  |
+  v
+Logs, metrics, events, and traces
+```
+
+For every request, keep asking:
+
+```text
+How far did the request get?
+
+Which Kubernetes object should have handled it next?
+
+What evidence proves that layer worked or failed?
+
+Where is the request ID visible?
+
+Which command shows the next clue?
+```
+
+## Object Map
+
+As you build the deployment, fill this in with your actual names.
+
+```text
+Namespace:
+
+Image:
+
+Deployment:
+
+Replica count:
+
+Pods:
+
+Service:
+
+Service port:
+
+Target port:
+
+Ingress:
+
+Host:
+
+TLS secret:
+
+App secrets:
+
+Readiness probe:
+
+Liveness probe:
+
+Helm release:
+
+Values file:
+```
+
+## Common Failure Layers
+
+```text
+DNS:
+Name does not resolve or resolves to the wrong place.
+
+TLS:
+Certificate, trust, hostname, or termination problem.
+
+Ingress:
+Host/path rule, backend service, or controller problem.
+
+Service:
+Selector, port, targetPort, or missing endpoints problem.
+
+Pod:
+Pending, not ready, crash loop, image pull, or resource problem.
+
+Container:
+App binds to the wrong interface, exits, or cannot read config.
+
+Application:
+Route, auth, JSON, session, JWT, latency, or server error problem.
+
+Dependency:
+Database, cache, queue, object storage, or external API problem.
+```
+
+## Core Commands To Practice
+
+```bash
+kubectl get all -n request-tracing-lab
+kubectl get ingress -n request-tracing-lab
+kubectl get svc -n request-tracing-lab
+kubectl get endpoints -n request-tracing-lab
+kubectl describe pod -n request-tracing-lab <pod-name>
+kubectl logs -n request-tracing-lab <pod-name>
+kubectl logs -n request-tracing-lab deploy/request-tracing-lab
+kubectl describe ingress -n request-tracing-lab <ingress-name>
+kubectl get events -n request-tracing-lab --sort-by=.lastTimestamp
+```
+
+```bash
+helm template request-tracing-lab ./helm/request-tracing-lab
+helm upgrade --install request-tracing-lab ./helm/request-tracing-lab -n request-tracing-lab --create-namespace
+helm status request-tracing-lab -n request-tracing-lab
+helm get values request-tracing-lab -n request-tracing-lab
+helm get manifest request-tracing-lab -n request-tracing-lab
+helm history request-tracing-lab -n request-tracing-lab
+helm rollback request-tracing-lab <revision> -n request-tracing-lab
+```
+
+---
+
 # Phase 1: Prepare the App for Containers
 
 ## Objective

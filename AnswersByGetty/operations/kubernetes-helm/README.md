@@ -1,6 +1,6 @@
 # Kubernetes and Helm Operations Answers
 
-These answers follow `architecture/kubernetes-helm/README.md`.
+These answers follow `operations/kubernetes-helm/README.md`.
 
 ```text
 phase-01-container-readiness.md

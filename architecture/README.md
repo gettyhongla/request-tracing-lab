@@ -558,16 +558,16 @@ How would you inspect container networking and logs?
 
 ---
 
-## Architecture Exercise 7: Deploy to Kubernetes
+## Architecture Exercise 7: Design a Kubernetes Deployment
 
 ### Scenario
 
-Deploy the containerized application to Kubernetes.
+Design how the containerized application should run in Kubernetes.
 
-For a hands-on version that includes packaging the app, creating manifests, converting to Helm, and troubleshooting failures, use:
+This exercise is for architecture and design reasoning. For the hands-on package, deploy, run, break, and fix workflow, use:
 
 ```text
-architecture/kubernetes-helm/README.md
+operations/kubernetes-helm/README.md
 ```
 
 ### Starting design
@@ -588,18 +588,16 @@ Pod
 Flask container
 ```
 
-### Tasks
+### Design tasks
 
-1. Define the Deployment.
-2. Define the Service.
-3. Add readiness and liveness probes.
-4. Add an Ingress.
-5. Decide where TLS terminates.
-6. Configure application secrets.
-7. Decide how logs and metrics are collected.
-8. Ensure request IDs pass through the Ingress.
-9. Define scaling behavior.
-10. Identify network-policy requirements.
+1. Decide which Kubernetes objects are required.
+2. Decide how traffic reaches the application.
+3. Decide where TLS terminates.
+4. Decide how readiness and liveness should work.
+5. Decide how application secrets are provided.
+6. Decide how logs, metrics, and request IDs are collected.
+7. Decide how scaling should work.
+8. Identify network-policy requirements.
 
 ### Questions
 
@@ -613,8 +611,6 @@ What happens when a liveness probe fails?
 What can cause an Ingress 502 or 503?
 
 How does Kubernetes DNS affect internal requests?
-
-Which commands would you use to inspect Pods, Services, Endpoints, and logs?
 
 How would you determine which Pod handled a request?
 ```
@@ -640,7 +636,7 @@ How would you determine which Pod handled a request?
 
 ### Troubleshooting table
 
-| Symptom                       | Possible layer | Evidence or command |
+| Symptom                       | Possible layer | Evidence to collect |
 | ----------------------------- | -------------- | ------------------- |
 | Ingress returns 404           |                |                     |
 | Ingress returns 502           |                |                     |
@@ -652,92 +648,7 @@ How would you determine which Pod handled a request?
 
 ---
 
-## Architecture Exercise 8: Package and Operate with Helm
-
-### Scenario
-
-The Kubernetes deployment should be repeatable across local, staging, and production environments.
-
-Package the application with Helm so environment-specific settings can be managed through values.
-
-### Starting design
-
-```text
-Container image
-  |
-  v
-Helm chart + values
-  |
-  v
-Rendered Kubernetes manifests
-  |
-  v
-Deployment, Service, Ingress, Secret, HPA, NetworkPolicy
-```
-
-### Tasks
-
-1. Decide which Kubernetes settings should become Helm values.
-2. Create a chart from the working Kubernetes manifests.
-3. Create local values for a local cluster.
-4. Describe what would differ in staging and production values.
-5. Render the chart before applying it.
-6. Install or upgrade the release.
-7. Inspect release history, rendered manifests, and active values.
-8. Roll back a bad release.
-9. Break one value intentionally and diagnose the resulting failure.
-
-### Questions
-
-```text
-Which settings change between environments?
-
-Which settings should never be committed to Git?
-
-How do you preview rendered manifests before deployment?
-
-How do you inspect values used by a live release?
-
-How can a wrong image tag, probe path, service targetPort, or selector break the deployment?
-
-How do you roll back a bad release?
-
-How does Helm help production operations?
-
-How can Helm make production operations riskier if values are poorly managed?
-```
-
-### Useful commands
-
-```bash
-helm template request-tracing-lab ./helm/request-tracing-lab
-helm upgrade --install request-tracing-lab ./helm/request-tracing-lab -n request-tracing-lab --create-namespace
-helm status request-tracing-lab -n request-tracing-lab
-helm get values request-tracing-lab -n request-tracing-lab
-helm get manifest request-tracing-lab -n request-tracing-lab
-helm history request-tracing-lab -n request-tracing-lab
-helm rollback request-tracing-lab <revision> -n request-tracing-lab
-```
-
-### Design conclusion
-
-```text
-Values strategy:
-
-Secret strategy:
-
-Promotion strategy:
-
-Rollback strategy:
-
-Most likely Helm-related failure:
-
-Evidence that would expose it:
-```
-
----
-
-## Architecture Exercise 9: Add Distributed Tracing
+## Architecture Exercise 8: Add Distributed Tracing
 
 ### Scenario
 
@@ -841,7 +752,7 @@ Sensitive fields to exclude:
 
 ---
 
-## Architecture Exercise 10: Split into Microservices
+## Architecture Exercise 9: Split into Microservices
 
 ### Scenario
 
