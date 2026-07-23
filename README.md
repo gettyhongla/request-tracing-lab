@@ -162,7 +162,10 @@ request-tracing-lab/
 |-- README.md
 |-- REQUEST_TRACING.md
 |-- ARCHITECTURE.md
-|-- ANSWERS.md
+|-- ANSWERS/
+|   |-- README.md
+|   |-- labs/
+|   |-- architecture/
 ```
 
 ### `README.md`
@@ -177,9 +180,9 @@ Contains the hands-on request tracing and failure diagnosis exercises.
 
 Contains architecture expansion scenarios and design exercises.
 
-### `ANSWERS.md`
+### `ANSWERS/`
 
-Contains optional expected results and explanations.
+Contains optional expected results and explanations, separated by exercise type.
 
 Complete the exercises before checking the answers.
 
@@ -287,7 +290,7 @@ The request-tracing exercises begin with a successful request and gradually intr
 10. Failure injection
 11. HTTPS and TLS
 
-Do not begin by reading `ANSWERS.md`.
+Do not begin by reading `ANSWERS/`.
 
 Try to investigate each scenario using evidence first.
 
