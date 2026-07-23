@@ -1,6 +1,6 @@
 # Lab Answers
 
-These answers follow the two phases in `REQUEST_TRACING.md`.
+These answers follow the two phases in `labs/README.md`.
 
 Phase 1 is for learning what successful requests look like.
 Phase 2 is for breaking one layer at a time and diagnosing the failure with evidence.

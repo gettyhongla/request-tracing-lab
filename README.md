@@ -5,7 +5,7 @@ A hands-on lab for practicing HTTP request tracing, troubleshooting, and evidenc
 This repository has three learning tracks:
 
 ```text
-REQUEST_TRACING.md
+labs/
 Practice request inspection, logs, headers, cookies, JWTs, latency, and errors.
 
 architecture/
@@ -205,12 +205,12 @@ request-tracing-lab/
 |-- app.py
 |-- requirements.txt
 |-- README.md
-|-- REQUEST_TRACING.md
+|-- labs/
 |-- architecture/
 |-- AnswersByGetty/
 ```
 
-Start with `REQUEST_TRACING.md` when you want request-level practice.
+Start with `labs/` when you want request-level practice.
 Use `architecture/` when you want production architecture, Kubernetes, Helm, and operations practice.
 Use `AnswersByGetty/` only after attempting the exercises.
 
@@ -307,7 +307,7 @@ The Flask terminal shows the server side.
 Open:
 
 ```text
-REQUEST_TRACING.md
+labs/README.md
 ```
 
 Complete the exercises in order.
