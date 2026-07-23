@@ -1,8 +1,6 @@
 # Operations Tracks
 
-Use this section to practice running the application like an operator, DevOps engineer, support engineer, or Customer Success Engineer.
-
-The goal is to package, deploy, observe, break, and fix the application while still tracing requests end to end.
+Use this section to practice running the application like an operator. The goal is to package, deploy, observe, break, and fix the application while still tracing requests end to end.
 
 ```text
 operations/
