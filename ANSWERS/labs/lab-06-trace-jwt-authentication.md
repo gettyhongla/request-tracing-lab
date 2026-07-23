@@ -114,19 +114,22 @@ Passwords, private keys, API keys, secrets, sensitive personal data, or anything
 ## Conclusion
 
 ```text
-Session authentication relied on: A session cookie that the browser stored and automatically sent back to the server.
+**Session authentication relied on:** A session cookie that the browser stored and automatically sent back to the server.
 
-JWT authentication relied on: A bearer token returned by `/jwt/login` and explicitly added to the `Authorization` header for `/jwt/profile`.
+**JWT authentication relied on:** A bearer token returned by `/jwt/login` and explicitly added to the `Authorization` header for `/jwt/profile`.
 
-The most important difference I observed was: Cookies are handled automatically by the browser, while the JWT had to be manually added by frontend JavaScript.
+_**Cookies are handled automatically by the browser, while the JWT had to be manually added by frontend JavaScript.**_
 ```
 
 ## Key Takeaways
 
 ```text
 JWT: JSON Web Token.
+
 Cookie auth: Browser automatically sends the Cookie header.
+
 JWT auth: Application code explicitly sends the Authorization header.
+
 X-Request-ID: Traces the request, but does not authenticate anyone.
 ```
 A JWT has three dot-separated parts:  ```text header.payload.signature ```
