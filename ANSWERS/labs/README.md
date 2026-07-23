@@ -7,6 +7,7 @@ These files contain answers for `REQUEST_TRACING.md`.
 * `lab-01-establish-baseline.md`
 * `lab-02-inspect-request-devtools.md`
 * `lab-03-correlate-request-server-logs.md`
+* `lab-04-compare-get-and-post.md`
 
 ## Phase 2: Inject and Diagnose Failures
 
