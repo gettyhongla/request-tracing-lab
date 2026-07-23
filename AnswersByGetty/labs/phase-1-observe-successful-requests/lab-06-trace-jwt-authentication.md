@@ -95,9 +95,11 @@ headers: {
 ```
 
 5. What is the difference between possessing a token and proving that the token is valid?
+
 Possessing a token means the client has a token string. Proving it is valid means the server verifies the token's signature, expiration, algorithm, and claims.
 
 6. What information should never be included in a JWT payload?
+
 Passwords, private keys, API keys, secrets, sensitive personal data, or anything you would not want exposed. JWT payloads are encoded, not encrypted.
 
 ## Compare Authentication Methods
@@ -114,22 +116,34 @@ Passwords, private keys, API keys, secrets, sensitive personal data, or anything
 ## Conclusion
 
 ```text
-Session authentication relied on: A session cookie that the browser stored and automatically sent back to the server.
+Session authentication relied on:
+A session cookie that the browser stored and automatically sent back to the server.
 
-JWT authentication relied on:A bearer token returned by `/jwt/login` and explicitly added to the `Authorization` header for `/jwt/profile`.
+JWT authentication relied on:
+A bearer token returned by `/jwt/login` and explicitly added to the `Authorization` header for `/jwt/profile`.
 
+The most important difference I observed was:
 Cookies are handled automatically by the browser, while the JWT had to be manually added by frontend JavaScript.
 ```
 
 ## Key Takeaways
 
 ```text
-JWT: JSON Web Token.
+JWT:
+JSON Web Token.
 
-Cookie auth: Browser automatically sends the Cookie header.
+Cookie auth:
+Browser automatically sends the Cookie header.
 
-JWT auth: Application code explicitly sends the Authorization header.
+JWT auth:
+Application code explicitly sends the Authorization header.
 
-X-Request-ID: Traces the request, but does not authenticate anyone.
+X-Request-ID:
+Traces the request, but does not authenticate anyone.
 ```
-A JWT has three dot-separated parts:  ```text header.payload.signature ```
+
+A JWT has three dot-separated parts:
+
+```text
+header.payload.signature
+```

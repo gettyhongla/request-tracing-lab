@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import logging
+import os
 import uuid
 
 import jwt
@@ -9,9 +10,12 @@ app = Flask(__name__)
 
 # Used to sign Flask session cookies.
 # This is acceptable for a local lab only.
-app.secret_key = "local-lab-secret-key"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "local-lab-secret-key")
 
-JWT_SECRET = "local-jwt-secret-for-request-tracing-lab"
+JWT_SECRET = os.environ.get(
+    "JWT_SECRET",
+    "local-jwt-secret-for-request-tracing-lab"
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -312,4 +316,8 @@ def slow():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(
+        host=os.environ.get("FLASK_RUN_HOST", "127.0.0.1"),
+        port=int(os.environ.get("FLASK_RUN_PORT", "5000")),
+        debug=os.environ.get("FLASK_DEBUG", "true").lower() == "true"
+    )

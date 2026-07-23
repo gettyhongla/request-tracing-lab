@@ -564,6 +564,12 @@ How would you inspect container networking and logs?
 
 Deploy the containerized application to Kubernetes.
 
+For a hands-on version that includes packaging the app, creating manifests, converting to Helm, and troubleshooting failures, use:
+
+```text
+architecture/kubernetes-helm/README.md
+```
+
 ### Starting design
 
 ```text
@@ -646,7 +652,92 @@ How would you determine which Pod handled a request?
 
 ---
 
-## Architecture Exercise 8: Add Distributed Tracing
+## Architecture Exercise 8: Package and Operate with Helm
+
+### Scenario
+
+The Kubernetes deployment should be repeatable across local, staging, and production environments.
+
+Package the application with Helm so environment-specific settings can be managed through values.
+
+### Starting design
+
+```text
+Container image
+  |
+  v
+Helm chart + values
+  |
+  v
+Rendered Kubernetes manifests
+  |
+  v
+Deployment, Service, Ingress, Secret, HPA, NetworkPolicy
+```
+
+### Tasks
+
+1. Decide which Kubernetes settings should become Helm values.
+2. Create a chart from the working Kubernetes manifests.
+3. Create local values for a local cluster.
+4. Describe what would differ in staging and production values.
+5. Render the chart before applying it.
+6. Install or upgrade the release.
+7. Inspect release history, rendered manifests, and active values.
+8. Roll back a bad release.
+9. Break one value intentionally and diagnose the resulting failure.
+
+### Questions
+
+```text
+Which settings change between environments?
+
+Which settings should never be committed to Git?
+
+How do you preview rendered manifests before deployment?
+
+How do you inspect values used by a live release?
+
+How can a wrong image tag, probe path, service targetPort, or selector break the deployment?
+
+How do you roll back a bad release?
+
+How does Helm help production operations?
+
+How can Helm make production operations riskier if values are poorly managed?
+```
+
+### Useful commands
+
+```bash
+helm template request-tracing-lab ./helm/request-tracing-lab
+helm upgrade --install request-tracing-lab ./helm/request-tracing-lab -n request-tracing-lab --create-namespace
+helm status request-tracing-lab -n request-tracing-lab
+helm get values request-tracing-lab -n request-tracing-lab
+helm get manifest request-tracing-lab -n request-tracing-lab
+helm history request-tracing-lab -n request-tracing-lab
+helm rollback request-tracing-lab <revision> -n request-tracing-lab
+```
+
+### Design conclusion
+
+```text
+Values strategy:
+
+Secret strategy:
+
+Promotion strategy:
+
+Rollback strategy:
+
+Most likely Helm-related failure:
+
+Evidence that would expose it:
+```
+
+---
+
+## Architecture Exercise 9: Add Distributed Tracing
 
 ### Scenario
 
@@ -750,9 +841,116 @@ Sensitive fields to exclude:
 
 ---
 
+## Architecture Exercise 10: Split into Microservices
+
+### Scenario
+
+Split the application into separate services such as authentication, profile, and audit logging.
+
+The earlier PostgreSQL, Nginx, multiple-instance, Redis, Kubernetes, and Helm exercises already cover the foundation of a layered production application. This exercise focuses on what changes when one application becomes multiple independently deployed services.
+
+### Starting design
+
+```text
+Client
+  |
+  v
+Ingress or API gateway
+  |
+  v
+Auth service
+  |
+  v
+Profile service
+  |
+  v
+Database
+```
+
+### Synchronous request questions
+
+```text
+Which service receives the first request?
+
+How is identity passed between services?
+
+How are request IDs and trace IDs propagated?
+
+What happens if one downstream service is slow or unavailable?
+
+Which service owns each log line?
+
+How would you tell whether the failure is in the gateway, auth service, profile service, or database?
+```
+
+### Event-driven sub-scenario
+
+Add an asynchronous workflow, such as publishing a login audit event after successful authentication.
+
+```text
+Client
+  |
+  v
+API gateway
+  |
+  v
+Auth service
+  |
+  v
+Message broker or queue
+  |
+  v
+Audit worker
+  |
+  v
+Audit store
+```
+
+### Event-driven questions
+
+```text
+Which part of the request remains synchronous?
+
+Which work happens after the client already received a response?
+
+How do you trace one request across an event or queue?
+
+What evidence proves the event was published?
+
+What evidence proves the worker processed it?
+
+What happens when the worker is down?
+
+What happens when the broker has a backlog?
+```
+
+### Design conclusion
+
+```text
+Service boundaries:
+
+Synchronous request path:
+
+Asynchronous event path:
+
+Identity propagation:
+
+Request ID propagation:
+
+Trace ID propagation:
+
+Logs needed:
+
+Metrics needed:
+```
+
+---
+
 # Final Architecture Challenge
 
 Design the complete production-style version of the request-tracing application.
+
+Use this challenge to reason through a larger customer environment like a virtual appliance, managed platform, or enterprise SaaS service. This is where you practice the support-to-engineering thinking expected in Customer Success Engineering roles.
 
 Your design may include:
 
@@ -769,6 +967,9 @@ Centralized logs
 Metrics
 Distributed traces
 Alerts
+Microservices
+Event-driven workflows
+Customer network or virtual appliance boundary
 ```
 
 ## Draw the architecture
@@ -866,7 +1067,7 @@ Long-term fix:
 
 # Completion Reflection
 
-Answer these questions after completing all three phases.
+Answer these questions after completing the request-tracing workbook and architecture scenarios.
 
 ```text
 1. How do you separate a connection failure from an HTTP failure?

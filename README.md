@@ -2,6 +2,19 @@
 
 A hands-on lab for practicing HTTP request tracing, troubleshooting, and evidence-based debugging. The goal is to develop a repeatable troubleshooting process that can be applied to larger production systems.
 
+This repository has three learning tracks:
+
+```text
+REQUEST_TRACING.md
+Practice request inspection, logs, headers, cookies, JWTs, latency, and errors.
+
+architecture/
+Practice system design, Kubernetes, Helm, production operations, reliability, and scaling.
+
+AnswersByGetty/
+Review Getty's example answer set, or create your own named answer set.
+```
+
 This project is designed for aspiring:
 
 * Cloud Operations Engineers
@@ -18,7 +31,11 @@ The Flask application provides a small, controlled environment where you can sen
 
 ## Objective
 
-The objective of this project is to learn how to trace a request from the client to the application and back.
+The objective of this project is to learn how to trace a request end to end.
+
+The project starts with a small local Flask application so you can clearly see the request, response, logs, headers, cookies, tokens, status codes, and request IDs.
+
+After that, the architecture exercises expand the same tracing method into larger systems, including 3-tier applications, microservices, Kubernetes, Helm, event-driven systems, and enterprise-style SaaS platforms.
 
 You will practice using browser tools, command-line tools, application logs, headers, cookies, tokens, status codes, and request IDs to answer:
 
@@ -48,7 +65,7 @@ You will use this project to practice:
 * Investigating latency and application errors
 * Distinguishing client, connection, authentication, and application failures
 * Adding HTTPS and inspecting TLS behavior
-* Expanding a simple application architecture
+* Expanding from one Flask app into 3-tier, microservice, event-driven, Kubernetes, and enterprise-style architectures
 
 ---
 
@@ -152,6 +169,34 @@ These credentials are for local learning only. Do not reuse real passwords or pr
 
 ---
 
+## Runtime Configuration
+
+Local defaults work with:
+
+```bash
+python app.py
+```
+
+For container and Kubernetes exercises, the app can read:
+
+```text
+FLASK_RUN_HOST
+FLASK_RUN_PORT
+FLASK_DEBUG
+FLASK_SECRET_KEY
+JWT_SECRET
+```
+
+In a container, `FLASK_RUN_HOST` should usually be:
+
+```text
+0.0.0.0
+```
+
+Secrets such as `FLASK_SECRET_KEY` and `JWT_SECRET` should be provided through environment variables or Kubernetes Secrets, not baked into the image.
+
+---
+
 ## Project Structure
 
 ```text
@@ -161,30 +206,21 @@ request-tracing-lab/
 |-- requirements.txt
 |-- README.md
 |-- REQUEST_TRACING.md
-|-- ARCHITECTURE.md
-|-- ANSWERS/
-|   |-- README.md
-|   |-- labs/
-|   |-- architecture/
+|-- architecture/
+|-- AnswersByGetty/
 ```
 
-### `README.md`
+Start with `REQUEST_TRACING.md` when you want request-level practice.
+Use `architecture/` when you want production architecture, Kubernetes, Helm, and operations practice.
+Use `AnswersByGetty/` only after attempting the exercises.
 
-Explains the purpose of the project and how to run it.
+If you are completing this as your own portfolio project, create your own answer directory:
 
-### `REQUEST_TRACING.md`
+```text
+AnswersByYourName/
+```
 
-Contains the hands-on request tracing and failure diagnosis exercises.
-
-### `ARCHITECTURE.md`
-
-Contains architecture expansion scenarios and design exercises.
-
-### `ANSWERS/`
-
-Contains optional expected results and explanations, separated by exercise type.
-
-Complete the exercises before checking the answers.
+Use that directory for your notes, investigation evidence, diagrams, key takeaways, and final explanations.
 
 ---
 
@@ -290,7 +326,7 @@ The request-tracing exercises begin with a successful request and gradually intr
 10. Failure injection
 11. HTTPS and TLS
 
-Do not begin by reading `ANSWERS/`.
+Do not begin by reading `AnswersByGetty/`.
 
 Try to investigate each scenario using evidence first.
 
@@ -397,7 +433,7 @@ What fixed it?
 After completing the request-tracing exercises, continue to the architecture scenarios in:
 
 ```text
-ARCHITECTURE.md
+architecture/README.md
 ```
 
 Use the architecture exercises to gradually add:
@@ -425,6 +461,12 @@ Kubernetes
    |
    v
 Distributed tracing
+   |
+   v
+Event-driven architecture
+   |
+   v
+Enterprise-style SaaS architecture
 ```
 
 Each new component creates additional request paths, logs, metrics, dependencies, and possible failure points.

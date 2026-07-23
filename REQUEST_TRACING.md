@@ -1,4 +1,4 @@
-# Request Tracing and Failure Diagnosis Exercises
+# Request Tracing Workbook
 
 Use this workbook to practice tracing requests, inspecting evidence, and diagnosing failures.
 
@@ -9,7 +9,7 @@ Phase 1: Observe successful requests
 Phase 2: Inject and diagnose failures
 ```
 
-Do not begin by reading `ANSWERS/`. After completing these exercises, continue with `ARCHITECTURE.md`.
+Do not begin by reading `AnswersByGetty/`. After completing these exercises, continue with `architecture/README.md`.
 
 Investigate the behavior first, record what you observe, and support every conclusion with evidence.
 
