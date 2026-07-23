@@ -17,11 +17,11 @@ Available answer files:
 * `labs/lab-03-correlate-request-server-logs.md`
 * `labs/lab-04-compare-get-and-post.md`
 * `labs/lab-05-trace-session-authentication.md`
+* `labs/lab-06-trace-jwt-authentication.md`
 
 Planned guided lab answer files:
 
 ```text
-labs/lab-06-trace-jwt-authentication.md
 labs/lab-07-inspect-jwt-claims.md
 labs/lab-08-reproduce-requests-curl.md
 labs/lab-09-investigate-latency.md

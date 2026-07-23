@@ -9,6 +9,7 @@ These files contain answers for `REQUEST_TRACING.md`.
 * `lab-03-correlate-request-server-logs.md`
 * `lab-04-compare-get-and-post.md`
 * `lab-05-trace-session-authentication.md`
+* `lab-06-trace-jwt-authentication.md`
 
 ## Phase 2: Inject and Diagnose Failures
 
