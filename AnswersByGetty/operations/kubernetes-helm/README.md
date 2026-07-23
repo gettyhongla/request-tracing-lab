@@ -2,8 +2,15 @@
 
 These answers follow `operations/kubernetes-helm/README.md`.
 
+## Completed
+
 ```text
 phase-01-container-readiness.md
+```
+
+## Planned
+
+```text
 phase-02-container-packaging.md
 phase-03-kubernetes-manifests.md
 phase-04-helm-deployment.md
