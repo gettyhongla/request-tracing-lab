@@ -15,6 +15,14 @@ How to reason about production reliability and performance
 
 Do not start by copying a finished solution. Create each artifact yourself, test it, break it, and explain the evidence.
 
+## Concept Guide
+
+Use this companion guide when the Kubernetes object names start blending together:
+
+```text
+operations/kubernetes-helm/CONCEPTS.md
+```
+
 ---
 
 ## End-to-End Request Flow Template
