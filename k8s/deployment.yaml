@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: request-tracing-lab
+  namespace: request-tracing-lab
+  labels:
+    app.kubernetes.io/name: request-tracing-lab
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: request-tracing-lab
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: request-tracing-lab
+    spec:
+      containers:
+        - name: request-tracing-lab
+          image: request-tracing-lab:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5001
+          env:
+            - name: FLASK_RUN_HOST
+              value: "0.0.0.0"
+            - name: FLASK_RUN_PORT
+              value: "5001"
+            - name: FLASK_DEBUG
+              value: "false"
+            - name: FLASK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: request-tracing-lab-secrets
+                  key: FLASK_SECRET_KEY
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: request-tracing-lab-secrets
+                  key: JWT_SECRET
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

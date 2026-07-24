@@ -7,3 +7,4 @@ venv/
 *.pem
 *.key
 cookies.txt
+k8s/*.local.yaml
