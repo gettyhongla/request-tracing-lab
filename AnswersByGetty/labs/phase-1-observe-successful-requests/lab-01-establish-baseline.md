@@ -59,18 +59,22 @@ What this confirms:
 The Flask application is running, the browser can reach it at 127.0.0.1:5000, the /health route works, and client-side evidence can be matched with server-side logs.
 ```
 
-## Study Note
+## Key Takeaways
 
-Lab 1 questions train you to prove the same request from multiple angles.
+This baseline proves the same request from multiple angles.
 
 ```text
-Browser loaded page: The client could connect.
+Client evidence:
+The browser received an HTTP response.
 
-Status 200: The HTTP request succeeded.
+Protocol evidence:
+The status was 200 OK.
 
-Response body: The application returned useful data.
+Application evidence:
+The response body reported "healthy" and included a timestamp.
 
-Flask logs: The server actually received and handled the request.
+Server evidence:
+The Flask logs showed request_started and request_finished for GET /health.
 ```
 
-A page can fail before reaching the server, reach the server but return `401`, reach the wrong route and return `404`, use the wrong method and return `405`, or reach application code and return `500`.
+This matters because later failures can happen at different layers: connection failure, authentication failure, wrong route, wrong method, slow response, or application exception.

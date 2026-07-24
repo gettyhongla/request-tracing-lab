@@ -132,14 +132,23 @@ Cookies are handled automatically by the browser, while the JWT had to be manual
 JWT:
 JSON Web Token.
 
-Cookie auth:
-Browser automatically sends the Cookie header.
+Session cookie auth:
+The browser stores the cookie and automatically sends it on matching requests.
 
-JWT auth:
-Application code explicitly sends the Authorization header.
+JWT bearer auth:
+The app receives a token and must explicitly send it in the Authorization header.
+
+Bearer token:
+Whoever holds the token can attempt to use it, so tokens should be protected and redacted.
+
+JWT validation:
+The server must verify the token signature, expiration, algorithm, and claims.
 
 X-Request-ID:
 Traces the request, but does not authenticate anyone.
+
+Microservice context:
+JWTs are often passed from gateways to services as proof of identity or claims. Request IDs are passed alongside them for troubleshooting.
 ```
 
 A JWT has three dot-separated parts:

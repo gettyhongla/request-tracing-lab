@@ -46,7 +46,7 @@ The request log included the method, path, remote IP address, and user agent. Th
 
 5. How would a request ID help investigate a customer report?
 
-A request ID lets you connect a client-side report to the exact server-side log entries for that request. With the ID, you can find the method, path, timestamp, status code, user agent, and any related application errors for the same request.
+A request ID lets you connect a client-side report to the exact server-side log entries for that request. With the ID, you can find the method, path, timestamp, status code, user agent, and any related application errors without guessing which log line belongs to the customer.
 
 6. What information would you include in an engineering escalation?
 
@@ -76,4 +76,23 @@ Copying the X-Request-ID value from the DevTools response headers and finding th
 
 The evidence that both records represent the same request is:
 The request ID matched in both places, and the method, path, timestamp, and status were consistent: GET /health returned status 200.
+```
+
+## Key Takeaways
+
+```text
+X-Request-ID:
+The correlation key across client and server evidence.
+
+request_started:
+Proves the request reached the Flask app and records method, path, remote IP, and user agent.
+
+request_finished:
+Proves the app finished handling the request and records the final status.
+
+Escalation quality:
+A strong escalation includes request ID, timestamp, route, status, user impact, and matching logs.
+
+Microservice context:
+In a distributed system, this same request ID should be propagated across services so one user action can be traced end to end.
 ```

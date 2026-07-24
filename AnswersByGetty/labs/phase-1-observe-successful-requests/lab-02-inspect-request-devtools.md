@@ -58,7 +58,7 @@ c6360e43-e202-4a71-b511-28707e351f18
 
 1. Which information belongs to the request?
 
-Request information is what the browser sent to the server. In this example, that includes the request URL, request method, path, and request headers such as `Host`, `User-Agent`, `Accept`, `Connection`, and any cookies the browser sent.
+Request information is what the browser sent to the server. In this example, that includes the URL, method, path, and request headers such as `Host`, `User-Agent`, `Accept`, and `Connection`.
 
 2. Which information belongs to the response?
 
@@ -102,11 +102,33 @@ X-Request-ID: c6360e43-e202-4a71-b511-28707e351f18
 
 ```text
 The client sent:
-A GET request to http://127.0.0.1:5000/health with request headers such as Host, User-Agent, Accept, and Connection. The request did not include a body.
+A GET request to /health with request headers such as Host, User-Agent, Accept, and Connection. The request did not include a body.
 
 The server returned:
 A 200 OK response with JSON content, response headers including Content-Type and X-Request-ID, and a body reporting "status": "healthy" plus a timestamp.
 
 The most useful tracing evidence was:
 The X-Request-ID response header, because it can be matched against the request_id value in the Flask server logs.
+```
+
+## Key Takeaways
+
+```text
+Request:
+What the client sends.
+
+Response:
+What the server returns.
+
+Request body:
+Data sent by the client. This GET request did not have one.
+
+Response body:
+Data returned by the server. In this lab, it was JSON.
+
+X-Request-ID:
+The main correlation value between DevTools and Flask logs.
+
+OSI context:
+These are HTTP details, so they sit at the application layer. Lower layers still matter when DNS, TCP, TLS, or routing fails.
 ```

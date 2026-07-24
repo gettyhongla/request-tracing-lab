@@ -144,28 +144,21 @@ A JSON payload in the DevTools Payload tab:
 {"username":"getty","password":"cloud"}
 ```
 
-## Key Things to Know
+## Key Takeaways
 
-### Curl POST Requests
+```text
+GET:
+Used here to retrieve health data. No request body was sent.
 
-In `curl`, when you include `--data`, `--data-raw`, or `-d`, `curl` automatically sends a `POST` request unless another method is specified.
+POST:
+Used here to submit credentials. POST does not always create a database resource.
 
-For example:
+Content-Type:
+Tells the server how to parse the request body.
 
-```bash
-curl 'http://127.0.0.1:5000/session/login' \
-  -H 'Content-Type: application/json' \
-  --data-raw '{"username":"getty","password":"cloud"}'
+curl --data-raw:
+Makes curl send a POST request unless another method is specified.
+
+Copied browser cookies:
+If copied curl includes -b, curl is sending browser cookie state with the request.
 ```
-
-This sends a `POST` request even without `-X POST`.
-
-### Cookies in Copied Curl Commands
-
-In a copied curl command, cookies may appear with `-b`:
-
-```bash
--b 'session=eyJ1c2VybmFtZSI6ImdldHR5In0...'
-```
-
-That means the browser already had a cookie and included it with the request. Cookies matter because they can carry session state. In this lab, the `session` cookie lets Flask recognize a previously logged-in browser session.

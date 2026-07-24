@@ -250,6 +250,68 @@ X-Request-ID:
 d1dc6a86-e309-4000-8a86-9d7ddd0b5441
 ```
 
+## Troubleshooting Prompts
+
+What happens if the app binds to `127.0.0.1` inside the container?
+
+```text
+The app may only listen on the container's loopback interface.
+
+Result:
+The Flask process can answer requests from inside the container, but traffic forwarded from Docker or Kubernetes may not reach it.
+
+Fix:
+Bind the app to 0.0.0.0 inside the container.
+```
+
+What happens if the host port is mapped incorrectly?
+
+```text
+The container may be running correctly, but the laptop request goes to the wrong host port.
+
+Example:
+If the container is started with -p 5002:5001, then this will fail:
+curl http://127.0.0.1:5001/health
+
+The correct test would be:
+curl http://127.0.0.1:5002/health
+```
+
+How do you inspect container logs?
+
+```bash
+docker ps
+docker logs <container-id-or-name>
+```
+
+For this lab, the app writes logs to stdout/stderr, so `docker logs` should show the same Flask request logs that appeared when running `python app.py` locally.
+
+How do you verify the container is listening on the expected port?
+
+```bash
+docker ps
+docker port <container-id-or-name>
+curl -i http://127.0.0.1:5001/health
+```
+
+What to prove:
+
+```text
+docker ps shows the port mapping.
+docker port shows host port -> container port.
+curl proves the mapped port reaches the Flask /health route.
+```
+
+How would you keep secrets out of the image?
+
+```text
+Do not hard-code secrets in app.py.
+Do not put secrets in the Dockerfile.
+Do not copy .env, keys, certificates, or cookies into the image.
+Use runtime environment variables for local testing.
+Use Kubernetes Secrets or a secret manager in Kubernetes-style environments.
+```
+
 ## Key Takeaways
 
 ```text

@@ -182,16 +182,19 @@ The browser automatically sent the session cookie with GET /session/profile, all
 ```text
 Set-Cookie:
 Response header from the server that tells the browser to store a cookie.
-  *** compare session/login response header  to /session/profile response header, where & why is set-cookie missing?
 
 Cookie:
 Request header from the browser that sends a stored cookie back to the server.
 
-X-Request-ID:
-Tracing header used to connect a browser response with server logs.
-```
+Session cookie:
+Proof that the browser has login state for later matching requests.
 
-A `request ID` traces one request. A `session cookie` proves the browser has login state.
+X-Request-ID:
+Tracing value used to connect one browser response with its server logs.
+
+Distributed-systems context:
+Cookies usually prove user state at the edge or app layer. Request IDs prove which request path produced the result.
+```
 
 `Set-Cookie` is a response header from the server:
 
@@ -204,6 +207,18 @@ Meaning:
 ```text
 Store this cookie and send it back on future matching requests.
 ```
+
+Compare the two requests:
+
+```text
+POST /session/login response:
+Look for Set-Cookie. This proves the server created login state and told the browser to store it.
+
+GET /session/profile request:
+Look for Cookie. This proves the browser reused the stored session cookie on a later request.
+```
+
+`/session/profile` does not need another `Set-Cookie` response header because the browser already has the session cookie. The important evidence on the profile request is the `Cookie` request header.
 
 ## Fun Fact: Cookie vs Cache
 
