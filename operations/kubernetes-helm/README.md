@@ -219,13 +219,26 @@ Your container should:
 Install dependencies from requirements.txt
 Copy app.py into the image
 Run the Flask application
-Expose port 5000
+Expose port 5001
 Set FLASK_RUN_HOST=0.0.0.0
 Write logs to stdout/stderr
 Avoid copying venv, caches, cookies, keys, and Git metadata
 Prefer a non-root runtime user
 Include or describe a health check for /health
 ```
+
+## Create the Packaging Files First
+
+Before running `docker build`, create these files at the project root:
+
+```text
+Dockerfile
+.dockerignore
+```
+
+The `Dockerfile` is the image blueprint. It describes how to build the application image.
+
+The `.dockerignore` controls which local files Docker should leave out of the image build context.
 
 ## Build and Run
 
@@ -239,8 +252,9 @@ Run:
 
 ```bash
 docker run --rm \
-  -p 5000:5000 \
+  -p 5001:5001 \
   -e FLASK_RUN_HOST=0.0.0.0 \
+  -e FLASK_RUN_PORT=5001 \
   -e FLASK_DEBUG=false \
   request-tracing-lab:local
 ```
@@ -248,7 +262,7 @@ docker run --rm \
 Test:
 
 ```bash
-curl -v http://127.0.0.1:5000/health
+curl -v http://127.0.0.1:5001/health
 ```
 
 ## Record
