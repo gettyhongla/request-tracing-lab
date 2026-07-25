@@ -39,7 +39,7 @@ The focus is architectural reasoning, not memorizing tools.
 | [Phase 5](phases/phase-05-queues-workers/) | Queues and workers | Investigate asynchronous jobs, retries, backlogs, idempotency, and eventual consistency |
 | [Phase 6](phases/phase-06-distributed-services/) | Distributed services | Reason through service boundaries, failed hops, timeouts, retries, and partial failure |
 | [Phase 7](phases/phase-07-production-operations/) | Production operations | Practice release checks, incident response, customer updates, engineering escalations, runbooks, and postmortems |
-| [Phase 8](phases/phase-08-scale-reliability-design/) | Scale and reliability | Practice capacity, availability, safe deployments, graceful degradation, rollback strategy, and SLO tradeoffs |
+| [Phase 8](phases/phase-08-scale-reliability-design/) | Production architecture and reliability | Practice AWS production design, global availability, capacity, safe deployments, graceful degradation, rollback strategy, and SLO tradeoffs |
 | [Phase 9](phases/phase-09-interview-mode/) | Interview mode | Diagnose unknown scenarios with structured, evidence-first reasoning |
 
 ## Current Architecture
@@ -156,6 +156,18 @@ How do we know it is healthy?
 How do we know customers are not impacted?
 How do we roll back safely?
 What evidence would prove the deployment caused or did not cause the issue?
+```
+
+For larger production-design interviews, you should also be able to answer:
+
+```text
+What architecture would you deploy on AWS?
+Which traffic is public and which traffic is private?
+Where does authentication happen?
+How is the system globally available?
+How are containers secured?
+How are database, Redis, and queue dependencies protected?
+How do you test, load test, monitor, and roll back before management calls it production-ready?
 ```
 
 ## Install And Run

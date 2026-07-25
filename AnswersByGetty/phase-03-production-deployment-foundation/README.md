@@ -1,6 +1,8 @@
 # Phase 3 Answers: Production Deployment Foundation
 
-These answers follow `phases/phase-03-production-deployment-foundation/labs/README.md`.
+These answers follow the Phase 3 lifecycle folders in `phases/phase-03-production-deployment-foundation/`.
+
+The phase folders contain prompts, checklists, concepts, and deployment assets. This directory contains Getty's completed evidence and conclusions.
 
 ## Completed
 
