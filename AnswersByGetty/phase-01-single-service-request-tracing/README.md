@@ -41,7 +41,7 @@ Phase 2 bridge:
 When NGINX, PostgreSQL, and Redis are added, the same evidence discipline expands across more layers.
 ```
 
-## Next: Failure Answers
+## Failure Answers
 
 ```text
 phase-2-inject-and-diagnose-failures/failure-01-wrong-password.md
@@ -58,19 +58,26 @@ phase-2-inject-and-diagnose-failures/failure-11-application-exception.md
 phase-2-inject-and-diagnose-failures/failure-12-untrusted-certificate.md
 ```
 
-These files are reusable answer templates.
-
-Completed failure evidence lives in:
+Completed RCA reports:
 
 ```text
-phase-2-inject-and-diagnose-failures/solutions/
+phase-2-inject-and-diagnose-failures/failure-01-wrong-password.md
+phase-2-inject-and-diagnose-failures/failure-02-missing-session-cookie.md
 ```
 
-Current completed failure answers:
+Placeholder templates:
 
 ```text
-phase-2-inject-and-diagnose-failures/solutions/lab-01-wrong-password.md
-phase-2-inject-and-diagnose-failures/solutions/lab-02-missing-session-cookie.md
+phase-2-inject-and-diagnose-failures/failure-03-invalid-jwt.md
+phase-2-inject-and-diagnose-failures/failure-04-expired-jwt.md
+phase-2-inject-and-diagnose-failures/failure-05-nonexistent-route.md
+phase-2-inject-and-diagnose-failures/failure-06-server-unavailable.md
+phase-2-inject-and-diagnose-failures/failure-07-wrong-port.md
+phase-2-inject-and-diagnose-failures/failure-08-malformed-json.md
+phase-2-inject-and-diagnose-failures/failure-09-missing-content-type.md
+phase-2-inject-and-diagnose-failures/failure-10-slow-request.md
+phase-2-inject-and-diagnose-failures/failure-11-application-exception.md
+phase-2-inject-and-diagnose-failures/failure-12-untrusted-certificate.md
 ```
 
-Work through these one at a time. For each failure, trigger the scenario, capture client evidence, capture server evidence if the request reaches Flask, then write the conclusion from evidence in the matching solution file.
+Work through the remaining placeholder templates one at a time. For each failure, trigger the scenario, capture client evidence, capture server evidence if the request reaches Flask, then replace the placeholder with an RCA-style answer.
