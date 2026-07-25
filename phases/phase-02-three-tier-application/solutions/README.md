@@ -1,6 +1,8 @@
-# Phase 2 Solutions
+# Phase 2 Solution Guide
 
-Use these after attempting the labs. The goal is not to copy exact wording. The goal is to check whether the conclusion is supported by evidence from the correct layer.
+Use this after attempting the labs. This is not Getty's completed work. It is a short guide for what strong reasoning should include.
+
+Put actual observations, diagrams, commands, request IDs, and reflections in `AnswersByGetty/phase-02-three-tier-application/`.
 
 ## Solution 1: Healthy Request Path
 

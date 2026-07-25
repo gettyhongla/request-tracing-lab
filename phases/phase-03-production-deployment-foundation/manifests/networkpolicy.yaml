@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: request-tracing-lab-ingress
+  namespace: request-tracing-lab
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: request-tracing-lab
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 5001

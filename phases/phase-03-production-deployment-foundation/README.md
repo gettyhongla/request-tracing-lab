@@ -19,6 +19,45 @@ Focus:
 * Cluster DNS and dependency connectivity
 * Identifying which pod and version handled a request
 
+## Phase 3 Contents
+
+```text
+README.md
+concepts/kubernetes-operator-concepts.md
+labs/README.md
+manifests/
+```
+
+The `manifests/` directory contains the working Kubernetes deployment artifacts for this Flask app:
+
+```text
+namespace.yaml
+secret.example.yaml
+deployment.yaml
+service.yaml
+ingress.yaml
+hpa.yaml
+networkpolicy.yaml
+```
+
+Getty's completed Phase 3 answers live in:
+
+```text
+AnswersByGetty/phase-03-production-deployment-foundation/
+```
+
+## How To Use This Phase
+
+Work through the deployment path in this order:
+
+1. Confirm the Flask app runs with container-style environment variables.
+2. Build and run the container image locally.
+3. Deploy the same image with Kubernetes manifests.
+4. Convert the deployment into Helm-managed release thinking.
+5. Practice structured troubleshooting from client symptom to cluster evidence.
+6. Break one layer at a time and diagnose it.
+7. Evaluate production readiness, performance, rollback, and reliability.
+
 ## Deployment Path
 
 ```text

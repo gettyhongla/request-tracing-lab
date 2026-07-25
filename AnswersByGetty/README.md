@@ -1,8 +1,17 @@
 # Answers By Getty
 
-This directory contains Getty's completed answers and investigation notes.
+This directory contains Getty's completed answers, investigation notes, deployment evidence, and reflections.
 
-Use these after attempting the labs yourself. The point is not to memorize the wording. The point is to study how evidence turns into a clear technical conclusion.
+Use these after attempting the labs yourself. The point is not to memorize wording. The point is to study how evidence turns into a clear technical conclusion.
+
+These files are the portfolio proof of work. They should show:
+
+* What I observed
+* What evidence I collected
+* What I ruled out
+* What I concluded
+* What I would do next in production
+* What concept I want to retain for future phases
 
 ## Phase 1 Answers
 
@@ -22,17 +31,34 @@ Phase 1 answers focus on:
 * `X-Request-ID` correlation
 * Clear takeaways to retain before Phase 2
 
+## Phase 3 Answers
+
+```text
+AnswersByGetty/phase-03-production-deployment-foundation/
+|-- lab-01-container-readiness.md
+|-- lab-02-container-packaging.md
+|-- lab-03-kubernetes-manifests.md
+```
+
+Phase 3 answers focus on:
+
+* Container runtime configuration
+* Docker image packaging
+* Kubernetes manifests
+* Pod, Service, Ingress, Secret, HPA, and NetworkPolicy evidence
+* Deployment troubleshooting and production readiness
+
 ## Future Answers
 
 Add future answer sets by phase:
 
 ```text
 AnswersByGetty/phase-02-three-tier-application/
-AnswersByGetty/phase-03-containers-kubernetes/
+AnswersByGetty/phase-03-production-deployment-foundation/
 AnswersByGetty/phase-04-observability/
 AnswersByGetty/phase-05-queues-workers/
 AnswersByGetty/phase-06-distributed-services/
-AnswersByGetty/phase-07-production-incident-operations/
+AnswersByGetty/phase-07-production-operations/
 AnswersByGetty/phase-08-scale-reliability-design/
 AnswersByGetty/phase-09-interview-mode/
 ```

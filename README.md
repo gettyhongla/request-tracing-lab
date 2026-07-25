@@ -34,11 +34,11 @@ The focus is architectural reasoning, not memorizing tools.
 | --- | --- | --- |
 | [Phase 1](phases/phase-01-single-service-request-tracing/) | Single-service request tracing | Understand HTTP, auth, request IDs, logs, latency, and controlled failures |
 | [Phase 2](phases/phase-02-three-tier-application/) | Three-tier application design | Trace traffic through browser, reverse proxy, Flask API, PostgreSQL, and Redis |
-| [Phase 3](phases/phase-03-containers-kubernetes/) | Production deployment foundation | Package, configure, deploy, verify, roll back, and troubleshoot the app in containerized/Kubernetes-style environments |
+| [Phase 3](phases/phase-03-production-deployment-foundation/) | Production deployment foundation | Package, configure, deploy, verify, roll back, and troubleshoot the app in containerized/Kubernetes-style environments |
 | [Phase 4](phases/phase-04-observability/) | Observability | Connect logs, metrics, traces, dashboards, and alerts with request behavior |
 | [Phase 5](phases/phase-05-queues-workers/) | Queues and workers | Investigate asynchronous jobs, retries, backlogs, idempotency, and eventual consistency |
 | [Phase 6](phases/phase-06-distributed-services/) | Distributed services | Reason through service boundaries, failed hops, timeouts, retries, and partial failure |
-| [Phase 7](phases/phase-07-production-incident-operations/) | Production operations | Practice release checks, incident response, customer updates, engineering escalations, runbooks, and postmortems |
+| [Phase 7](phases/phase-07-production-operations/) | Production operations | Practice release checks, incident response, customer updates, engineering escalations, runbooks, and postmortems |
 | [Phase 8](phases/phase-08-scale-reliability-design/) | Scale and reliability | Practice capacity, availability, safe deployments, graceful degradation, rollback strategy, and SLO tradeoffs |
 | [Phase 9](phases/phase-09-interview-mode/) | Interview mode | Diagnose unknown scenarios with structured, evidence-first reasoning |
 
@@ -104,11 +104,11 @@ request-tracing-lab/
 |-- phases/
 |   |-- phase-01-single-service-request-tracing/
 |   |-- phase-02-three-tier-application/
-|   |-- phase-03-containers-kubernetes/
+|   |-- phase-03-production-deployment-foundation/
 |   |-- phase-04-observability/
 |   |-- phase-05-queues-workers/
 |   |-- phase-06-distributed-services/
-|   |-- phase-07-production-incident-operations/
+|   |-- phase-07-production-operations/
 |   |-- phase-08-scale-reliability-design/
 |   `-- phase-09-interview-mode/
 |
@@ -116,6 +116,21 @@ request-tracing-lab/
 ```
 
 Use `AnswersByGetty/` only after attempting the labs yourself.
+
+## What Goes Where
+
+```text
+phases/
+Prompts, diagrams, lab objectives, completion standards, manifests, and reusable learning material.
+
+phases/*/solutions/
+Short answer guides that show what good reasoning should include.
+
+AnswersByGetty/
+Getty's actual work: evidence collected, commands run, observations, troubleshooting conclusions, reflections, and takeaways.
+```
+
+The project should teach others while also showing employers how you think, troubleshoot, design, deploy, and communicate. Keep the public docs focused; let the answer files prove the work.
 
 ## Production Deployment Skills
 

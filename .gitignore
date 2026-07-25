@@ -7,13 +7,6 @@ venv/
 *.pem
 *.key
 cookies.txt
-k8s/*.local.yaml
 k8s/
 operations/kubernetes-helm/
 AnswersByGetty/operations/kubernetes-helm/
-
-# Private learning history and interview reflection
-# These files stay local unless intentionally removed from .gitignore.
-docs/project-evolution.md
-docs/learning-journal/
-docs/interview-reflections/
