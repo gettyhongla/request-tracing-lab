@@ -1,51 +1,41 @@
-# Lab 2: Inspect a Request in DevTools
+# Trace Report: Lab 02 - Inspect A Request In DevTools
 
-## Record: General
+## Purpose
 
-```text
-Request URL:
-http://127.0.0.1:5000/health
+Separate request evidence from response evidence using browser DevTools.
 
-Request method:
-GET
+This trace shows what the browser sent to Flask, what Flask returned, and which value can be used to correlate browser evidence with server logs.
 
-Status code:
-200 OK
-
-Remote address:
-127.0.0.1:5000
-```
-
-## Request Headers
+## Request
 
 ```text
-Host:
-127.0.0.1:5000
-
-User-Agent:
-Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
-
-Accept:
-*/*
-
-Connection:
-keep-alive
+Request URL: http://127.0.0.1:5000/health
+Method: GET
+Remote address: 127.0.0.1:5000
+Request body: None
 ```
 
-## Response Headers
+Request headers:
 
 ```text
-Content-Type:
-application/json
-
-Content-Length:
-77
-
-X-Request-ID:
-c6360e43-e202-4a71-b511-28707e351f18
+Host: 127.0.0.1:5000
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
+Accept: */*
+Connection: keep-alive
 ```
 
-## Response Body
+The `Host` header identifies the destination host. The `User-Agent` header identifies the client software, which was Chrome on macOS.
+
+## Response
+
+```text
+Status: 200 OK
+Content-Type: application/json
+Content-Length: 77
+X-Request-ID: c6360e43-e202-4a71-b511-28707e351f18
+```
+
+Response body:
 
 ```json
 {
@@ -54,64 +44,21 @@ c6360e43-e202-4a71-b511-28707e351f18
 }
 ```
 
-## Questions
+The server returned JSON. The `Content-Type: application/json` response header confirms the response format.
 
-1. Which information belongs to the request?
-
-Request information is what the browser sent to the server. In this example, that includes the URL, method, path, and request headers such as `Host`, `User-Agent`, `Accept`, and `Connection`.
-
-2. Which information belongs to the response?
-
-Response information is what the server sent back to the browser. In this example, that includes the status code `200 OK`, response headers such as `Content-Type`, `Content-Length`, `Date`, `Server`, and `X-Request-ID`, plus the JSON response body.
-
-3. Which header identifies the destination host?
-
-The `Host` request header identifies the destination host:
+## Trace Summary
 
 ```text
-Host: 127.0.0.1:5000
+Browser sends:
+GET /health with request headers and no request body.
+
+Flask returns:
+200 OK with JSON content, response headers, and X-Request-ID.
 ```
 
-`Remote Address` also shows where the browser connected, but it is not a request header.
+The `X-Request-ID` response header is the strongest tracing value because it can be matched against `request_id` in Flask logs.
 
-4. Which header identifies the client software?
-
-The `User-Agent` request header identifies the client software. In this case, it identifies Chrome on macOS.
-
-5. Did the GET request contain a request body?
-
-No. This `GET /health` request did not send a request body.
-
-The JSON object with `"status": "healthy"` is the response body, not the request body.
-
-6. What format was returned in the response body?
-
-The server returned JSON. The `Content-Type: application/json` response header confirms the format.
-
-7. Which header could help you locate this request in server logs?
-
-The `X-Request-ID` response header can help locate the matching request in the Flask logs.
-
-Example:
-
-```text
-X-Request-ID: c6360e43-e202-4a71-b511-28707e351f18
-```
-
-## Conclusion
-
-```text
-The client sent:
-A GET request to /health with request headers such as Host, User-Agent, Accept, and Connection. The request did not include a body.
-
-The server returned:
-A 200 OK response with JSON content, response headers including Content-Type and X-Request-ID, and a body reporting "status": "healthy" plus a timestamp.
-
-The most useful tracing evidence was:
-The X-Request-ID response header, because it can be matched against the request_id value in the Flask server logs.
-```
-
-## Key Takeaways
+## What This Confirms
 
 ```text
 Request:
@@ -128,10 +75,14 @@ Data returned by the server. In this lab, it was JSON.
 
 X-Request-ID:
 The main correlation value between DevTools and Flask logs.
+```
+
+## Retained Takeaway
+
+GET `/health` retrieved information without sending a body. The JSON object with `"status": "healthy"` was the response body, not the request body.
 
 OSI context:
-These are HTTP details, so they sit at the application layer. Lower layers still matter when DNS, TCP, TLS, or routing fails.
+These are HTTP details at the application layer. Lower layers still matter when DNS, TCP, TLS, or routing fails.
 
 Phase 2 bridge:
 When a reverse proxy is added, compare browser evidence with proxy evidence and application evidence instead of assuming one layer tells the whole story.
-```

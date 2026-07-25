@@ -1,14 +1,19 @@
-# Lab 5: Trace Session Authentication
+# Trace Report: Lab 05 - Trace Session Authentication
 
-## Task 1: Log In
+## Purpose
+
+Trace successful session-cookie authentication from login through a protected profile request.
+
+This trace shows how Flask creates session state, how the browser stores the session cookie, and how the browser sends that cookie back automatically on a later request.
+
+## Login Request
 
 ```text
-Request method: POST
-
+Method: POST
 Response status: 200 OK
-
 Request ID: 1fdfa6f9-abe1-47ab-a22a-91e0cce36f31
 ```
+
 Request body:
 
 ```json
@@ -18,80 +23,27 @@ Request body:
 }
 ```
 
-Set-Cookie header:
+Set-Cookie response header:
 
 ```http
 Set-Cookie: session=eyJ1c2VybmFtZSI6ImdldHR5In0.amIbDg.ytZI2Baqbr7AYn3Oj8bWtqqmiKQ; HttpOnly; Path=/
 ```
 
-## Task 2: Inspect Stored Cookies
+The `POST /session/login` response instructed the browser to store the cookie by returning `Set-Cookie`.
+
+## Stored Cookie Evidence
 
 ```text
 Cookie name: session
-
 Domain: 127.0.0.1
-
 Path: /
-
 HttpOnly: Checked
-
 Secure: Blank
-
 SameSite: Blank
-
 Expiration: Session
 ```
 
-## Task 3: Access the Session Profile
-
-Cookie request header:
-
-```http
-Cookie: session=eyJ1c2VybmFtZSI6ImdldHR5In0...
-```
-
-```text
-Response status: 200 OK
-
-Request ID: 210dae52-495f-495c-8eeb-1b8dbef54761
-```
-Response body:
-
-```json
-{
-  "authentication": "session cookie",
-  "request_id": "210dae52-495f-495c-8eeb-1b8dbef54761",
-  "username": "getty"
-}
-```
-
-Matching server log:
-
-```text
-2026-07-23 10:46:45,355 INFO request_started request_id=210dae52-495f-495c-8eeb-1b8dbef54761 method=GET path=/session/profile remote_ip=127.0.0.1 user_agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
-2026-07-23 10:46:45,355 INFO request_finished request_id=210dae52-495f-495c-8eeb-1b8dbef54761 status=200
-2026-07-23 10:46:45,356 INFO 127.0.0.1 - - [23/Jul/2026 10:46:45] "GET /session/profile HTTP/1.1" 200 -
-```
-
-## Questions
-
-1. Which response instructed the browser to store the cookie?
-
-The `POST /session/login` response instructed the browser to store the cookie by returning a `Set-Cookie` response header.
-
-2. Which request sent the cookie back?
-
-The `GET /session/profile` request sent the cookie back in the `Cookie` request header.
-
-3. Did the browser send the cookie automatically?
-
-Yes. After the browser stored the session cookie, it automatically sent that cookie on later matching requests to `127.0.0.1:5000` based on domain/path rules.
-
-4. Was the username and password sent again to access the profile?
-
-No. The username and password were sent to `POST /session/login`. The later `GET /session/profile` request used the existing session cookie instead of sending the credentials again.
-
-5. Which cookie attributes affect when JavaScript or the browser can use it?
+Cookie attributes affect when JavaScript or the browser can use the cookie:
 
 ```text
 HttpOnly:
@@ -113,11 +65,40 @@ Expiration / Max-Age:
 Controls how long the cookie lasts. Session cookies last until the browser session ends.
 ```
 
-6. How did the server identify the logged-in session?
+## Protected Request
 
-The server identified the logged-in session using the `session` cookie.
+Cookie request header:
 
-## Draw the Lifecycle
+```http
+Cookie: session=eyJ1c2VybmFtZSI6ImdldHR5In0...
+```
+
+```text
+Method: GET
+Path: /session/profile
+Response status: 200 OK
+Request ID: 210dae52-495f-495c-8eeb-1b8dbef54761
+```
+
+Response body:
+
+```json
+{
+  "authentication": "session cookie",
+  "request_id": "210dae52-495f-495c-8eeb-1b8dbef54761",
+  "username": "getty"
+}
+```
+
+Server evidence:
+
+```text
+2026-07-23 10:46:45,355 INFO request_started request_id=210dae52-495f-495c-8eeb-1b8dbef54761 method=GET path=/session/profile remote_ip=127.0.0.1 user_agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
+2026-07-23 10:46:45,355 INFO request_finished request_id=210dae52-495f-495c-8eeb-1b8dbef54761 status=200
+2026-07-23 10:46:45,356 INFO 127.0.0.1 - - [23/Jul/2026 10:46:45] "GET /session/profile HTTP/1.1" 200 -
+```
+
+## Trace Summary
 
 ```text
 POST /session/login
@@ -164,20 +145,15 @@ Returns profile JSON
 }
 ```
 
-## Conclusion
+## What This Confirms
 
-```text
-The session was created when:
-The browser sent POST /session/login with valid JSON credentials, and Flask returned a Set-Cookie response header.
+The session was created when the browser sent `POST /session/login` with valid JSON credentials and Flask returned a `Set-Cookie` response header.
 
-The browser proved it stored the session by:
-The session cookie appeared in DevTools under Application > Cookies, and the later /session/profile request included a Cookie request header.
+The browser proved it stored the session because the session cookie appeared in DevTools under Application > Cookies, and the later `/session/profile` request included a `Cookie` request header.
 
-The server recognized the later request because:
-The browser automatically sent the session cookie with GET /session/profile, allowing Flask to identify the logged-in user without sending the username and password again.
-```
+The server recognized the later request because the browser automatically sent the session cookie with `GET /session/profile`, allowing Flask to identify the logged-in user without sending the username and password again.
 
-## Key Takeaways
+## Retained Takeaway
 
 ```text
 Set-Cookie:
@@ -191,22 +167,9 @@ Proof that the browser has login state for later matching requests.
 
 X-Request-ID:
 Tracing value used to connect one browser response with its server logs.
-
-Distributed-systems context:
-Cookies usually prove user state at the edge or app layer. Request IDs prove which request path produced the result.
-
-Phase 2 bridge:
-When NGINX is introduced, confirm whether cookie headers are forwarded correctly before blaming Flask or the database.
-```
-
-## Cookie vs Cache
-
-```text
-Cookie:
-Small data stored by the browser and sent back to the server on matching requests.
-
-Cache:
-Saved response data the browser can reuse so it does not have to download the same resource again.
 ```
 
 Cookies are mostly about state and identity. Cache is mostly about performance.
+
+Phase 2 bridge:
+When NGINX is introduced, confirm whether cookie headers are forwarded correctly before blaming Flask or the database.

@@ -1,58 +1,37 @@
-# Lab 3: Correlate a Request with Server Logs
+# Trace Report: Lab 03 - Correlate A Request With Server Logs
 
-## Record
+## Purpose
+
+Use `X-Request-ID` to connect client-side browser evidence to Flask server logs.
+
+This trace proves that the same request can be followed from DevTools into the application log by matching the request ID, method, path, timestamp, and status code.
+
+## Request And Response
 
 ```text
-Request ID:
-c4d27ee1-55a4-4637-9876-5cc385890fff
-
-Request method from the log:
-GET
-
-Request path from the log:
-/health
-
-Response status from the log:
-200
-
-Request-started entry:
-2026-07-23 09:05:25,609 INFO request_started request_id=c4d27ee1-55a4-4637-9876-5cc385890fff method=GET path=/health remote_ip=127.0.0.1 user_agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
-
-Request-finished entry:
-2026-07-23 09:05:25,609 INFO request_finished request_id=c4d27ee1-55a4-4637-9876-5cc385890fff status=200
+Method: GET
+Path: /health
+Status: 200
+Request ID: c4d27ee1-55a4-4637-9876-5cc385890fff
 ```
-
-## Questions
-
-1. Where did you first find the request ID?
 
 The request ID first appeared in DevTools as the `X-Request-ID` response header for the `/health` request.
 
-2. Where did the same value appear in the server logs?
+## Server Evidence
 
-The same value appeared in the Flask terminal logs on both the `request_started` and `request_finished` entries:
+```text
+2026-07-23 09:05:25,609 INFO request_started request_id=c4d27ee1-55a4-4637-9876-5cc385890fff method=GET path=/health remote_ip=127.0.0.1 user_agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
+
+2026-07-23 09:05:25,609 INFO request_finished request_id=c4d27ee1-55a4-4637-9876-5cc385890fff status=200
+```
+
+The same request ID appeared in both `request_started` and `request_finished`:
 
 ```text
 request_id=c4d27ee1-55a4-4637-9876-5cc385890fff
 ```
 
-3. Did the request and response use the same ID?
-
-Yes. The `X-Request-ID` value from the browser response matched the `request_id` value in the Flask server logs.
-
-4. What client information appeared in the request log?
-
-The request log included the method, path, remote IP address, and user agent. The user agent identified the client as Chrome on macOS.
-
-5. How would a request ID help investigate a customer report?
-
-A request ID lets you connect a client-side report to the exact server-side log entries for that request. With the ID, you can find the method, path, timestamp, status code, user agent, and any related application errors without guessing which log line belongs to the customer.
-
-6. What information would you include in an engineering escalation?
-
-An engineering escalation should include the request ID, timestamp, request URL or path, HTTP method, response status code, response body or error message, relevant request and response headers, user agent, and the matching server log entries.
-
-## Draw the Trace
+## Trace Summary
 
 ```text
 Client: Chrome browser
@@ -68,17 +47,23 @@ Flask application
 Client: 200 OK JSON health response
 ```
 
-## Conclusion
+## What This Confirms
 
-```text
-I correlated the client request with the server logs by:
-Copying the X-Request-ID value from the DevTools response headers and finding the same request_id value in the Flask terminal logs.
+The `X-Request-ID` value from the browser response matched the `request_id` value in the Flask server logs.
+
+The request log also recorded method, path, remote IP address, and user agent. The user agent identified the client as Chrome on macOS.
 
 The evidence that both records represent the same request is:
-The request ID matched in both places, and the method, path, timestamp, and status were consistent: GET /health returned status 200.
+
+```text
+Matching request ID
+Consistent method: GET
+Consistent path: /health
+Consistent status: 200
+Consistent timestamp window
 ```
 
-## Key Takeaways
+## Retained Takeaway
 
 ```text
 X-Request-ID:
@@ -89,10 +74,9 @@ Proves the request reached the Flask app and records method, path, remote IP, an
 
 request_finished:
 Proves the app finished handling the request and records the final status.
+```
 
-Escalation quality:
-A strong escalation includes request ID, timestamp, route, status, user impact, and matching logs.
+A strong operational note includes request ID, timestamp, route, status, user impact, and matching logs.
 
 Phase 2 bridge:
 In a layered system, this same request ID should appear in proxy logs, application logs, and dependency telemetry so one user action can be traced end to end.
-```
