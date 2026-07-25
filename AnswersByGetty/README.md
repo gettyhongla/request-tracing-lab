@@ -1,43 +1,40 @@
 # Answers By Getty
 
-This directory is Getty's completed answer set for the workbook and architecture challenges.
+This directory contains Getty's completed answers and investigation notes.
 
-Use it after attempting the exercises yourself, either to compare your notes or to study how an investigation can be written clearly.
+Use these after attempting the labs yourself. The point is not to memorize the wording. The point is to study how evidence turns into a clear technical conclusion.
 
-Your exact timestamps, request IDs, cookies, and tokens will be different.
-
-If you are completing this project for your own portfolio, create your own directory at the project root:
+## Phase 1 Answers
 
 ```text
-AnswersByYourName/
-```
-
-Use your directory for your notes, evidence, diagrams, key takeaways, and final explanations.
-
-## Lab Answers
-
-Request-tracing answers are organized by phase:
-
-```text
-AnswersByGetty/labs/
+AnswersByGetty/phase-01-single-service-request-tracing/
 |-- phase-1-observe-successful-requests/
 |-- phase-2-inject-and-diagnose-failures/
 ```
 
-## Architecture Answers
+Phase 1 answers focus on:
 
-Architecture answers live in:
+* Client evidence from DevTools or `curl`
+* Server evidence from Flask logs
+* Request and response separation
+* Session cookie flow
+* JWT bearer-token flow
+* `X-Request-ID` correlation
+* Clear takeaways to retain before Phase 2
+
+## Future Answers
+
+Add future answer sets by phase:
 
 ```text
-AnswersByGetty/architecture/
+AnswersByGetty/phase-02-three-tier-application/
+AnswersByGetty/phase-03-containers-kubernetes/
+AnswersByGetty/phase-04-observability/
+AnswersByGetty/phase-05-queues-workers/
+AnswersByGetty/phase-06-distributed-services/
+AnswersByGetty/phase-07-production-incident-operations/
+AnswersByGetty/phase-08-scale-reliability-design/
+AnswersByGetty/phase-09-interview-mode/
 ```
 
-## Operations Answers
-
-Operations answers live in:
-
-```text
-AnswersByGetty/operations/
-```
-
-Use this section for incident response notes, RCA writeups, postmortems, and explanation practice.
+Keep timestamps, request IDs, cookies, and tokens realistic, but redact secrets and avoid publishing private interview reflections.

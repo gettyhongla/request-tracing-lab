@@ -194,33 +194,12 @@ Tracing value used to connect one browser response with its server logs.
 
 Distributed-systems context:
 Cookies usually prove user state at the edge or app layer. Request IDs prove which request path produced the result.
+
+Phase 2 bridge:
+When NGINX is introduced, confirm whether cookie headers are forwarded correctly before blaming Flask or the database.
 ```
 
-`Set-Cookie` is a response header from the server:
-
-```http
-Set-Cookie: session=...; HttpOnly; Path=/
-```
-
-Meaning:
-
-```text
-Store this cookie and send it back on future matching requests.
-```
-
-Compare the two requests:
-
-```text
-POST /session/login response:
-Look for Set-Cookie. This proves the server created login state and told the browser to store it.
-
-GET /session/profile request:
-Look for Cookie. This proves the browser reused the stored session cookie on a later request.
-```
-
-`/session/profile` does not need another `Set-Cookie` response header because the browser already has the session cookie. The important evidence on the profile request is the `Cookie` request header.
-
-## Fun Fact: Cookie vs Cache
+## Cookie vs Cache
 
 ```text
 Cookie:

@@ -131,4 +131,7 @@ The main correlation value between DevTools and Flask logs.
 
 OSI context:
 These are HTTP details, so they sit at the application layer. Lower layers still matter when DNS, TCP, TLS, or routing fails.
+
+Phase 2 bridge:
+When a reverse proxy is added, compare browser evidence with proxy evidence and application evidence instead of assuming one layer tells the whole story.
 ```

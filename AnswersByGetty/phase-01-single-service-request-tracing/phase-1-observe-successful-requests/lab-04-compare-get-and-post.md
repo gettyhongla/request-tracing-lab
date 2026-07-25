@@ -161,4 +161,7 @@ Makes curl send a POST request unless another method is specified.
 
 Copied browser cookies:
 If copied curl includes -b, curl is sending browser cookie state with the request.
+
+Phase 2 bridge:
+When NGINX and PostgreSQL are added, method, body, content type, and cookies still determine what the application can safely parse and process.
 ```

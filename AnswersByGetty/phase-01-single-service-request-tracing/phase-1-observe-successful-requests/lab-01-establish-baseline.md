@@ -61,8 +61,6 @@ The Flask application is running, the browser can reach it at 127.0.0.1:5000, th
 
 ## Key Takeaways
 
-This baseline proves the same request from multiple angles.
-
 ```text
 Client evidence:
 The browser received an HTTP response.
@@ -75,6 +73,9 @@ The response body reported "healthy" and included a timestamp.
 
 Server evidence:
 The Flask logs showed request_started and request_finished for GET /health.
+
+Phase 2 bridge:
+Before adding NGINX, PostgreSQL, or Redis, capture the healthy baseline so later failures can be compared against known-good behavior.
 ```
 
 This matters because later failures can happen at different layers: connection failure, authentication failure, wrong route, wrong method, slow response, or application exception.

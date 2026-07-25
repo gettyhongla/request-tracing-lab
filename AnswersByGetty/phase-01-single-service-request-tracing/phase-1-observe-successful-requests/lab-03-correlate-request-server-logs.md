@@ -93,6 +93,6 @@ Proves the app finished handling the request and records the final status.
 Escalation quality:
 A strong escalation includes request ID, timestamp, route, status, user impact, and matching logs.
 
-Microservice context:
-In a distributed system, this same request ID should be propagated across services so one user action can be traced end to end.
+Phase 2 bridge:
+In a layered system, this same request ID should appear in proxy logs, application logs, and dependency telemetry so one user action can be traced end to end.
 ```

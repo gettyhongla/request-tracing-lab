@@ -1,13 +1,14 @@
-# Lab Answers
+# Phase 1 Answers: Single-Service Request Tracing
 
-These answers follow the two phases in `labs/README.md`.
+These answers capture the completed Phase 1 request-tracing work.
 
-Phase 1 is for learning what successful requests look like.
-Phase 2 is for breaking one layer at a time and diagnosing the failure with evidence.
+Read them for structure:
 
-## Phase 1: Observe Successful Requests
+```text
+Observation -> Evidence -> Conclusion -> Takeaway
+```
 
-Completed answer files:
+## Completed Answers
 
 ```text
 phase-1-observe-successful-requests/lab-01-establish-baseline.md
@@ -18,9 +19,29 @@ phase-1-observe-successful-requests/lab-05-trace-session-authentication.md
 phase-1-observe-successful-requests/lab-06-trace-jwt-authentication.md
 ```
 
-## Phase 2: Inject and Diagnose Failures
+## Phase 1 Concepts To Retain
 
-Planned Phase 2 failure challenges:
+```text
+Request evidence:
+Method, path, headers, body, cookies, authorization, and request ID.
+
+Response evidence:
+Status, headers, body, cookies set by the server, and request ID.
+
+Server evidence:
+request_started, request_finished, status, path, duration, and application errors.
+
+Authentication evidence:
+Cookies are automatically returned by the browser. JWTs must be explicitly sent in the Authorization header.
+
+Correlation evidence:
+X-Request-ID connects client-side observations to server-side logs.
+
+Phase 2 bridge:
+When NGINX, PostgreSQL, and Redis are added, the same evidence discipline expands across more layers.
+```
+
+## Planned Failure Answers
 
 ```text
 phase-2-inject-and-diagnose-failures/failure-01-wrong-password.md

@@ -149,6 +149,9 @@ Traces the request, but does not authenticate anyone.
 
 Microservice context:
 JWTs are often passed from gateways to services as proof of identity or claims. Request IDs are passed alongside them for troubleshooting.
+
+Phase 2 bridge:
+When NGINX is introduced, verify that the Authorization header reaches Flask before assuming the token itself is invalid.
 ```
 
 A JWT has three dot-separated parts:
