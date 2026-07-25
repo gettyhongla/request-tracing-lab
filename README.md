@@ -1,15 +1,17 @@
-# Request Tracing Lab
+# Production Systems Lab
 
-A hands-on lab for practicing HTTP request tracing, troubleshooting, and evidence-based debugging. The goal is to develop a repeatable troubleshooting process that can be applied to larger production systems.
+A hands-on lab for practicing system design, request tracing, realistic failure investigation, and evidence-first incident response.
 
-This repository has three practice tracks and one example answer set:
+The goal is to build the mental model production engineers use under pressure: design the system, trace the request, collect evidence, isolate the failure, explain the impact, and write the postmortem.
+
+This repository has three practice areas and one example answer set:
 
 ```text
 labs/
 Practice request inspection, logs, headers, cookies, JWTs, latency, and errors.
 
 operations/
-Practice packaging, deploying, running, breaking, and fixing the app in Kubernetes.
+Practice incident response, evidence collection, root cause analysis, and postmortems.
 
 architecture/
 Practice system design, production architecture, reliability, scaling, and tradeoffs.
@@ -26,19 +28,33 @@ This project is designed for aspiring:
 * Customer Success Engineers
 * DevOps and Platform Engineers
 
-This is not primarily a Flask tutorial.
+This is not primarily a Flask, Kubernetes, or Helm tutorial.
 
-The Flask application provides a small, controlled environment where you can send requests, inspect what happened, deliberately create failures, and practice explaining where a request succeeded or failed.
+The Flask application provides a small, controlled simulator where you can send requests, inspect what happened, deliberately create failures, and practice explaining where a request succeeded or failed.
 
 ---
 
+## Weekly Practice Loop
+
+Every week, use the same production-engineering loop:
+
+```text
+Design an architecture.
+Trace requests end to end.
+Inject realistic failures.
+Investigate using logs, metrics, traces, and dashboards.
+Perform an evidence-first root cause analysis.
+Write a postmortem.
+Explain the incident out loud to a customer and to an engineering team.
+```
+
 ## Objective
 
-The objective of this project is to learn how to trace a request end to end.
+The objective of this project is to learn how to reason through production systems.
 
 The project starts with a small local Flask application so you can clearly see the request, response, logs, headers, cookies, tokens, status codes, and request IDs.
 
-After that, the architecture exercises expand the same tracing method into larger systems, including 3-tier applications, microservices, Kubernetes, Helm, event-driven systems, and enterprise-style SaaS platforms.
+After that, the architecture exercises expand the same tracing method into larger systems, including 3-tier applications, microservices, event-driven systems, databases, caches, queues, load balancers, external APIs, and enterprise-style SaaS platforms.
 
 You will practice using browser tools, command-line tools, application logs, headers, cookies, tokens, status codes, and request IDs to answer:
 
@@ -68,7 +84,8 @@ You will use this project to practice:
 * Investigating latency and application errors
 * Distinguishing client, connection, authentication, and application failures
 * Adding HTTPS and inspecting TLS behavior
-* Expanding from one Flask app into 3-tier, microservice, event-driven, Kubernetes, and enterprise-style architectures
+* Expanding from one Flask app into 3-tier, microservice, event-driven, and enterprise-style architectures
+* Practicing customer-facing and engineering-facing incident explanations
 
 ---
 
@@ -128,9 +145,9 @@ The application currently runs at:
 http://127.0.0.1:5000
 ```
 
-The starting architecture does not include a database, reverse proxy, load balancer, Redis, containers, or Kubernetes.
+The starting architecture does not include a database, reverse proxy, load balancer, Redis, queue, object storage, or external API.
 
-Those components can be added later as architecture exercises.
+Those components can be added later as architecture exercises without making the project depend on one deployment platform.
 
 ---
 
@@ -180,7 +197,7 @@ Local defaults work with:
 python app.py
 ```
 
-For container and Kubernetes exercises, the app can read:
+For local and containerized exercises, the app can read:
 
 ```text
 FLASK_RUN_HOST
@@ -196,7 +213,7 @@ In a container, `FLASK_RUN_HOST` should usually be:
 0.0.0.0
 ```
 
-Secrets such as `FLASK_SECRET_KEY` and `JWT_SECRET` should be provided through environment variables or Kubernetes Secrets, not baked into the image.
+Secrets such as `FLASK_SECRET_KEY` and `JWT_SECRET` should be provided through environment variables or a secret manager, not baked into the image.
 
 ---
 
@@ -215,7 +232,7 @@ request-tracing-lab/
 ```
 
 Start with `labs/` when you want request-level practice.
-Use `operations/` when you want packaging, Kubernetes, Helm, deployment, and live troubleshooting practice.
+Use `operations/` when you want incident response, RCA, postmortem, and explanation practice.
 Use `architecture/` when you want system design, production architecture, scaling, and tradeoff practice.
 Use `AnswersByGetty/` only after attempting the exercises.
 
@@ -437,7 +454,7 @@ What fixed it?
 
 After completing the request-tracing exercises, choose the track that matches what you want to practice next.
 
-For hands-on operations, packaging, Kubernetes, and Helm, use:
+For incident response, evidence collection, RCA, postmortems, and explanation practice, use:
 
 ```text
 operations/README.md
@@ -452,17 +469,16 @@ architecture/README.md
 The operations track focuses on:
 
 ```text
-Docker
-Kubernetes
-Helm
-Ingress
-Deployments
-Services
-Pods
-Probes
-Secrets
-Logs and events
-Live troubleshooting
+Customer impact
+Reproduction steps
+Evidence collection
+Logs, metrics, traces, and dashboards
+Hypothesis testing
+Mitigation
+Root cause analysis
+Postmortems
+Customer explanations
+Engineering explanations
 ```
 
 The architecture track focuses on:

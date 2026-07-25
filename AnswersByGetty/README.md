@@ -38,5 +38,6 @@ Operations answers live in:
 
 ```text
 AnswersByGetty/operations/
-|-- kubernetes-helm/
 ```
+
+Use this section for incident response notes, RCA writeups, postmortems, and explanation practice.

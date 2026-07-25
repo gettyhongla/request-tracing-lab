@@ -558,17 +558,13 @@ How would you inspect container networking and logs?
 
 ---
 
-## Architecture Exercise 7: Design a Kubernetes Deployment
+## Architecture Exercise 7: Design a Runtime Platform
 
 ### Scenario
 
-Design how the containerized application should run in Kubernetes.
+Design how the application should run when it is no longer just a local process.
 
-This exercise is for architecture and design reasoning. For the hands-on package, deploy, run, break, and fix workflow, use:
-
-```text
-operations/kubernetes-helm/README.md
-```
+Do not start with a specific platform. First decide what the runtime must provide: routing, health checks, configuration, secrets, scaling, rollout safety, logs, metrics, traces, and rollback.
 
 ### Starting design
 
@@ -576,43 +572,43 @@ operations/kubernetes-helm/README.md
 Client
   |
   v
-Ingress
+Edge router or load balancer
   |
   v
-Service
+Runtime platform
   |
   v
-Pod
+Application instance
   |
   v
-Flask container
+Flask process
 ```
 
 ### Design tasks
 
-1. Decide which Kubernetes objects are required.
+1. Decide which runtime option fits the system: VM, container service, PaaS, or orchestrator.
 2. Decide how traffic reaches the application.
 3. Decide where TLS terminates.
-4. Decide how readiness and liveness should work.
+4. Decide how health checks should work.
 5. Decide how application secrets are provided.
 6. Decide how logs, metrics, and request IDs are collected.
 7. Decide how scaling should work.
-8. Identify network-policy requirements.
+8. Decide how deploys and rollbacks should work.
 
 ### Questions
 
 ```text
-How does the Service discover healthy Pods?
+How does the router discover healthy application instances?
 
-What happens when a readiness probe fails?
+What happens when a health check fails?
 
-What happens when a liveness probe fails?
+What happens when the process is alive but cannot serve real traffic?
 
-What can cause an Ingress 502 or 503?
+What can cause a 502, 503, or 504?
 
-How does Kubernetes DNS affect internal requests?
+How is internal service discovery handled?
 
-How would you determine which Pod handled a request?
+How would you determine which instance handled a request?
 ```
 
 ### Draw your design
@@ -638,13 +634,13 @@ How would you determine which Pod handled a request?
 
 | Symptom                       | Possible layer | Evidence to collect |
 | ----------------------------- | -------------- | ------------------- |
-| Ingress returns 404           |                |                     |
-| Ingress returns 502           |                |                     |
-| Service has no endpoints      |                |                     |
-| Pod is not ready              |                |                     |
-| Pod is restarting             |                |                     |
+| Router returns 404            |                |                     |
+| Router returns 502            |                |                     |
+| Router returns 504            |                |                     |
+| No healthy instances          |                |                     |
+| Instance is restarting        |                |                     |
 | Internal DNS fails            |                |                     |
-| Network policy blocks traffic |                |                     |
+| Network rules block traffic   |                |                     |
 
 ---
 
@@ -660,7 +656,7 @@ The request now crosses multiple services.
 Browser
   |
   v
-Load balancer or Ingress
+Load balancer or API gateway
   |
   v
 API service
@@ -758,7 +754,7 @@ Sensitive fields to exclude:
 
 Split the application into separate services such as authentication, profile, and audit logging.
 
-The earlier PostgreSQL, Nginx, multiple-instance, Redis, Kubernetes, and Helm exercises already cover the foundation of a layered production application. This exercise focuses on what changes when one application becomes multiple independently deployed services.
+The earlier PostgreSQL, Nginx, multiple-instance, Redis, runtime-platform, and tracing exercises already cover the foundation of a layered production application. This exercise focuses on what changes when one application becomes multiple independently deployed services.
 
 ### Starting design
 
@@ -766,7 +762,7 @@ The earlier PostgreSQL, Nginx, multiple-instance, Redis, Kubernetes, and Helm ex
 Client
   |
   v
-Ingress or API gateway
+Load balancer or API gateway
   |
   v
 Auth service
@@ -869,7 +865,7 @@ Your design may include:
 DNS
 TLS
 Load balancer
-Nginx or Ingress
+Nginx or API gateway
 Multiple application instances
 Authentication
 Redis
