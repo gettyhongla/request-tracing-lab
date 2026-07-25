@@ -19,7 +19,7 @@ Use them after completing the container packaging lab.
 ## Apply
 
 ```bash
-kubectl apply -f phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/
+kubectl apply -f phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/
 ```
 
 ## Inspect

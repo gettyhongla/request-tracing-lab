@@ -27,21 +27,14 @@ Focus:
 
 ```text
 README.md
-01-runtime-configuration/
-02-container-image/
-03-container-security/
-04-traffic-routing/
-05-kubernetes-deployment/
-06-release-management/
-07-testing-load/
-08-troubleshooting-readiness/
+labs/
 concepts/kubernetes-operator-concepts.md
 ```
 
 The Kubernetes deployment assets live in:
 
 ```text
-05-kubernetes-deployment/manifests/
+labs/05-kubernetes-deployment/manifests/
 ```
 
 That directory contains the working Kubernetes deployment artifacts for this Flask app:

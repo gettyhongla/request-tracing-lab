@@ -9,7 +9,7 @@ Deploy the same containerized Flask app with Kubernetes manifests.
 Use:
 
 ```text
-manifests/
+labs/05-kubernetes-deployment/manifests/
 ```
 
 Practice:

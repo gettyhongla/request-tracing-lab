@@ -68,7 +68,7 @@ JSON response with X-Request-ID
 Created:
 
 ```text
-phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/
+phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/
 |-- namespace.yaml
 |-- secret.example.yaml
 |-- deployment.yaml
@@ -83,7 +83,7 @@ phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manife
 Command:
 
 ```bash
-kubectl apply --dry-run=client -f phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/
+kubectl apply --dry-run=client -f phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/
 ```
 
 Purpose:
@@ -95,19 +95,19 @@ Validate the YAML shape locally before creating objects in a cluster.
 Local YAML parse check:
 
 ```bash
-ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f); puts "OK #{f}" }' phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/*.yaml
+ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f); puts "OK #{f}" }' phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/*.yaml
 ```
 
 Result:
 
 ```text
-OK phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/deployment.yaml
-OK phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/hpa.yaml
-OK phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/ingress.yaml
-OK phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/namespace.yaml
-OK phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/networkpolicy.yaml
-OK phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/secret.example.yaml
-OK phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/service.yaml
+OK phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/deployment.yaml
+OK phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/hpa.yaml
+OK phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/ingress.yaml
+OK phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/namespace.yaml
+OK phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/networkpolicy.yaml
+OK phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/secret.example.yaml
+OK phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/service.yaml
 ```
 
 What this proves:
@@ -139,7 +139,7 @@ That node needs access to the image before it can start Pods from it.
 Then run the dry-run validation again:
 
 ```bash
-kubectl apply --dry-run=client -f phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/
+kubectl apply --dry-run=client -f phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/
 ```
 
 Result:
@@ -166,13 +166,13 @@ No Kubernetes resources were created yet.
 Apply the manifests in a clear order so the namespace and secret exist before the app resources that depend on them:
 
 ```bash
-kubectl apply -f phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/namespace.yaml
-kubectl apply -f phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/secret.example.yaml
-kubectl apply -f phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/deployment.yaml
-kubectl apply -f phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/service.yaml
-kubectl apply -f phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/hpa.yaml
-kubectl apply -f phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/ingress.yaml
-kubectl apply -f phases/phase-03-production-deployment-foundation/05-kubernetes-deployment/manifests/networkpolicy.yaml
+kubectl apply -f phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/namespace.yaml
+kubectl apply -f phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/secret.example.yaml
+kubectl apply -f phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/deployment.yaml
+kubectl apply -f phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/service.yaml
+kubectl apply -f phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/hpa.yaml
+kubectl apply -f phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/ingress.yaml
+kubectl apply -f phases/phase-03-production-deployment-foundation/labs/05-kubernetes-deployment/manifests/networkpolicy.yaml
 ```
 
 Apply result:
