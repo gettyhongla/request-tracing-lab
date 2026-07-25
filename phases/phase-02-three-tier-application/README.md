@@ -41,6 +41,19 @@ This phase introduces production boundaries:
 * PostgreSQL owns durable application data.
 * Redis can own one fast, temporary responsibility such as sessions or caching.
 
+## Phase 2 Contents
+
+```text
+README.md
+concepts/database-operator-concepts.md
+concepts/postgresql-investigation-queries.md
+labs/
+solutions/
+assets/
+```
+
+The database work is not optional background. Phase 2 should build enough database judgment to answer production questions about schema design, connection failures, pool exhaustion, slow queries, indexes, locks, migrations, backups, replication, and recovery.
+
 ## Core Questions
 
 For every request, answer:
@@ -53,6 +66,9 @@ Did Flask reach Redis?
 Which component generated the final status code?
 Where did request timing increase?
 Which logs prove the request path?
+Which database query or connection was involved?
+Was latency caused by app code, waiting for a connection, query execution, or lock contention?
+Could this data be cached safely, or must it come from PostgreSQL?
 Which metrics would expose the failure faster next time?
 ```
 
@@ -78,6 +94,9 @@ This phase should make these failures easy to separate:
 | Flask application | App exception | `500 Internal Server Error` | Flask error log with request ID |
 | Flask to PostgreSQL | Bad DB credentials | Login or profile failure | Flask DB error, PostgreSQL logs |
 | PostgreSQL | Slow query or lock | High latency or timeout | Query timing, `pg_stat_activity`, lock evidence |
+| PostgreSQL | Pool exhaustion | Latency spike or timeout before query runs | Pool metrics, DB connection count |
+| PostgreSQL | Bad migration | App errors after deploy | Migration logs, schema diff, app error logs |
+| PostgreSQL | Replication lag | Stale reads | Replica lag metric, read/write path evidence |
 | Flask to Redis | Cache unavailable | Slow fallback or auth/session issue | Flask Redis error, cache hit/miss logs |
 
 ## Completion Standard
@@ -91,4 +110,13 @@ Flask handled application logic and queried PostgreSQL.
 Redis was used for cache or session behavior.
 The response returned through Flask and NGINX to the browser.
 The evidence from each layer proves where the request succeeded or failed.
+```
+
+You should also be able to answer:
+
+```text
+What table or query was involved?
+Was the database the source of truth?
+Was the issue connection, credentials, pool, query, lock, migration, replication, or backup/recovery?
+What evidence proves that conclusion?
 ```

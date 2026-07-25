@@ -6,7 +6,7 @@ Goal:
 Build and run the Flask app as a repeatable container image.
 ```
 
-Practice:
+Evidence Tasks:
 
 * Build the image from the project `Dockerfile`.
 * Use `.dockerignore` to keep local-only files out of the build context.

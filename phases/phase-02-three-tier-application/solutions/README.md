@@ -1,6 +1,6 @@
 # Phase 2 Solution Guide
 
-Use this after attempting the labs. This is not Getty's completed work. It is a short guide for what strong reasoning should include.
+This is not Getty's completed work. It is a short guide for what strong reasoning should include.
 
 Put actual observations, diagrams, commands, request IDs, and reflections in `AnswersByGetty/phase-02-three-tier-application/`.
 
@@ -131,4 +131,61 @@ Sharp takeaway:
 
 ```text
 Redis is not automatically the source of truth. If Redis is a cache, PostgreSQL remains authoritative. If Redis stores sessions, Redis availability may directly affect authentication state.
+```
+
+## Database Investigation Answer Shape
+
+When a production symptom involves database readiness or database-related latency, structure your answer like this:
+
+```text
+First I would identify whether the symptom is before the database, at connection acquisition, during query execution, while waiting on locks, or after data returns to the app.
+```
+
+Evidence to mention:
+
+* request ID and route
+* Flask duration
+* connection pool wait time
+* database connection count
+* query text or query name
+* query duration
+* `EXPLAIN` or query plan evidence
+* lock or blocking session evidence
+* migration history
+* replication lag, if reads use replicas
+* backup and restore-test evidence for recovery questions
+
+Strong conclusion:
+
+```text
+I would not call it a database issue just because the endpoint is slow. I would prove whether the app was waiting for a connection, waiting on a lock, executing a slow query, reading stale replica data, or failing because schema and code changed out of order.
+```
+
+## Database Production Readiness Answer Shape
+
+When asked whether a React plus backend plus database plus Redis system is ready for production, cover the database explicitly:
+
+```text
+I would want to see the data model, migration plan, connection pool settings, expected query patterns, indexes for critical paths, backup and restore proof, replica strategy if any, and ownership of source-of-truth data.
+```
+
+Evidence to ask for:
+
+* migration history and rollback or roll-forward plan
+* connection pool size per backend instance
+* maximum database connections
+* timeout settings for connection acquisition and query execution
+* slow query logs or query plans for critical endpoints
+* indexes for login, account lookup, and common list/report queries
+* transaction boundaries for writes
+* backup schedule
+* last successful restore test
+* RPO and RTO targets
+* replica lag monitoring if replicas are used
+* Redis responsibility: cache, sessions, rate limits, queue metadata, or something else
+
+Strong conclusion:
+
+```text
+I would not approve production just because the app works locally. I would want evidence that the database can handle expected traffic, recover from failure, survive deploys and migrations, and expose enough telemetry to diagnose customer-facing symptoms.
 ```

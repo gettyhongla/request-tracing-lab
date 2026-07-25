@@ -39,8 +39,8 @@ Complete these in order:
 | 4 | Compare GET and POST | Explain retrieval versus submitted request body |
 | 5 | Trace session authentication | Follow `Set-Cookie` and `Cookie` across requests |
 | 6 | Trace JWT authentication | Follow token creation and `Authorization: Bearer` usage |
-| 7 | Diagnose failure responses | Compare bad auth, missing state, bad paths, and app errors |
-| 8 | Inspect latency and TLS | Distinguish slow app behavior from connection and certificate behavior |
+| [7](labs/07-diagnose-failure-responses/) | Diagnose failure responses | Compare bad auth, missing state, bad paths, and app errors |
+| [8](labs/08-inspect-latency-and-tls/) | Inspect latency and TLS | Distinguish slow app behavior from connection and certificate behavior |
 
 ## Investigation Worksheet
 

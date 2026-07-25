@@ -26,7 +26,7 @@ labs/
 solutions/
 ```
 
-Use this phase for interview-style production design prompts such as:
+Use this phase for production design prompts such as:
 
 ```text
 Management wants this React + API + database + Redis/queue system in production next week.

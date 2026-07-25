@@ -1,6 +1,6 @@
 # Phase 8 Solution Guide
 
-Use this after attempting the labs. This guide shows the shape of strong reasoning, not a script to memorize.
+This guide defines the evidence and reasoning standards for strong production architecture work.
 
 ## Solution Shape: Production Readiness Review
 

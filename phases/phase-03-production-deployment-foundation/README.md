@@ -13,6 +13,7 @@ Focus:
 * Environment variables and secrets
 * Health, readiness, and startup checks
 * Traffic flow into containers
+* Load balancing and traffic distribution
 * Test gates before release
 * Smoke testing and load testing
 * Release versioning
@@ -29,6 +30,7 @@ Focus:
 README.md
 labs/
 concepts/kubernetes-operator-concepts.md
+concepts/load-balancing-and-traffic-management.md
 ```
 
 The Kubernetes deployment assets live in:
@@ -64,9 +66,10 @@ Work through the deployment path in this order:
 3. Review container security and promotion blockers.
 4. Trace traffic from the edge to the container.
 5. Deploy the same image with Kubernetes manifests.
-6. Practice release-management and rollback thinking.
+6. Document release-management and rollback decisions.
 7. Define tests and load-test evidence.
 8. Troubleshoot failures and evaluate production readiness.
+9. Explain load balancing behavior, health checks, sticky sessions, and failover.
 
 ## Deployment Path
 
@@ -109,6 +112,10 @@ Which health check proves the app is alive?
 Which readiness check proves it can serve customer traffic?
 How does traffic reach the container?
 What is the path from load balancer to ingress to service to pod to container port?
+How does the load balancer decide which target receives traffic?
+What happens when one target is unhealthy?
+Does this service require sticky sessions, or is it stateless?
+Can a request be retried safely by the load balancer?
 What tests passed before deployment?
 What smoke test proves the release works after deployment?
 What load test proves the service can handle expected traffic?
@@ -166,6 +173,42 @@ Flask process
 ```
 
 If traffic fails, prove the last layer that saw the request.
+
+## Load Balancing
+
+Load balancing should be explained as a production behavior, not just as an icon on the diagram.
+
+For every load-balanced service, answer:
+
+```text
+What layer is balancing traffic?
+What targets can receive traffic?
+How are health checks configured?
+What marks a target unhealthy?
+What happens to in-flight requests when a target fails?
+Are sessions stored outside the container?
+Are retries safe for this endpoint?
+How do logs prove which target handled the request?
+```
+
+In AWS design conversations, map this thinking to the service choice:
+
+```text
+CloudFront:
+Global edge caching and public content delivery.
+
+Route 53:
+DNS routing, latency routing, weighted routing, and failover records.
+
+Application Load Balancer:
+HTTP/HTTPS routing, path-based routing, host-based routing, TLS termination, health checks.
+
+Network Load Balancer:
+Layer 4 TCP/UDP traffic where very high performance or static IP behavior matters.
+
+API Gateway:
+Managed API edge, auth integration, throttling, request validation, and usage controls.
+```
 
 ## Test Gates
 

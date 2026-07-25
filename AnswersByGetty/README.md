@@ -2,7 +2,7 @@
 
 This directory contains Getty's completed answers, investigation notes, deployment evidence, and reflections.
 
-Use these after attempting the labs yourself. The point is not to memorize wording. The point is to study how evidence turns into a clear technical conclusion.
+These files show how evidence turns into a clear technical conclusion.
 
 These files are the portfolio proof of work. They should show:
 
@@ -60,7 +60,7 @@ AnswersByGetty/phase-05-queues-workers/
 AnswersByGetty/phase-06-distributed-services/
 AnswersByGetty/phase-07-production-operations/
 AnswersByGetty/phase-08-scale-reliability-design/
-AnswersByGetty/phase-09-interview-mode/
+AnswersByGetty/phase-09-scenario-diagnostics/
 ```
 
-Keep timestamps, request IDs, cookies, and tokens realistic, but redact secrets and avoid publishing private interview reflections.
+Keep timestamps, request IDs, cookies, and tokens realistic, but redact secrets and personal notes that do not belong in a public repository.

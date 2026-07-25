@@ -6,7 +6,7 @@ Goal:
 Prove the app can run with production-style configuration before it is packaged or deployed.
 ```
 
-Practice:
+Evidence Tasks:
 
 * Run the Flask app with `FLASK_RUN_HOST=0.0.0.0`.
 * Set the port from `FLASK_RUN_PORT`.

@@ -41,7 +41,7 @@ Phase 2 bridge:
 When NGINX, PostgreSQL, and Redis are added, the same evidence discipline expands across more layers.
 ```
 
-## Planned Failure Answers
+## Next: Failure Answers
 
 ```text
 phase-2-inject-and-diagnose-failures/failure-01-wrong-password.md
@@ -57,3 +57,19 @@ phase-2-inject-and-diagnose-failures/failure-10-slow-request.md
 phase-2-inject-and-diagnose-failures/failure-11-application-exception.md
 phase-2-inject-and-diagnose-failures/failure-12-untrusted-certificate.md
 ```
+
+These files are reusable answer templates.
+
+Completed failure evidence lives in:
+
+```text
+phase-2-inject-and-diagnose-failures/solutions/
+```
+
+Current completed failure answers:
+
+```text
+phase-2-inject-and-diagnose-failures/solutions/lab-01-wrong-password.md
+```
+
+Work through these one at a time. For each failure, trigger the scenario, capture client evidence, capture server evidence if the request reaches Flask, then write the conclusion from evidence in the matching solution file.

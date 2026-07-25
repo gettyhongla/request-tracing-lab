@@ -1,12 +1,12 @@
 # Production Systems Lab
 
-A hands-on lab for learning system design, request flow, production deployment, production failures, observability, root cause analysis, and incident communication.
+A hands-on production systems portfolio for system design, request flow, production deployment, production failures, observability, root cause analysis, and incident communication.
 
-This project starts with a small Flask application, but the app is only the first layer. The real goal is to grow one system over time so you can learn how to design it, deploy it, operate it, break it safely, investigate it, and explain it when customers report vague symptoms like slow login, intermittent errors, failed reports, or missing data.
+This project starts with a small Flask application, but the app is only the first layer. The system grows over time to demonstrate how an application is designed, deployed, operated, stressed, investigated, and explained when customers report vague symptoms like slow login, intermittent errors, failed reports, or missing data.
 
 ## Core Skill
 
-For every architecture, the practice is the same:
+For every architecture, the evidence workflow is the same:
 
 ```text
 Draw the system.
@@ -26,21 +26,21 @@ Explain the root cause.
 Write the postmortem.
 ```
 
-The focus is architectural reasoning, not memorizing tools.
+The focus is architectural reasoning backed by working evidence.
 
-## Learning Path
+## Project Roadmap
 
 | Phase | Focus | Outcome |
 | --- | --- | --- |
 | [Phase 1](phases/phase-01-single-service-request-tracing/) | Single-service request tracing | Understand HTTP, auth, request IDs, logs, latency, and controlled failures |
-| [Phase 2](phases/phase-02-three-tier-application/) | Three-tier application design | Trace traffic through browser, reverse proxy, Flask API, PostgreSQL, and Redis |
-| [Phase 3](phases/phase-03-production-deployment-foundation/) | Production deployment foundation | Package, configure, deploy, verify, roll back, and troubleshoot the app in containerized/Kubernetes-style environments |
+| [Phase 2](phases/phase-02-three-tier-application/) | Three-tier application design | Trace traffic through browser, reverse proxy, Flask API, PostgreSQL, and Redis; explain database readiness, query behavior, and data failure modes |
+| [Phase 3](phases/phase-03-production-deployment-foundation/) | Production deployment foundation | Package, configure, route, load balance, deploy, verify, roll back, and troubleshoot the app in containerized/Kubernetes-style environments |
 | [Phase 4](phases/phase-04-observability/) | Observability | Connect logs, metrics, traces, dashboards, and alerts with request behavior |
 | [Phase 5](phases/phase-05-queues-workers/) | Queues and workers | Investigate asynchronous jobs, retries, backlogs, idempotency, and eventual consistency |
 | [Phase 6](phases/phase-06-distributed-services/) | Distributed services | Reason through service boundaries, failed hops, timeouts, retries, and partial failure |
-| [Phase 7](phases/phase-07-production-operations/) | Production operations | Practice release checks, incident response, customer updates, engineering escalations, runbooks, and postmortems |
-| [Phase 8](phases/phase-08-scale-reliability-design/) | Production architecture and reliability | Practice AWS production design, global availability, capacity, safe deployments, graceful degradation, rollback strategy, and SLO tradeoffs |
-| [Phase 9](phases/phase-09-interview-mode/) | Interview mode | Diagnose unknown scenarios with structured, evidence-first reasoning |
+| [Phase 7](phases/phase-07-production-operations/) | Production operations | Produce release checks, incident response notes, customer updates, engineering escalations, runbooks, and postmortems |
+| [Phase 8](phases/phase-08-scale-reliability-design/) | Production architecture and reliability | Design AWS production architecture, global availability, capacity, safe deployments, graceful degradation, rollback strategy, and SLO tradeoffs |
+| [Phase 9](phases/phase-09-scenario-diagnostics/) | Scenario diagnostics | Diagnose unknown production scenarios with structured, evidence-first reasoning |
 
 ## Current Architecture
 
@@ -110,18 +110,18 @@ request-tracing-lab/
 |   |-- phase-06-distributed-services/
 |   |-- phase-07-production-operations/
 |   |-- phase-08-scale-reliability-design/
-|   `-- phase-09-interview-mode/
+|   `-- phase-09-scenario-diagnostics/
 |
 `-- AnswersByGetty/
 ```
 
-Use `AnswersByGetty/` only after attempting the labs yourself.
+Use `AnswersByGetty/` for completed evidence, conclusions, and retained takeaways.
 
 ## What Goes Where
 
 ```text
 phases/
-Prompts, diagrams, lab objectives, completion standards, manifests, and reusable learning material.
+Prompts, diagrams, lab objectives, completion standards, manifests, and reusable project material.
 
 phases/*/solutions/
 Short answer guides that show what good reasoning should include.
@@ -130,13 +130,13 @@ AnswersByGetty/
 Getty's actual work: evidence collected, commands run, observations, troubleshooting conclusions, reflections, and takeaways.
 ```
 
-The project should teach others while also showing employers how you think, troubleshoot, design, deploy, and communicate. Keep the public docs focused; let the answer files prove the work.
+The project should teach others while also showing how production problems are investigated, designed around, deployed, and communicated. Keep the public docs focused; let the answer files prove the work.
 
 ## Production Deployment Skills
 
 This lab should build the skills needed to move a service toward production, not just draw diagrams.
 
-You will practice:
+This project demonstrates:
 
 * Building a repeatable application package
 * Separating code, configuration, and secrets
@@ -158,7 +158,7 @@ How do we roll back safely?
 What evidence would prove the deployment caused or did not cause the issue?
 ```
 
-For larger production-design interviews, you should also be able to answer:
+For larger production-design reviews, you should also be able to answer:
 
 ```text
 What architecture would you deploy on AWS?
@@ -206,9 +206,9 @@ password: cloud
 
 ## How To Work Through The Lab
 
-Start with Phase 1 if you cannot confidently explain what happens between a browser request, Flask, and the server logs.
+Phase 1 establishes the request path between a browser request, Flask, and the server logs.
 
-Move to Phase 2 when you can answer:
+Phase 2 begins after the single-service request path is clear:
 
 ```text
 What request was sent?

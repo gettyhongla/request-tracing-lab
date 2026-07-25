@@ -12,7 +12,7 @@ Use:
 labs/05-kubernetes-deployment/manifests/
 ```
 
-Practice:
+Evidence Tasks:
 
 * Create a namespace.
 * Inject secrets at runtime.

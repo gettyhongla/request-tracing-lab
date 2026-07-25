@@ -36,12 +36,14 @@ Container port
 Flask process
 ```
 
-Practice:
+Evidence Tasks:
 
 * Identify where TLS terminates.
+* Identify which layer is acting as the load balancer.
 * Identify which layer creates or forwards the request ID.
 * Identify where `502`, `503`, and `504` can be generated.
 * Prove which pod and version handled a request.
+* Prove whether traffic is distributed across healthy targets.
 * Prove the last successful routing layer before a failure.
 
 Completion standard:

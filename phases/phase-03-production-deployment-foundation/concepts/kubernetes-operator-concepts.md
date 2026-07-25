@@ -2,7 +2,7 @@
 
 This is a short reference for operating the Flask app in Kubernetes.
 
-The goal is not to memorize object names. The goal is to know which layer owns which behavior and what evidence proves that layer is healthy or broken.
+The goal is to know which layer owns which behavior and what evidence proves that layer is healthy or broken.
 
 ## Mental Model
 

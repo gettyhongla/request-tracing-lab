@@ -1,6 +1,6 @@
 # Phase 8 Labs
 
-These labs practice production architecture thinking at the level of an interview or design review.
+These labs document production architecture thinking at the level of a design review.
 
 Put completed designs, tradeoffs, diagrams, and reflections in `AnswersByGetty/phase-08-scale-reliability-design/`.
 
@@ -12,7 +12,7 @@ Prompt:
 Assume the application has a React frontend, Node/Python backends, PostgreSQL, Redis, and queueing.
 Management wants it in production next week.
 You, another engineer, and a DevOps engineer are assigned.
-What do you want to see or prepare before saying it is safe to deploy?
+What evidence is required before saying it is safe to deploy?
 ```
 
 Cover:

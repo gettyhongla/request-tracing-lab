@@ -1,169 +1,30 @@
 # Phase 2 Labs
 
-These labs are designed for three-tier architecture reasoning. Implementation can come later. First, prove that you understand the request path, failure points, and evidence required at each layer.
+These labs build three-tier architecture and database troubleshooting skill.
 
-## Lab 1: Draw The Healthy Request Path
+Phase 2 is where the app stops being only Flask. You should learn how browser traffic moves through a proxy, how the app uses durable data, and how database behavior affects customer symptoms.
 
-Scenario:
+## Lab Order
 
-```text
-A customer opens the app and signs in successfully.
-```
+| Lab | Focus | Outcome |
+| --- | --- | --- |
+| [01](01-healthy-three-tier-request/) | Healthy three-tier request | Trace browser to NGINX to Flask to PostgreSQL |
+| [02](02-proxy-to-app-routing/) | Proxy to app routing | Separate NGINX failures from Flask failures |
+| [03](03-database-data-model/) | Database data model | Decide what data belongs in PostgreSQL and why |
+| [04](04-database-connections-pooling/) | Connections and pooling | Explain DB connectivity, credentials, timeouts, and pool exhaustion |
+| [05](05-query-performance-indexes/) | Query performance and indexes | Diagnose slow queries with evidence |
+| [06](06-transactions-locks/) | Transactions and locks | Explain blocking, deadlocks, and safe mitigation |
+| [07](07-migrations-rollbacks/) | Migrations and rollbacks | Plan schema changes without breaking production |
+| [08](08-backups-replication-recovery/) | Backups and recovery | Explain RPO, RTO, restores, replication, and failover |
+| [09](09-redis-cache-sessions/) | Redis cache or sessions | Separate cache/session behavior from database source of truth |
+| [10](10-production-database-readiness/) | Production database readiness | Decide what must be true before saying the data layer is safe for production |
 
-Tasks:
+## Answer Location
 
-1. Draw the path from browser to NGINX to Flask to PostgreSQL.
-2. Mark where TLS terminates.
-3. Mark where the request ID is created or forwarded.
-4. Identify which logs should contain the request.
-5. Identify which data store confirms the user exists.
-
-Record:
-
-```text
-Browser evidence:
-
-NGINX evidence:
-
-Flask evidence:
-
-PostgreSQL evidence:
-
-Request ID:
-
-Expected status:
-```
-
-## Lab 2: NGINX Cannot Reach Flask
-
-Scenario:
+Put completed evidence, diagrams, commands, SQL output, and reflections in:
 
 ```text
-Customers receive 502 responses after a proxy configuration change.
+AnswersByGetty/phase-02-three-tier-application/
 ```
 
-Tasks:
-
-1. Reproduce the request with `curl -v`.
-2. Check whether NGINX logged the request.
-3. Check whether Flask logged the request.
-4. Decide whether the failure happened before or after Flask.
-5. Identify the upstream host and port NGINX tried to reach.
-
-Record:
-
-```text
-Client symptom:
-
-NGINX access log:
-
-NGINX error log:
-
-Flask log:
-
-Failed layer:
-
-Evidence:
-```
-
-## Lab 3: PostgreSQL Authentication Failure
-
-Scenario:
-
-```text
-The login endpoint reaches Flask, but the app cannot validate users from PostgreSQL.
-```
-
-Tasks:
-
-1. Confirm the request reached Flask.
-2. Inspect the database connection error.
-3. Identify whether the hostname, username, password, database name, or network path failed.
-4. Decide what the client should see.
-5. Decide what should be logged without leaking secrets.
-
-Record:
-
-```text
-Request ID:
-
-Flask error:
-
-Database error:
-
-Client status:
-
-Secret exposure risk:
-
-Root cause hypothesis:
-```
-
-## Lab 4: Slow Database Query
-
-Scenario:
-
-```text
-Login works, but customers report that it is slow.
-```
-
-Tasks:
-
-1. Measure request duration from the client.
-2. Compare NGINX upstream timing with Flask timing.
-3. Inspect database query timing.
-4. Identify whether the slowness is network, application, or database related.
-5. Propose a mitigation and permanent fix.
-
-Record:
-
-```text
-Client duration:
-
-NGINX upstream time:
-
-Flask duration:
-
-Database query time:
-
-Slowest layer:
-
-Evidence:
-
-Mitigation:
-
-Permanent fix:
-```
-
-## Lab 5: Redis Cache Behavior
-
-Scenario:
-
-```text
-The app uses Redis for cache or session behavior. Customers see inconsistent performance or stale data.
-```
-
-Tasks:
-
-1. Define what Redis is responsible for.
-2. Record cache hit, miss, and expiry behavior.
-3. Identify the fallback path when Redis is unavailable.
-4. Decide whether Redis failure should break the request or degrade gracefully.
-5. Identify metrics that would reveal cache pressure.
-
-Record:
-
-```text
-Redis responsibility:
-
-Cache hit evidence:
-
-Cache miss evidence:
-
-TTL behavior:
-
-Fallback behavior:
-
-Customer impact:
-
-Metric to alert on:
-```
+The phase folder teaches the lab. `AnswersByGetty` proves your work.

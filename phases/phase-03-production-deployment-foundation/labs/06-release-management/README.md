@@ -6,7 +6,7 @@ Goal:
 Understand how deployment changes become repeatable, reviewable, and reversible.
 ```
 
-Practice:
+Evidence Tasks:
 
 * Identify which values differ by environment.
 * Render or inspect manifests before deploying.

@@ -1,4 +1,4 @@
-# Phase 9: Interview Mode
+# Phase 9: Scenario Diagnostics
 
 Phase 9 removes hints. You investigate scenarios without being told which component is broken.
 

@@ -6,7 +6,7 @@ At this point, the lab should feel like operating a real service: releases happe
 
 ## Release Operations
 
-Before and after each deploy, practice:
+Before and after each deploy, capture evidence for:
 
 ```text
 Review the change.

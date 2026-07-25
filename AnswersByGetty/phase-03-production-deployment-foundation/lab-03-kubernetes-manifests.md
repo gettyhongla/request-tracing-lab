@@ -13,7 +13,7 @@ kubectl config current-context
 kubectl get nodes
 ```
 
-For local practice, use a local cluster such as Docker Desktop Kubernetes, kind, or minikube.
+For local validation, use a local cluster such as Docker Desktop Kubernetes, kind, or minikube.
 
 Local cluster setup:
 
