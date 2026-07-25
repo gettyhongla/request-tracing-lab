@@ -1,43 +1,66 @@
 # Answers By Getty
 
-This directory is Getty's completed answer set for the workbook and architecture challenges.
+This directory contains Getty's completed answers, investigation notes, deployment evidence, and reflections.
 
-Use it after attempting the exercises yourself, either to compare your notes or to study how an investigation can be written clearly.
+Use these after attempting the labs yourself. The point is not to memorize wording. The point is to study how evidence turns into a clear technical conclusion.
 
-Your exact timestamps, request IDs, cookies, and tokens will be different.
+These files are the portfolio proof of work. They should show:
 
-If you are completing this project for your own portfolio, create your own directory at the project root:
+* What I observed
+* What evidence I collected
+* What I ruled out
+* What I concluded
+* What I would do next in production
+* What concept I want to retain for future phases
 
-```text
-AnswersByYourName/
-```
-
-Use your directory for your notes, evidence, diagrams, key takeaways, and final explanations.
-
-## Lab Answers
-
-Request-tracing answers are organized by phase:
+## Phase 1 Answers
 
 ```text
-AnswersByGetty/labs/
+AnswersByGetty/phase-01-single-service-request-tracing/
 |-- phase-1-observe-successful-requests/
 |-- phase-2-inject-and-diagnose-failures/
 ```
 
-## Architecture Answers
+Phase 1 answers focus on:
 
-Architecture answers live in:
+* Client evidence from DevTools or `curl`
+* Server evidence from Flask logs
+* Request and response separation
+* Session cookie flow
+* JWT bearer-token flow
+* `X-Request-ID` correlation
+* Clear takeaways to retain before Phase 2
+
+## Phase 3 Answers
 
 ```text
-AnswersByGetty/architecture/
+AnswersByGetty/phase-03-production-deployment-foundation/
+|-- lab-01-container-readiness.md
+|-- lab-02-container-packaging.md
+|-- lab-03-kubernetes-manifests.md
 ```
 
-## Operations Answers
+Phase 3 answers focus on:
 
-Operations answers live in:
+* Container runtime configuration
+* Docker image packaging
+* Kubernetes manifests
+* Pod, Service, Ingress, Secret, HPA, and NetworkPolicy evidence
+* Deployment troubleshooting and production readiness
+
+## Future Answers
+
+Add future answer sets by phase:
 
 ```text
-AnswersByGetty/operations/
+AnswersByGetty/phase-02-three-tier-application/
+AnswersByGetty/phase-03-production-deployment-foundation/
+AnswersByGetty/phase-04-observability/
+AnswersByGetty/phase-05-queues-workers/
+AnswersByGetty/phase-06-distributed-services/
+AnswersByGetty/phase-07-production-operations/
+AnswersByGetty/phase-08-scale-reliability-design/
+AnswersByGetty/phase-09-interview-mode/
 ```
 
-Use this section for incident response notes, RCA writeups, postmortems, and explanation practice.
+Keep timestamps, request IDs, cookies, and tokens realistic, but redact secrets and avoid publishing private interview reflections.

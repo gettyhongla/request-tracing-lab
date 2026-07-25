@@ -1,521 +1,222 @@
 # Production Systems Lab
 
-A hands-on lab for practicing system design, request tracing, realistic failure investigation, and evidence-first incident response.
+A hands-on lab for learning system design, request flow, production deployment, production failures, observability, root cause analysis, and incident communication.
 
-The goal is to build the mental model production engineers use under pressure: design the system, trace the request, collect evidence, isolate the failure, explain the impact, and write the postmortem.
+This project starts with a small Flask application, but the app is only the first layer. The real goal is to grow one system over time so you can learn how to design it, deploy it, operate it, break it safely, investigate it, and explain it when customers report vague symptoms like slow login, intermittent errors, failed reports, or missing data.
 
-This repository has three practice areas and one example answer set:
+## Core Skill
 
-```text
-labs/
-Practice request inspection, logs, headers, cookies, JWTs, latency, and errors.
-
-operations/
-Practice incident response, evidence collection, root cause analysis, and postmortems.
-
-architecture/
-Practice system design, production architecture, reliability, scaling, and tradeoffs.
-
-AnswersByGetty/
-Review Getty's example answer set, or create your own named answer set.
-```
-
-This project is designed for aspiring:
-
-* Cloud Operations Engineers
-* Site Reliability Engineers
-* Technical Support Engineers
-* Customer Success Engineers
-* DevOps and Platform Engineers
-
-This is not primarily a Flask, Kubernetes, or Helm tutorial.
-
-The Flask application provides a small, controlled simulator where you can send requests, inspect what happened, deliberately create failures, and practice explaining where a request succeeded or failed.
-
----
-
-## Weekly Practice Loop
-
-Every week, use the same production-engineering loop:
+For every architecture, the practice is the same:
 
 ```text
-Design an architecture.
-Trace requests end to end.
-Inject realistic failures.
-Investigate using logs, metrics, traces, and dashboards.
-Perform an evidence-first root cause analysis.
-Write a postmortem.
-Explain the incident out loud to a customer and to an engineering team.
+Draw the system.
+Trace the request path.
+Identify each dependency.
+Define healthy behavior.
+Package the application.
+Configure the runtime.
+Deploy a release.
+Verify the deployment.
+Inject a realistic failure.
+Collect evidence.
+Find the failed layer.
+Mitigate the issue.
+Roll back or roll forward safely.
+Explain the root cause.
+Write the postmortem.
 ```
 
-## Objective
+The focus is architectural reasoning, not memorizing tools.
 
-The objective of this project is to learn how to reason through production systems.
+## Learning Path
 
-The project starts with a small local Flask application so you can clearly see the request, response, logs, headers, cookies, tokens, status codes, and request IDs.
-
-After that, the architecture exercises expand the same tracing method into larger systems, including 3-tier applications, microservices, event-driven systems, databases, caches, queues, load balancers, external APIs, and enterprise-style SaaS platforms.
-
-You will practice using browser tools, command-line tools, application logs, headers, cookies, tokens, status codes, and request IDs to answer:
-
-```text
-What happened?
-Where did the request fail?
-What evidence proves it?
-Which tool exposed that evidence?
-What should I investigate next?
-```
-
-The goal is not simply to make the application work.
-The goal is to understand what happens when it does not.
-
----
-
-## What You Will Practice
-
-You will use this project to practice:
-
-* Inspecting requests with Chrome DevTools
-* Reading HTTP methods, headers, bodies, and status codes
-* Reproducing requests with `curl`
-* Comparing session cookies and JWT authentication
-* Correlating browser requests with application logs
-* Tracing requests using `X-Request-ID`
-* Investigating latency and application errors
-* Distinguishing client, connection, authentication, and application failures
-* Adding HTTPS and inspecting TLS behavior
-* Expanding from one Flask app into 3-tier, microservice, event-driven, and enterprise-style architectures
-* Practicing customer-facing and engineering-facing incident explanations
-
----
-
-## Request Path
-
-A request may pass through several layers before the client receives a response.
-
-```text
-Client
-  |
-  v
-DNS
-  |
-  v
-TCP connection
-  |
-  v
-TLS handshake for HTTPS
-  |
-  v
-HTTP request
-  |
-  v
-Application
-  |
-  v
-Authentication and business logic
-  |
-  v
-HTTP response
-  |
-  v
-Client
-```
-
-The current lab runs locally, so some layers are simplified.
-
-As the architecture grows, more components and possible failure points can be added.
-
----
+| Phase | Focus | Outcome |
+| --- | --- | --- |
+| [Phase 1](phases/phase-01-single-service-request-tracing/) | Single-service request tracing | Understand HTTP, auth, request IDs, logs, latency, and controlled failures |
+| [Phase 2](phases/phase-02-three-tier-application/) | Three-tier application design | Trace traffic through browser, reverse proxy, Flask API, PostgreSQL, and Redis |
+| [Phase 3](phases/phase-03-production-deployment-foundation/) | Production deployment foundation | Package, configure, deploy, verify, roll back, and troubleshoot the app in containerized/Kubernetes-style environments |
+| [Phase 4](phases/phase-04-observability/) | Observability | Connect logs, metrics, traces, dashboards, and alerts with request behavior |
+| [Phase 5](phases/phase-05-queues-workers/) | Queues and workers | Investigate asynchronous jobs, retries, backlogs, idempotency, and eventual consistency |
+| [Phase 6](phases/phase-06-distributed-services/) | Distributed services | Reason through service boundaries, failed hops, timeouts, retries, and partial failure |
+| [Phase 7](phases/phase-07-production-operations/) | Production operations | Practice release checks, incident response, customer updates, engineering escalations, runbooks, and postmortems |
+| [Phase 8](phases/phase-08-scale-reliability-design/) | Production architecture and reliability | Practice AWS production design, global availability, capacity, safe deployments, graceful degradation, rollback strategy, and SLO tradeoffs |
+| [Phase 9](phases/phase-09-interview-mode/) | Interview mode | Diagnose unknown scenarios with structured, evidence-first reasoning |
 
 ## Current Architecture
 
+Phase 1 starts here:
+
 ```text
 Browser or curl
-       |
-       v
+      |
+      v
 Flask application
-       |
-       v
+      |
+      v
 Application logs
 ```
 
-The application currently runs at:
+The current app lets you inspect:
+
+* HTTP methods, headers, bodies, and status codes
+* Session cookies
+* JWT authentication
+* `X-Request-ID` correlation
+* Slow requests
+* Application errors
+* Local HTTPS behavior
+
+## Target Phase 2 Architecture
+
+Phase 2 expands the same app into a three-tier system:
 
 ```text
-http://127.0.0.1:5000
+Browser
+   |
+   v
+NGINX reverse proxy
+   |
+   v
+Flask API
+   |
+   v
+PostgreSQL
 ```
 
-The starting architecture does not include a database, reverse proxy, load balancer, Redis, queue, object storage, or external API.
-
-Those components can be added later as architecture exercises without making the project depend on one deployment platform.
-
----
-
-## Lab Features
-
-The application includes controlled examples for practicing:
-
-| Feature         | Purpose                                    |
-| --------------- | ------------------------------------------ |
-| Health endpoint | Trace a successful request                 |
-| Session login   | Inspect POST requests and cookies          |
-| Session profile | Test cookie-based authentication           |
-| JWT login       | Generate and inspect a JWT                 |
-| JWT profile     | Test bearer-token authentication           |
-| Slow endpoint   | Investigate latency                        |
-| Error endpoint  | Trace an application failure               |
-| Request IDs     | Correlate client requests with server logs |
-| Local HTTPS     | Inspect TLS and certificate behavior       |
-
----
-
-## Lab Credentials
-
-The login credentials are intentionally hard-coded for this local lab:
+Then Redis is added for one clear responsibility, such as caching or sessions:
 
 ```text
-username: getty
-password: cloud
+Flask API
+   |-- PostgreSQL
+   `-- Redis
 ```
 
-They are used by both the session-login and JWT-login examples.
+![Three-tier architecture request flow](phases/phase-02-three-tier-application/assets/three-tier-request-flow.png)
 
-To change them, update:
-
-* The browser button request bodies in `app.py`
-* The credential checks in the `/session/login` and `/jwt/login` routes in `app.py`
-
-These credentials are for local learning only. Do not reuse real passwords or production secrets in this project.
-
----
-
-## Runtime Configuration
-
-Local defaults work with:
-
-```bash
-python app.py
-```
-
-For local and containerized exercises, the app can read:
-
-```text
-FLASK_RUN_HOST
-FLASK_RUN_PORT
-FLASK_DEBUG
-FLASK_SECRET_KEY
-JWT_SECRET
-```
-
-In a container, `FLASK_RUN_HOST` should usually be:
-
-```text
-0.0.0.0
-```
-
-Secrets such as `FLASK_SECRET_KEY` and `JWT_SECRET` should be provided through environment variables or a secret manager, not baked into the image.
-
----
-
-## Project Structure
+## Repository Structure
 
 ```text
 request-tracing-lab/
 |
 |-- app.py
 |-- requirements.txt
-|-- README.md
-|-- labs/
-|-- operations/
-|-- architecture/
-|-- AnswersByGetty/
+|-- Dockerfile
+|-- phases/
+|   |-- phase-01-single-service-request-tracing/
+|   |-- phase-02-three-tier-application/
+|   |-- phase-03-production-deployment-foundation/
+|   |-- phase-04-observability/
+|   |-- phase-05-queues-workers/
+|   |-- phase-06-distributed-services/
+|   |-- phase-07-production-operations/
+|   |-- phase-08-scale-reliability-design/
+|   `-- phase-09-interview-mode/
+|
+`-- AnswersByGetty/
 ```
 
-Start with `labs/` when you want request-level practice.
-Use `operations/` when you want incident response, RCA, postmortem, and explanation practice.
-Use `architecture/` when you want system design, production architecture, scaling, and tradeoff practice.
-Use `AnswersByGetty/` only after attempting the exercises.
+Use `AnswersByGetty/` only after attempting the labs yourself.
 
-If you are completing this as your own portfolio project, create your own answer directory:
+## What Goes Where
 
 ```text
-AnswersByYourName/
+phases/
+Prompts, diagrams, lab objectives, completion standards, manifests, and reusable learning material.
+
+phases/*/solutions/
+Short answer guides that show what good reasoning should include.
+
+AnswersByGetty/
+Getty's actual work: evidence collected, commands run, observations, troubleshooting conclusions, reflections, and takeaways.
 ```
 
-Use that directory for your notes, investigation evidence, diagrams, key takeaways, and final explanations.
+The project should teach others while also showing employers how you think, troubleshoot, design, deploy, and communicate. Keep the public docs focused; let the answer files prove the work.
 
----
+## Production Deployment Skills
 
-## Requirements
+This lab should build the skills needed to move a service toward production, not just draw diagrams.
 
-Before starting, make sure you have:
+You will practice:
 
-* Python 3
-* `pip`
-* A web browser with Developer Tools
-* `curl`
-* OpenSSL for the HTTPS exercises
-* Git, if cloning the repository
+* Building a repeatable application package
+* Separating code, configuration, and secrets
+* Defining health, readiness, and rollback signals
+* Deploying the same system across local and production-like environments
+* Verifying a release with logs, metrics, traces, and user-facing checks
+* Debugging failed deploys, bad configuration, broken routing, and dependency failures
+* Writing runbooks for normal operations and incident response
+* Explaining deployment risk and customer impact clearly
 
----
+Production readiness means you can answer:
 
-## Installation
-
-### 1. Fork or clone the repository
-
-```bash
-git clone https://github.com/gettyhongla/request-tracing-lab.git
-cd request-tracing-lab
+```text
+What changed?
+How was it deployed?
+How do we know it is healthy?
+How do we know customers are not impacted?
+How do we roll back safely?
+What evidence would prove the deployment caused or did not cause the issue?
 ```
 
-You may also download the repository as a ZIP file and extract it.
+For larger production-design interviews, you should also be able to answer:
 
-### 2. Create a virtual environment
+```text
+What architecture would you deploy on AWS?
+Which traffic is public and which traffic is private?
+Where does authentication happen?
+How is the system globally available?
+How are containers secured?
+How are database, Redis, and queue dependencies protected?
+How do you test, load test, monitor, and roll back before management calls it production-ready?
+```
+
+## Install And Run
+
+Create a virtual environment:
 
 ```bash
 python3 -m venv venv
-```
-
-### 3. Activate the virtual environment
-
-macOS or Linux:
-
-```bash
 source venv/bin/activate
 ```
 
-Windows PowerShell:
-
-```powershell
-venv\Scripts\Activate.ps1
-```
-
-### 4. Install the dependencies
+Install dependencies:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-### 5. Start the application
+Start the app:
 
 ```bash
 python app.py
 ```
 
-The terminal should show that the application is running at:
-
-```text
-http://127.0.0.1:5000
-```
-
-### 6. Open the application
-
-Visit:
-
-```text
-http://127.0.0.1:5000
-```
-
-Keep the Flask terminal open while completing the exercises.
-
-The browser shows the client side of the request.
-
-The Flask terminal shows the server side.
-
----
-
-## Start the Exercises
-
 Open:
 
 ```text
-labs/README.md
+http://127.0.0.1:5000
 ```
 
-Complete the exercises in order.
+The default lab credentials are:
 
-The request-tracing exercises begin with a successful request and gradually introduce:
+```text
+username: getty
+password: cloud
+```
 
-1. Browser DevTools
-2. Request and response headers
-3. Request IDs
-4. GET and POST requests
-5. Cookies and sessions
-6. JWT authentication
-7. Reproducing requests with `curl`
-8. Latency investigation
-9. Application errors
-10. Failure injection
-11. HTTPS and TLS
+## How To Work Through The Lab
 
-Do not begin by reading `AnswersByGetty/`.
+Start with Phase 1 if you cannot confidently explain what happens between a browser request, Flask, and the server logs.
 
-Try to investigate each scenario using evidence first.
-
----
-
-## Investigation Method
-
-For every request, try to answer:
+Move to Phase 2 when you can answer:
 
 ```text
 What request was sent?
-Did the connection succeed?
-Did the application receive the request?
-What status code was returned?
-What headers and body were returned?
-Was authentication required?
-Was a cookie or token present?
-What request ID was assigned?
-What appeared in the application logs?
-Which layer failed?
-What evidence supports that conclusion?
+What response came back?
+Which request ID ties client and server evidence together?
+Where did authentication state appear?
+Where did a failed request stop?
+What evidence proves that conclusion?
 ```
 
-Avoid guessing based only on the error message.
-Use the browser, `curl`, response headers, status codes, timing information, and application logs together.
-
----
-
-## Useful Tools
-
-### Chrome DevTools
-
-Use the Network tab to inspect:
-
-* Request URL
-* HTTP method
-* Status code
-* Request headers
-* Request payload
-* Response headers
-* Response body
-* Cookies
-* Timing
-
-### `curl`
-
-Use `curl` to reproduce requests outside the browser.
-
-Example:
-
-```bash
-curl -v http://127.0.0.1:5000/health
-```
-
-### Flask logs
-
-Use the terminal running Flask to inspect:
-
-* Incoming requests
-* Request paths
-* HTTP methods
-* Request IDs
-* Response status codes
-* Application exceptions
-
-### Request IDs
-
-The application returns an:
-
-```http
-X-Request-ID
-```
-
-response header.
-
-Use that value to find the matching request in the Flask logs.
-
----
-
-## Recommended Practice
-
-Complete the request-tracing exercises more than once.
-
-1. Follow the instructions and become familiar with the tools.
-
-2. Repeat the exercises without reading the explanations.
-
-3. Deliberately break several requests and diagnose each failure using evidence.
-
-For every failure, record:
-
-```text
-What broke?
-Where did it break?
-What evidence proved it?
-Which tool exposed the evidence?
-What fixed it?
-```
-
----
-
-## After The Request Labs
-
-After completing the request-tracing exercises, choose the track that matches what you want to practice next.
-
-For incident response, evidence collection, RCA, postmortems, and explanation practice, use:
-
-```text
-operations/README.md
-```
-
-For system design, architecture diagrams, scaling, and tradeoff reasoning, use:
-
-```text
-architecture/README.md
-```
-
-The operations track focuses on:
-
-```text
-Customer impact
-Reproduction steps
-Evidence collection
-Logs, metrics, traces, and dashboards
-Hypothesis testing
-Mitigation
-Root cause analysis
-Postmortems
-Customer explanations
-Engineering explanations
-```
-
-The architecture track focuses on:
-
-```text
-Reverse proxies
-Databases
-Redis/session state
-High availability
-Distributed tracing
-Microservices
-Event-driven architecture
-Enterprise-style SaaS architecture
-```
-
-Each new component creates additional request paths, logs, metrics, dependencies, tradeoffs, and possible failure points.
-
-The purpose of expanding the architecture is to practice answering the same core questions in a more complex system:
-
-```text
-Where did the request go?
-
-Where did it fail?
-
-What evidence proves it?
-```
-
----
-
-## Completion Goal
-
-You have completed the project when you can trace a request and clearly explain:
-
-* The request method, path, headers, and body
-* The response status, headers, and body
-* Whether cookies or tokens were involved
-* Whether the failure occurred before or inside the application
-* How the request ID connects the client response to the server logs
-* Which tool provided the evidence
-* What you would investigate next
+Each later phase should add one architectural layer, one deployment concern, and one new class of failure. The end goal is to design, deploy, operate, and explain production systems clearly to both customers and engineering teams.

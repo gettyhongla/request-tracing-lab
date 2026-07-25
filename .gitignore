@@ -7,7 +7,6 @@ venv/
 *.pem
 *.key
 cookies.txt
-k8s/*.local.yaml
 k8s/
 operations/kubernetes-helm/
 AnswersByGetty/operations/kubernetes-helm/
