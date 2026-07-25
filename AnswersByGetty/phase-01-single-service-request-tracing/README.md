@@ -70,6 +70,7 @@ Current completed failure answers:
 
 ```text
 phase-2-inject-and-diagnose-failures/solutions/lab-01-wrong-password.md
+phase-2-inject-and-diagnose-failures/solutions/lab-02-missing-session-cookie.md
 ```
 
 Work through these one at a time. For each failure, trigger the scenario, capture client evidence, capture server evidence if the request reaches Flask, then write the conclusion from evidence in the matching solution file.
