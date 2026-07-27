@@ -23,7 +23,9 @@ Focus:
 ```text
 README.md
 labs/
-solutions/
+labs/01-production-readiness-review/
+labs/02-aws-production-architecture/
+labs/03-global-availability-tradeoff/
 ```
 
 Use this phase for production design prompts such as:

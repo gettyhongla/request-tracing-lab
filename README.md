@@ -123,9 +123,6 @@ Use `AnswersByGetty/` for completed evidence, conclusions, and retained takeaway
 phases/
 Prompts, diagrams, lab objectives, completion standards, manifests, and reusable project material.
 
-phases/*/solutions/
-Short answer guides that show what good reasoning should include.
-
 AnswersByGetty/
 Getty's actual work: evidence collected, commands run, observations, troubleshooting conclusions, reflections, and takeaways.
 ```

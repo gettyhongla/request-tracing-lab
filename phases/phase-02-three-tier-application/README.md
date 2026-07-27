@@ -48,7 +48,6 @@ README.md
 concepts/database-operator-concepts.md
 concepts/postgresql-investigation-queries.md
 labs/
-solutions/
 assets/
 ```
 
@@ -72,16 +71,15 @@ Could this data be cached safely, or must it come from PostgreSQL?
 Which metrics would expose the failure faster next time?
 ```
 
-## Labs And Solutions
+## Labs
 
 Use:
 
 ```text
 labs/
-solutions/
 ```
 
-The labs are prompts. The solutions are answer guides and completion standards. Try each lab before reading the matching solution.
+The labs define what to build, trace, break, and investigate. Completed evidence, diagrams, commands, SQL output, RCA notes, and retained takeaways belong in `AnswersByGetty/phase-02-three-tier-application/`.
 
 ## Failure Classes
 
