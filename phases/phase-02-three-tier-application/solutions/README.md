@@ -1,9 +1,3 @@
-# Phase 2 Solution Guide
-
-This is not Getty's completed work. It is a short guide for what strong reasoning should include.
-
-Put actual observations, diagrams, commands, request IDs, and reflections in `AnswersByGetty/phase-02-three-tier-application/`.
-
 ## Solution 1: Healthy Request Path
 
 Strong answer:
