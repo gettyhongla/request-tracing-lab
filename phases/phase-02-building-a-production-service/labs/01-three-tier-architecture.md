@@ -12,7 +12,9 @@ Browser or curl -> NGINX -> Flask API -> PostgreSQL
 
 Do not install anything new yet. Create the design you are about to build.
 
-1. Draw the architecture.
+1. Draw the architecture in two views:
+   - Component view: Browser or curl, NGINX, Flask API, and PostgreSQL.
+   - Request-tracing view: the path one request takes through those components and the evidence each component should leave behind.
 2. Label each layer's job.
 3. Define the request path for one successful login or API request.
 4. Define where request IDs should appear.
@@ -48,6 +50,7 @@ You can explain the architecture without reading the diagram.
 
 ```text
 Architecture diagram:
+Component view:
 Request path:
 Layer responsibilities:
 Expected logs:
