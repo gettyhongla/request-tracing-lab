@@ -48,19 +48,16 @@ Phase 3 answers focus on:
 * Pod, Service, Ingress, Secret, HPA, and NetworkPolicy evidence
 * Deployment troubleshooting and production readiness
 
-## Future Answers
+## Active Answer Sets
 
-Add future answer sets by phase:
+The public `main` branch currently keeps answer sets for the phases being built and validated:
 
 ```text
+AnswersByGetty/phase-01-single-service-request-tracing/
 AnswersByGetty/phase-02-three-tier-application/
 AnswersByGetty/phase-03-production-deployment-foundation/
-AnswersByGetty/phase-04-observability/
-AnswersByGetty/phase-05-queues-workers/
-AnswersByGetty/phase-06-distributed-services/
-AnswersByGetty/phase-07-production-operations/
-AnswersByGetty/phase-08-scale-reliability-design/
-AnswersByGetty/phase-09-scenario-diagnostics/
 ```
+
+Future answer sets should be added to `main` only when their labs and evidence are ready to publish.
 
 Keep timestamps, request IDs, cookies, and tokens realistic, but redact secrets and personal notes that do not belong in a public repository.

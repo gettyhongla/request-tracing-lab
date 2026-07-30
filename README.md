@@ -1,6 +1,6 @@
 # Production Systems Lab
 
-A hands-on production systems portfolio for system design, request flow, production deployment, production failures, observability, root cause analysis, and incident communication.
+A hands-on production systems portfolio for system design, request flow, production deployment, production failures, root cause analysis, and incident communication.
 
 This project starts with a small Flask application, but the app is only the first layer. The system grows over time to demonstrate how an application is designed, deployed, operated, stressed, investigated, and explained when customers report vague symptoms like slow login, intermittent errors, failed reports, or missing data.
 
@@ -30,17 +30,15 @@ The focus is architectural reasoning backed by working evidence.
 
 ## Project Roadmap
 
+The `main` branch contains the active public build path. Future phase drafts live on the `production-systems-foundation` branch until their labs and evidence are ready for the main portfolio.
+
 | Phase | Focus | Outcome |
 | --- | --- | --- |
 | [Phase 1](phases/phase-01-single-service-request-tracing/) | Single-service request tracing | Understand HTTP, auth, request IDs, logs, latency, and controlled failures |
 | [Phase 2](phases/phase-02-three-tier-application/) | Three-tier application design | Trace traffic through browser, reverse proxy, Flask API, PostgreSQL, and Redis; explain database readiness, query behavior, and data failure modes |
 | [Phase 3](phases/phase-03-production-deployment-foundation/) | Production deployment foundation | Package, configure, route, load balance, deploy, verify, roll back, and troubleshoot the app in containerized/Kubernetes-style environments |
-| [Phase 4](phases/phase-04-observability/) | Observability | Connect logs, metrics, traces, dashboards, and alerts with request behavior |
-| [Phase 5](phases/phase-05-queues-workers/) | Queues and workers | Investigate asynchronous jobs, retries, backlogs, idempotency, and eventual consistency |
-| [Phase 6](phases/phase-06-distributed-services/) | Distributed services | Reason through service boundaries, failed hops, timeouts, retries, and partial failure |
-| [Phase 7](phases/phase-07-production-operations/) | Production operations | Produce release checks, incident response notes, customer updates, engineering escalations, runbooks, and postmortems |
-| [Phase 8](phases/phase-08-scale-reliability-design/) | Production architecture and reliability | Design AWS production architecture, global availability, capacity, safe deployments, graceful degradation, rollback strategy, and SLO tradeoffs |
-| [Phase 9](phases/phase-09-scenario-diagnostics/) | Scenario diagnostics | Diagnose unknown production scenarios with structured, evidence-first reasoning |
+
+Later phases will add observability, queues and workers, distributed services, production operations, reliability design, and unknown-scenario diagnostics after the current architecture and deployment foundation are complete.
 
 ## Current Architecture
 
@@ -104,13 +102,7 @@ request-tracing-lab/
 |-- phases/
 |   |-- phase-01-single-service-request-tracing/
 |   |-- phase-02-three-tier-application/
-|   |-- phase-03-production-deployment-foundation/
-|   |-- phase-04-observability/
-|   |-- phase-05-queues-workers/
-|   |-- phase-06-distributed-services/
-|   |-- phase-07-production-operations/
-|   |-- phase-08-scale-reliability-design/
-|   `-- phase-09-scenario-diagnostics/
+|   `-- phase-03-production-deployment-foundation/
 |
 `-- AnswersByGetty/
 ```
