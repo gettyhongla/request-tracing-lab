@@ -4,6 +4,8 @@ import os
 import uuid
 
 import jwt
+import psycopg
+from psycopg.rows import dict_row
 from flask import Flask, jsonify, request, session
 
 app = Flask(__name__)
@@ -16,11 +18,16 @@ JWT_SECRET = os.environ.get(
     "JWT_SECRET",
     "local-jwt-secret-for-request-tracing-lab"
 )
+DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=request_tracing_lab")
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s"
 )
+
+
+def get_db_connection():
+    return psycopg.connect(DATABASE_URL, row_factory=dict_row)
 
 
 @app.before_request
@@ -188,6 +195,87 @@ def health():
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+
+@app.post("/notes")
+def create_note():
+    data = request.get_json(silent=True) or {}
+    message = data.get("message", "").strip()
+
+    if not message:
+        return jsonify({
+            "error": "message is required",
+            "request_id": request.request_id
+        }), 400
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO request_notes (message)
+                    VALUES (%s)
+                    RETURNING id, message, created_at;
+                    """,
+                    (message,)
+                )
+                note = cur.fetchone()
+    except psycopg.Error:
+        logging.exception(
+            "database_error request_id=%s operation=create_note",
+            request.request_id
+        )
+        return jsonify({
+            "error": "database unavailable",
+            "request_id": request.request_id
+        }), 503
+
+    logging.info(
+        "database_write request_id=%s table=request_notes row_id=%s",
+        request.request_id,
+        note["id"]
+    )
+
+    return jsonify({
+        "note": note,
+        "request_id": request.request_id
+    }), 201
+
+
+@app.get("/notes")
+def list_notes():
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, message, created_at
+                    FROM request_notes
+                    ORDER BY id DESC
+                    LIMIT 10;
+                    """
+                )
+                notes = cur.fetchall()
+    except psycopg.Error:
+        logging.exception(
+            "database_error request_id=%s operation=list_notes",
+            request.request_id
+        )
+        return jsonify({
+            "error": "database unavailable",
+            "request_id": request.request_id
+        }), 503
+
+    logging.info(
+        "database_read request_id=%s table=request_notes rows=%s",
+        request.request_id,
+        len(notes)
+    )
+
+    return jsonify({
+        "notes": notes,
+        "request_id": request.request_id
     })
 
 

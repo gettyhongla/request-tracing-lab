@@ -149,6 +149,14 @@ For interview and operations readiness, I do not need every PostgreSQL command y
 
 ## Prove
 
+**Connection configuration:**
+
+```text
+DATABASE_URL=dbname=request_tracing_lab
+```
+
+Flask uses `DATABASE_URL` if it is set. If it is not set, the app defaults to the local `request_tracing_lab` database.
+
 **Database created:**
 
 ```text
@@ -173,47 +181,162 @@ CREATE TABLE request_notes (
 
 **Write request:**
 
+Manual SQL write:
+
 ```sql
 INSERT INTO request_notes (message)
 VALUES ('first postgres lab row');
 ```
 
+Application write through NGINX and Flask:
+
+```bash
+curl -i --max-time 5 http://127.0.0.1:8080/notes \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"postgres row through flask and nginx"}'
+```
+
+Response:
+
+```text
+HTTP/1.1 201 CREATED
+Server: nginx/1.31.3
+X-Request-ID: dd3548eaa98e3e8d7a83ab846f82b31a
+```
+
 **Read request:**
+
+Manual SQL read:
 
 ```sql
 SELECT * FROM request_notes;
 ```
 
+Application read through NGINX and Flask:
+
+```bash
+curl -i --max-time 5 http://127.0.0.1:8080/notes
+```
+
+Response:
+
+```text
+HTTP/1.1 200 OK
+Server: nginx/1.31.3
+X-Request-ID: cb4bd4d4906acf44db7db1a24b5d3972
+```
+
 **SQL evidence:**
 
 ```text
-The SELECT query should return the row with message: first postgres lab row
+id | message                              | created_at
+---+--------------------------------------+-------------------------------
+3  | first postgres lab row from flask    | 2026-07-30 17:51:35.63169-04
+2  | postgres row through flask and nginx | 2026-07-30 17:51:24.177706-04
+1  | first postgres lab row               | 2026-07-30 17:33:42.778478-04
 ```
 
-At this point, the database evidence matters more than the app evidence because Flask has not been wired to PostgreSQL yet. The manual SQL proves the database exists, the table exists, and the database can persist a row.
+**Application log:**
+
+```text
+request_started request_id=dd3548eaa98e3e8d7a83ab846f82b31a method=POST path=/notes
+database_write request_id=dd3548eaa98e3e8d7a83ab846f82b31a table=request_notes row_id=2
+request_finished request_id=dd3548eaa98e3e8d7a83ab846f82b31a status=201
+
+request_started request_id=cb4bd4d4906acf44db7db1a24b5d3972 method=GET path=/notes
+database_read request_id=cb4bd4d4906acf44db7db1a24b5d3972 table=request_notes rows=2
+request_finished request_id=cb4bd4d4906acf44db7db1a24b5d3972 status=200
+```
+
+The full proof chain is:
+
+```text
+curl through NGINX -> NGINX access log -> Flask log -> SQL SELECT from PostgreSQL
+```
+
+The SQL query is the strongest proof that the data was stored because it checks the database directly.
 
 ## Break
 
-I have not completed the Flask-to-PostgreSQL failure test yet.
+I completed the break test by stopping PostgreSQL while leaving NGINX and Flask running.
 
-The future break test will be:
-
-1. Wire Flask to PostgreSQL.
-2. Confirm Flask can write and read a row.
-3. Stop PostgreSQL or use a bad password.
-4. Send the same request through NGINX to Flask.
-5. Compare the client response, Flask log, NGINX log, and PostgreSQL state.
-
-Expected learning:
-
-```text
-NGINX can route the request successfully.
-Flask receives the request.
-Flask fails when it tries to use PostgreSQL.
-PostgreSQL is the failed dependency.
+```bash
+brew services stop postgresql@18
 ```
 
-That distinction matters because not every `5xx` means NGINX failed. Sometimes NGINX routes correctly, Flask receives the request, and the dependency behind Flask fails.
+Then I sent the same write request through NGINX:
+
+```bash
+curl -i --max-time 5 http://127.0.0.1:8080/notes \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"this should fail because postgres is stopped"}'
+```
+
+**What the user saw:**
+
+```text
+HTTP/1.1 503 SERVICE UNAVAILABLE
+Server: nginx/1.31.3
+X-Request-ID: fc36c1be66f5f018f435a45cb897dba5
+
+{
+  "error": "database unavailable",
+  "request_id": "fc36c1be66f5f018f435a45cb897dba5"
+}
+```
+
+**What Flask logged:**
+
+```text
+request_started request_id=fc36c1be66f5f018f435a45cb897dba5 method=POST path=/notes
+database_error request_id=fc36c1be66f5f018f435a45cb897dba5 operation=create_note
+psycopg.OperationalError: connection to server on socket "/tmp/.s.PGSQL.5432" failed: Connection refused
+request_finished request_id=fc36c1be66f5f018f435a45cb897dba5 status=503
+```
+
+**NGINX access log:**
+
+```text
+127.0.0.1 - - [30/Jul/2026:17:52:55 -0400] "POST /notes HTTP/1.1" 503 90 "-" "curl/8.7.1"
+```
+
+**PostgreSQL state during failure:**
+
+```text
+postgresql@18 none
+```
+
+**SQL evidence after recovery:**
+
+```sql
+SELECT id, message, created_at
+FROM request_notes
+WHERE message = 'this should fail because postgres is stopped';
+```
+
+Result:
+
+```text
+0 rows
+```
+
+This proves the failed write was not saved.
+
+**Did NGINX cause the failure?**
+
+No. NGINX routed the request to Flask successfully. The proof is that the client got a JSON response from Flask with `database unavailable`, and the Flask log shows `request_started`, `database_error`, and `request_finished status=503`.
+
+**What proves PostgreSQL was the failed dependency?**
+
+The Flask log shows `psycopg.OperationalError` and `Connection refused` while connecting to the PostgreSQL socket. The PostgreSQL service status also showed `postgresql@18 none`, meaning PostgreSQL was stopped.
+
+After the test, I restarted PostgreSQL:
+
+```bash
+brew services start postgresql@18
+```
+
+Then `GET /notes` through NGINX returned `200 OK` again.
 
 ## Key Takeaways
 
@@ -223,8 +346,12 @@ That distinction matters because not every `5xx` means NGINX failed. Sometimes N
 
 **Application logs are not enough:** A Flask log can say a request ran, but a SQL query proves whether the data was actually saved.
 
+**A successful write needs database proof:** The app response and Flask log show that the request was handled, but `SELECT` proves PostgreSQL actually stored the row.
+
 **Relational databases store structured data:** PostgreSQL stores data in tables, rows, and columns, and SQL is how I inspect and change that data.
 
 **The data tier changes troubleshooting:** If a request fails after Flask receives it, I need to check whether the failure came from application code, database connectivity, credentials, schema, or the database service itself.
+
+**A database failure is different from an NGINX failure:** In this lab, NGINX worked and Flask received the request. The failure happened when Flask tried to connect to PostgreSQL.
 
 **At this stage, I only need operational fluency:** I should know how to start PostgreSQL, connect with `psql`, create a database, create a simple table, insert a row, read it back, and explain why that proves persistence.
