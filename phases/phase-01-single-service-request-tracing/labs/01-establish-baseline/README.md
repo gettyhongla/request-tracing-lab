@@ -14,7 +14,17 @@ python app.py
 
 Keep the Flask terminal visible so you can capture the matching server logs.
 
-## Trigger The Request
+## Trigger The Request In The Browser
+
+Open:
+
+```text
+http://127.0.0.1:5000/health
+```
+
+Use DevTools > Network to inspect the request and response.
+
+## Trigger The Same Request With curl
 
 ```bash
 curl -i \
@@ -25,6 +35,11 @@ curl -i \
 ## Evidence To Collect
 
 ```text
+Browser URL:
+DevTools request method:
+DevTools response status:
+DevTools response body:
+curl command:
 Request method:
 Request path:
 Response status:
@@ -32,11 +47,12 @@ Response body:
 X-Request-ID:
 Matching request_started log:
 Matching request_finished log:
+Browser and curl comparison:
 ```
 
 ## Completion Standard
 
-You are done when you can prove the client reached Flask, Flask returned a healthy response, and the same request ID appears in both client output and server logs.
+You are done when you can prove the browser and `curl` both reached Flask, Flask returned a healthy response, and the same request ID appears in terminal output and server logs.
 
 ## Write Your Answer
 

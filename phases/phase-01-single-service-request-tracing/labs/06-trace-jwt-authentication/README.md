@@ -12,7 +12,17 @@ source venv/bin/activate
 python app.py
 ```
 
-## Request A JWT
+## Trace The JWT In The Browser
+
+Open:
+
+```text
+http://127.0.0.1:5000/
+```
+
+Use the JWT login control. In DevTools, inspect the `/jwt/login` response body and the `/jwt/profile` request headers.
+
+## Request A JWT With curl
 
 ```bash
 curl -i \
@@ -24,7 +34,7 @@ curl -i \
 
 Copy the token from the response. Redact the token in your public notes.
 
-## Use The JWT
+## Use The JWT With curl
 
 ```bash
 curl -i \
@@ -36,6 +46,9 @@ curl -i \
 ## Evidence To Collect
 
 ```text
+Browser JWT login action:
+DevTools token response evidence:
+DevTools Authorization header evidence:
 JWT login request method and path:
 JWT login response status:
 Token returned:
@@ -43,11 +56,12 @@ Profile request method and path:
 Authorization header shape:
 Profile response status:
 Matching server logs for both request IDs:
+Browser and curl comparison:
 ```
 
 ## Completion Standard
 
-You are done when you can explain how JWT authentication differs from session-cookie authentication and which evidence proves the token was accepted.
+You are done when you can explain how the browser sends the bearer token, how `curl` sends the same token explicitly, and which evidence proves the token was accepted.
 
 ## Write Your Answer
 

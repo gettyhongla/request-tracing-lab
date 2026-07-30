@@ -12,7 +12,23 @@ source venv/bin/activate
 python app.py
 ```
 
-## Log In And Store The Session Cookie
+## Trace The Session In The Browser
+
+Open:
+
+```text
+http://127.0.0.1:5000/
+```
+
+Use the session login control. In DevTools, inspect:
+
+```text
+Network > /session/login > Response Headers > Set-Cookie
+Application > Cookies
+Network > /session/profile > Request Headers > Cookie
+```
+
+## Log In And Store The Session Cookie With curl
 
 ```bash
 curl -i \
@@ -23,7 +39,7 @@ curl -i \
   http://127.0.0.1:5000/session/login
 ```
 
-## Use The Session Cookie
+## Use The Session Cookie With curl
 
 ```bash
 curl -i \
@@ -35,6 +51,10 @@ curl -i \
 ## Evidence To Collect
 
 ```text
+Browser login action:
+DevTools Set-Cookie evidence:
+DevTools stored cookie evidence:
+DevTools profile Cookie header evidence:
 Login request method and path:
 Login response status:
 Set-Cookie response header:
@@ -42,11 +62,12 @@ Profile request method and path:
 Cookie request header:
 Profile response status:
 Matching server logs for both request IDs:
+Browser and curl comparison:
 ```
 
 ## Completion Standard
 
-You are done when you can explain where the session cookie was created, where it was sent back, and why the profile request succeeded.
+You are done when you can explain where the browser stored the session cookie, how `curl` stores and replays it with a cookie jar, and why both profile requests succeeded.
 
 ## Write Your Answer
 

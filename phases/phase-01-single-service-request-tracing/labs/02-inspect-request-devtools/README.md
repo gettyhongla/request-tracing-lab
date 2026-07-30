@@ -22,9 +22,20 @@ http://127.0.0.1:5000/
 
 Then open DevTools, go to the Network tab, refresh the page, and inspect the main document request.
 
+## Compare With curl
+
+Run the same request from the terminal:
+
+```bash
+curl -i \
+  -H "X-Request-ID: lab-02-inspect-request-devtools" \
+  http://127.0.0.1:5000/
+```
+
 ## Evidence To Collect
 
 ```text
+Browser action:
 Request URL:
 Request method:
 Remote address:
@@ -33,11 +44,17 @@ Important request headers:
 Important response headers:
 Response body or preview:
 Was a request body sent:
+curl command:
+curl response status:
+curl response headers:
+curl response body:
+Matching server log:
+Browser and curl comparison:
 ```
 
 ## Completion Standard
 
-You are done when you can explain what the browser sent, what Flask returned, and which parts of DevTools describe the request versus the response.
+You are done when you can explain what the browser sent, what `curl` sent, what Flask returned, and which parts of DevTools describe the request versus the response.
 
 ## Write Your Answer
 

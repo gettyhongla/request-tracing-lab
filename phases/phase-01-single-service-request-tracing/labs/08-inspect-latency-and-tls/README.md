@@ -17,6 +17,20 @@ TLS trust failure:
 The client reaches the TLS layer but does not trust the certificate.
 ```
 
+## Evidence To Compare
+
+Use both browser DevTools and terminal output when possible:
+
+```text
+Browser timing evidence:
+Browser error message:
+curl timing output:
+curl TLS or connection output:
+Matching Flask log, if any:
+Was an HTTP response received:
+Did the request reach Flask:
+```
+
 ## Related Answer Files
 
 ```text

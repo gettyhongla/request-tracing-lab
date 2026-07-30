@@ -19,6 +19,7 @@ This phase focuses only on the client, the Flask API, and the application logs.
 You should understand:
 
 * How a browser or `curl` sends an HTTP request
+* How browser DevTools and terminal output show the same request from different angles
 * How to separate request data from response data
 * How status codes describe the result
 * How cookies carry session state
@@ -82,7 +83,15 @@ Use this for each request:
 ```text
 Scenario:
 
-Tool used:
+Tools used:
+
+Browser or UI action:
+
+DevTools evidence:
+
+curl command:
+
+Terminal evidence:
 
 Request method:
 
@@ -101,6 +110,8 @@ Response body:
 Request ID:
 
 Matching server log:
+
+UI and terminal comparison:
 
 Observed behavior:
 

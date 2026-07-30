@@ -12,7 +12,17 @@ source venv/bin/activate
 python app.py
 ```
 
-## Trigger The Request
+## Trigger The Request In The Browser
+
+Open:
+
+```text
+http://127.0.0.1:5000/
+```
+
+Use DevTools > Network to capture the browser request, then compare it to the Flask logs.
+
+## Trigger A Request With curl
 
 ```bash
 curl -i \
@@ -23,6 +33,11 @@ curl -i \
 ## Evidence To Collect
 
 ```text
+Browser URL:
+DevTools method, path, and status:
+DevTools request headers:
+DevTools response headers:
+curl command:
 Client request ID:
 Client status:
 Client response body:
@@ -33,11 +48,12 @@ Method:
 Path:
 Status:
 User agent:
+Browser and curl comparison:
 ```
 
 ## Completion Standard
 
-You are done when the same request ID appears in the client request, the `request_started` log, and the `request_finished` log.
+You are done when you can correlate browser evidence and `curl` evidence to Flask logs and explain how user agents, headers, and request IDs differ.
 
 ## Write Your Answer
 

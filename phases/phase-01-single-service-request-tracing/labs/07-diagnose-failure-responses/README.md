@@ -24,6 +24,9 @@ TLS trust failure
 For each failure, prove:
 
 ```text
+What did the browser or UI show?
+What did DevTools show?
+What did curl show?
 Did the client receive an HTTP response?
 Did the request reach Flask?
 What status or client error occurred?
@@ -31,6 +34,24 @@ Was there an X-Request-ID?
 Was there a matching server log?
 Which layer failed?
 What evidence rules out nearby layers?
+```
+
+## How To Run Each Failure
+
+Use the browser first when the failure can be triggered from the app UI. Capture DevTools evidence from the Network tab, including request headers, response headers, status, body, timing, and cookies or authorization headers when relevant.
+
+Then reproduce the same failure with `curl` so the terminal output can be compared against the browser evidence.
+
+Some failures are easier to prove from the terminal, such as wrong port, server unavailable, malformed JSON, or TLS trust errors. For those, still record what the browser shows if you attempt the same request there.
+
+Your notes should separate:
+
+```text
+User-visible symptom:
+Browser DevTools evidence:
+curl evidence:
+Flask log evidence:
+Conclusion:
 ```
 
 ## Failure Set

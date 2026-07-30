@@ -12,7 +12,17 @@ source venv/bin/activate
 python app.py
 ```
 
-## Trigger A GET Request
+## Trigger GET And POST In The Browser
+
+Open the app in a browser:
+
+```text
+http://127.0.0.1:5000/
+```
+
+Use the page controls to trigger a health check and a session login. Inspect both requests in DevTools > Network.
+
+## Trigger A GET Request With curl
 
 ```bash
 curl -i \
@@ -20,7 +30,7 @@ curl -i \
   http://127.0.0.1:5000/health
 ```
 
-## Trigger A POST Request
+## Trigger A POST Request With curl
 
 ```bash
 curl -i \
@@ -33,17 +43,20 @@ curl -i \
 ## Evidence To Collect
 
 ```text
+Browser GET request evidence:
+Browser POST request evidence:
 GET method, path, status, and body:
 POST method, path, status, and body:
 POST request Content-Type:
 POST request body:
 Response headers that changed:
 Matching server logs for both request IDs:
+Browser and curl comparison:
 ```
 
 ## Completion Standard
 
-You are done when you can explain how a GET request retrieves information and how a POST request sends a body that the application must parse and validate.
+You are done when you can explain how a browser-triggered request and a `curl` request express GET and POST behavior, and how Flask logs prove both request paths.
 
 ## Write Your Answer
 
