@@ -107,19 +107,19 @@ request-tracing-lab/
 `-- AnswersByGetty/
 ```
 
-Use `AnswersByGetty/` for completed evidence, conclusions, and retained takeaways.
+Use `AnswersByGetty/` for completed evidence, conclusions, and retained takeaways from one implementation of the lab.
 
 ## What Goes Where
 
 ```text
 phases/
-Prompts, diagrams, lab objectives, completion standards, manifests, and reusable project material.
+Reusable lab prompts, architecture diagrams, objectives, completion standards, manifests, and setup material.
 
 AnswersByGetty/
-Getty's actual work: evidence collected, commands run, observations, troubleshooting conclusions, reflections, and takeaways.
+Completed lab work: commands run, DevTools observations, logs, diagrams, RCA notes, conclusions, and retained takeaways.
 ```
 
-The project should teach others while also showing how production problems are investigated, designed around, deployed, and communicated. Keep the public docs focused; let the answer files prove the work.
+The project separates instructions from completed work so the lab can teach the process while the answer files show the evidence trail.
 
 ## Production Deployment Skills
 
