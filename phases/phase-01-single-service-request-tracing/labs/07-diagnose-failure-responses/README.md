@@ -38,17 +38,17 @@ What evidence rules out nearby layers?
 | Failure | Focus | Answer file |
 | --- | --- | --- |
 | [01](failure-01-wrong-password.md) | Wrong password | `AnswersByGetty/.../failure-01-wrong-password.md` |
-| 02 | Missing session cookie | `AnswersByGetty/.../failure-02-missing-session-cookie.md` |
-| 03 | Invalid JWT | `AnswersByGetty/.../failure-03-invalid-jwt.md` |
-| 04 | Expired JWT | `AnswersByGetty/.../failure-04-expired-jwt.md` |
-| 05 | Nonexistent route | `AnswersByGetty/.../failure-05-nonexistent-route.md` |
-| 06 | Server unavailable | `AnswersByGetty/.../failure-06-server-unavailable.md` |
-| 07 | Wrong port | `AnswersByGetty/.../failure-07-wrong-port.md` |
-| 08 | Malformed JSON | `AnswersByGetty/.../failure-08-malformed-json.md` |
-| 09 | Missing Content-Type | `AnswersByGetty/.../failure-09-missing-content-type.md` |
-| 10 | Slow request | `AnswersByGetty/.../failure-10-slow-request.md` |
-| 11 | Application exception | `AnswersByGetty/.../failure-11-application-exception.md` |
-| 12 | Untrusted certificate | `AnswersByGetty/.../failure-12-untrusted-certificate.md` |
+| [02](failure-02-missing-session-cookie.md) | Missing session cookie | `AnswersByGetty/.../failure-02-missing-session-cookie.md` |
+| [03](failure-03-invalid-jwt.md) | Invalid JWT | `AnswersByGetty/.../failure-03-invalid-jwt.md` |
+| [04](failure-04-expired-jwt.md) | Expired JWT | `AnswersByGetty/.../failure-04-expired-jwt.md` |
+| [05](failure-05-nonexistent-route.md) | Nonexistent route | `AnswersByGetty/.../failure-05-nonexistent-route.md` |
+| [06](failure-06-server-unavailable.md) | Server unavailable | `AnswersByGetty/.../failure-06-server-unavailable.md` |
+| [07](failure-07-wrong-port.md) | Wrong port | `AnswersByGetty/.../failure-07-wrong-port.md` |
+| [08](failure-08-malformed-json.md) | Malformed JSON | `AnswersByGetty/.../failure-08-malformed-json.md` |
+| [09](failure-09-missing-content-type.md) | Missing Content-Type | `AnswersByGetty/.../failure-09-missing-content-type.md` |
+| [10](failure-10-slow-request.md) | Slow request | `AnswersByGetty/.../failure-10-slow-request.md` |
+| [11](failure-11-application-exception.md) | Application exception | `AnswersByGetty/.../failure-11-application-exception.md` |
+| [12](failure-12-untrusted-certificate.md) | Untrusted certificate | `AnswersByGetty/.../failure-12-untrusted-certificate.md` |
 
 ## Answer Location
 
