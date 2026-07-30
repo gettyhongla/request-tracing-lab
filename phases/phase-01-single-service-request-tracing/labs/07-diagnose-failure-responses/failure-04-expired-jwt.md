@@ -16,15 +16,16 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Request method and path:
-Authorization header shape:
-Response status:
-Response body:
-X-Request-ID:
-Matching server log:
+Token state:
+Client status and error message:
+Matching Flask logs:
 Failed layer:
 What this rules out:
 ```
+
+## Hint
+
+Expired and invalid tokens can both return `401`. The key difference is whether the token was structurally valid but rejected because its lifetime ended.
 
 ## Completion Standard
 

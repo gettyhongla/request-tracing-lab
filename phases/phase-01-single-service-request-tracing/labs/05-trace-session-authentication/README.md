@@ -51,19 +51,17 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Browser login action:
-DevTools Set-Cookie evidence:
-DevTools stored cookie evidence:
-DevTools profile Cookie header evidence:
-Login request method and path:
 Login response status:
-Set-Cookie response header:
-Profile request method and path:
-Cookie request header:
+Where the session cookie first appears:
+Where the cookie is sent back on /session/profile:
 Profile response status:
-Matching server logs for both request IDs:
+Matching Flask logs for login and profile:
 Browser and curl comparison:
 ```
+
+## Hint
+
+The useful evidence is the cookie lifecycle: created by the response, stored by the client, replayed on the next authenticated request.
 
 ## Completion Standard
 

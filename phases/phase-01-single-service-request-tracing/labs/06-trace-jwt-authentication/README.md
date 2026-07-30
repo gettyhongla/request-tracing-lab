@@ -46,18 +46,17 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Browser JWT login action:
-DevTools token response evidence:
-DevTools Authorization header evidence:
-JWT login request method and path:
 JWT login response status:
-Token returned:
-Profile request method and path:
-Authorization header shape:
+Where the token appears:
+Authorization header shape on /jwt/profile:
 Profile response status:
-Matching server logs for both request IDs:
+Matching Flask logs for login and profile:
 Browser and curl comparison:
 ```
+
+## Hint
+
+Do not paste full tokens into public notes. The important proof is where the token was issued and how it was presented back as `Authorization: Bearer <token>`.
 
 ## Completion Standard
 

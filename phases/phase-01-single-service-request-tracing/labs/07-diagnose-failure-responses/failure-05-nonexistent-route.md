@@ -15,14 +15,16 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Request method and path:
-Response status:
-Response body:
-X-Request-ID:
-Matching server log:
+Requested path:
+Client status:
+Matching Flask access log:
 Failed layer:
 What this rules out:
 ```
+
+## Hint
+
+This is not the same as Flask being down. A `404` means the server answered, but the requested route did not match an application endpoint.
 
 ## Completion Standard
 

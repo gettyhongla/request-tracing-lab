@@ -15,16 +15,16 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Request method and path:
-Response status:
-Response body:
-X-Request-ID:
-request_started log:
+Client status and error message:
 application_error log:
-request_finished log:
+request_started and request_finished logs:
 Failed layer:
 What this rules out:
 ```
+
+## Hint
+
+The strongest evidence is the application error log tied to the same request. That separates a handled `500` from connection, route, or auth failures.
 
 ## Completion Standard
 

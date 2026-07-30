@@ -35,22 +35,16 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Browser action:
-Request URL:
-Request method:
-Remote address:
-Status code:
-Important request headers:
-Important response headers:
-Response body or preview:
-Was a request body sent:
-curl command:
-curl response status:
-curl response headers:
-curl response body:
-Matching server log:
+DevTools request method, URL, and status:
+One request header that explains what the browser sent:
+One response header or body field that explains what Flask returned:
+curl status and response shape:
 Browser and curl comparison:
 ```
+
+## Hint
+
+DevTools is strongest for seeing what the browser actually sent. `curl` is strongest for reproducing the same request with fewer browser-added headers.
 
 ## Completion Standard
 

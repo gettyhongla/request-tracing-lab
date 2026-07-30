@@ -46,18 +46,15 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Client evidence:
-Response status, response body, X-Request-ID.
-
-Server evidence:
-request_started log, request_finished log, matching request_id.
-
-Failure layer:
-Authentication / application decision.
-
+Client status and error message:
+Matching Flask logs:
+Failed layer:
 What this rules out:
-Network failure, server unavailable, wrong route, and application exception.
 ```
+
+## Hint
+
+The important distinction is that Flask answered the request. A `401` with matching Flask logs points to an authentication decision, not an unavailable application.
 
 ## Completion Standard
 

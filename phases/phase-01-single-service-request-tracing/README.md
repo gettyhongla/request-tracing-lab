@@ -76,50 +76,34 @@ phase-1-observe-successful-requests/
 phase-2-inject-and-diagnose-failures/
 ```
 
-## Investigation Worksheet
+## Evidence Worksheet
 
-Use this for each request:
+Use this as a lightweight guide. Capture the evidence that proves the conclusion; do not copy every header or every timing value unless it changes the diagnosis.
 
 ```text
 Scenario:
 
 Tools used:
 
-Browser or UI action:
+User-visible behavior:
 
-DevTools evidence:
+Most important DevTools evidence:
 
-curl command:
-
-Terminal evidence:
-
-Request method:
-
-Request path:
-
-Important request headers:
-
-Request body:
-
-Response status:
-
-Important response headers:
-
-Response body:
-
-Request ID:
+Most important terminal evidence:
 
 Matching server log:
 
+Request path and method:
+
+Final status or client error:
+
+State or auth evidence, if relevant:
+
 UI and terminal comparison:
 
-Observed behavior:
+Conclusion:
 
-Failure layer, if applicable:
-
-Evidence:
-
-Next troubleshooting step:
+What this rules out:
 ```
 
 ## Phase 1 Completion Standard

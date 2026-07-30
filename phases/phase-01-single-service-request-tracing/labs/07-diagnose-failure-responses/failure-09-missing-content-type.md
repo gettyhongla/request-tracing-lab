@@ -16,16 +16,16 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Request method and path:
-Content-Type header present:
-Request body:
-Response status:
-Response body:
-X-Request-ID:
-Matching server log:
+Content-Type evidence:
+Client status and error message:
+Matching Flask logs:
 Failed layer:
 What this rules out:
 ```
+
+## Hint
+
+The body text may look like JSON to a human, but the application relies on request metadata to decide how to parse it.
 
 ## Completion Standard
 

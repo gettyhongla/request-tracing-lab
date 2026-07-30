@@ -35,20 +35,15 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Browser URL:
-DevTools request method:
-DevTools response status:
-DevTools response body:
-curl command:
-Request method:
-Request path:
-Response status:
-Response body:
-X-Request-ID:
-Matching request_started log:
-Matching request_finished log:
-Browser and curl comparison:
+DevTools status for /health:
+curl status and body:
+Matching request ID in Flask logs:
+Conclusion:
 ```
+
+## Hint
+
+Pay attention to whether the browser and `curl` both receive the same healthy response. The important proof is reachability plus matching server evidence, not every response header.
 
 ## Completion Standard
 

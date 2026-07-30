@@ -16,15 +16,16 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Request method and path:
 Authorization header shape:
-Response status:
-Response body:
-X-Request-ID:
-Matching server log:
+Client status and error message:
+Matching Flask logs:
 Failed layer:
 What this rules out:
 ```
+
+## Hint
+
+Do not focus on the full token value. Focus on whether a bearer token was presented and how Flask classified it.
 
 ## Completion Standard
 

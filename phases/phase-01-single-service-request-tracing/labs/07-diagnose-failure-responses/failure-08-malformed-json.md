@@ -17,16 +17,16 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Request method and path:
-Content-Type header:
-Malformed request body:
-Response status:
-Response body:
-X-Request-ID:
-Matching server log:
+Malformed input evidence:
+Client status and error message:
+Matching Flask logs:
 Failed layer:
 What this rules out:
 ```
+
+## Hint
+
+Look for the difference between request delivery and request parsing. The request can reach Flask even when the body cannot be interpreted as valid JSON.
 
 ## Completion Standard
 

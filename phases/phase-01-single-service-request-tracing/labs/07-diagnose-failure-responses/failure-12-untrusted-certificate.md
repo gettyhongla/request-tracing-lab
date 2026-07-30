@@ -19,12 +19,14 @@ curl -v \
 ```text
 Client TLS error:
 HTTP response received:
-X-Request-ID returned:
 Matching Flask log present:
-Certificate or trust message:
 Failed layer:
 What this rules out:
 ```
+
+## Hint
+
+TLS trust failures happen before normal application evidence. If the handshake fails, the absence of a Flask request log is expected.
 
 ## Completion Standard
 

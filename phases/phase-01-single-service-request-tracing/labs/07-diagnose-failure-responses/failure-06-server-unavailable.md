@@ -19,11 +19,14 @@ curl -i \
 ```text
 Client error:
 HTTP response received:
-X-Request-ID returned:
-Matching server log present:
+Matching Flask log present:
 Failed layer:
 What this rules out:
 ```
+
+## Hint
+
+If no process is listening, there may be no HTTP status and no Flask log. That absence is the evidence.
 
 ## Completion Standard
 

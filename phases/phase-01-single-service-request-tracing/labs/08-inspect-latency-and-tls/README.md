@@ -22,14 +22,16 @@ The client reaches the TLS layer but does not trust the certificate.
 Use both browser DevTools and terminal output when possible:
 
 ```text
-Browser timing evidence:
-Browser error message:
-curl timing output:
-curl TLS or connection output:
+Best timing evidence:
+Client error or HTTP status:
 Matching Flask log, if any:
-Was an HTTP response received:
-Did the request reach Flask:
+Where the delay or failure happened:
+What this rules out:
 ```
+
+## Hint
+
+Do not chase every timing field. First decide whether the client connected, whether TLS completed, whether HTTP reached Flask, and whether Flask returned slowly.
 
 ## Related Answer Files
 

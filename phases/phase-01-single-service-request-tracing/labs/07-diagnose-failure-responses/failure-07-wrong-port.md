@@ -17,11 +17,14 @@ curl -i \
 ```text
 Client error:
 HTTP response received:
-X-Request-ID returned:
-Matching server log present:
+Matching Flask log present:
 Failed layer:
 What this rules out:
 ```
+
+## Hint
+
+A wrong port can look like an outage from the client, but the evidence should show the request never reached the Flask listener.
 
 ## Completion Standard
 

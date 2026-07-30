@@ -33,23 +33,17 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Browser URL:
-DevTools method, path, and status:
-DevTools request headers:
-DevTools response headers:
-curl command:
-Client request ID:
-Client status:
-Client response body:
-request_started log:
-request_finished log:
-Access log:
-Method:
-Path:
-Status:
-User agent:
-Browser and curl comparison:
+Request ID used:
+Client status from browser or curl:
+Matching request_started log:
+Matching request_finished log:
+One difference between browser and curl evidence:
+Conclusion:
 ```
+
+## Hint
+
+The request ID is the anchor. Headers and user agents are useful only when they help explain why two otherwise similar requests behaved differently.
 
 ## Completion Standard
 

@@ -43,16 +43,16 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Browser GET request evidence:
-Browser POST request evidence:
-GET method, path, status, and body:
-POST method, path, status, and body:
-POST request Content-Type:
-POST request body:
-Response headers that changed:
-Matching server logs for both request IDs:
+GET path, status, and response purpose:
+POST path, status, and submitted body:
+Content-Type used for POST:
+Matching Flask logs for both requests:
 Browser and curl comparison:
 ```
+
+## Hint
+
+Focus on the behavioral difference: GET retrieves without a request body; POST submits data Flask must parse and validate.
 
 ## Completion Standard
 

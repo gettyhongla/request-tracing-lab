@@ -16,15 +16,16 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Request method and path:
-Response status:
-Response body:
-Total client time:
-X-Request-ID:
-Matching server log:
-Failed or slow layer:
+Client timing:
+HTTP status:
+Matching Flask logs:
+Slow layer:
 What this rules out:
 ```
+
+## Hint
+
+A slow request is not automatically a failed request. First decide whether the response eventually succeeded, then decide where the time was spent.
 
 ## Completion Standard
 

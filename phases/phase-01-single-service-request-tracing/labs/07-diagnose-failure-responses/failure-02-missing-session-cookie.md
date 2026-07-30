@@ -15,15 +15,16 @@ curl -i \
 ## Evidence To Collect
 
 ```text
-Request method and path:
-Cookie header present:
-Response status:
-Response body:
-X-Request-ID:
-Matching server log:
+Cookie evidence:
+Client status and error message:
+Matching Flask logs:
 Failed layer:
 What this rules out:
 ```
+
+## Hint
+
+Focus on whether the client sent session state. The route can be healthy while the request is still unauthorized.
 
 ## Completion Standard
 

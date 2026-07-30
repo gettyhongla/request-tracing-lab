@@ -24,16 +24,12 @@ TLS trust failure
 For each failure, prove:
 
 ```text
-What did the browser or UI show?
-What did DevTools show?
-What did curl show?
-Did the client receive an HTTP response?
-Did the request reach Flask?
-What status or client error occurred?
-Was there an X-Request-ID?
-Was there a matching server log?
-Which layer failed?
-What evidence rules out nearby layers?
+User-visible symptom:
+Most important DevTools or curl evidence:
+Did the request reach Flask:
+Final status or client-side error:
+Failed layer:
+What this rules out:
 ```
 
 ## How To Run Each Failure
@@ -48,11 +44,14 @@ Your notes should separate:
 
 ```text
 User-visible symptom:
-Browser DevTools evidence:
-curl evidence:
-Flask log evidence:
+Best client-side evidence:
+Best server-side evidence:
 Conclusion:
 ```
+
+## Hint
+
+For failures, one strong negative signal is often as important as a positive one. For example, no Flask log usually points before Flask; a Flask `request_finished` log with `401` points to an application decision, not an outage.
 
 ## Failure Set
 
