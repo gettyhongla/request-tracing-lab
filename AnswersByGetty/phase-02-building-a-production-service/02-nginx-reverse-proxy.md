@@ -131,6 +131,7 @@ This proved Flask was reachable directly on port `5000`.
 
 ```bash
 curl -i --max-time 3 http://127.0.0.1:8080
+curl -i --max-time 5 http://127.0.0.1:8080/health
 ```
 
 Important response evidence:
@@ -138,10 +139,23 @@ Important response evidence:
 ```text
 HTTP/1.1 200 OK
 Server: nginx/1.31.3
+Content-Type: application/json
 X-Request-ID: 6e8c60f9fd7dc6e0903910c024ea0428
 ```
 
 This proved the request reached NGINX first, then NGINX routed it to Flask.
+
+**Response headers captured:**
+
+```text
+Server: nginx/1.31.3
+Content-Type: application/json
+Content-Length: 77
+Connection: keep-alive
+X-Request-ID: b407c79ce1620eefce609310ca7a5070
+```
+
+The `Server: nginx/1.31.3` header proves the client received the response through NGINX. The `X-Request-ID` header proves NGINX added a request identifier that can be used to correlate the client response with proxy and application logs.
 
 **Service check:**
 
@@ -191,26 +205,78 @@ This is where I would check for config errors, startup problems, permission issu
 
 ## Break
 
-I have not fully completed the broken-upstream test yet.
+I completed the broken-upstream test by temporarily changing the upstream port in the NGINX config.
 
-The next test is:
+I changed this line:
 
-1. Stop Flask.
-2. Keep NGINX running.
-3. Send traffic to `http://127.0.0.1:8080`.
-4. Confirm whether NGINX returns `502 Bad Gateway`.
-5. Compare the NGINX access log, NGINX error log, and Flask log.
-
-Expected result:
-
-```text
-Client receives: 502 Bad Gateway
-NGINX access log: shows the request
-NGINX error log: shows upstream connection failure
-Flask log: no matching request
+```nginx
+proxy_pass http://127.0.0.1:5000;
 ```
 
-That would prove the request stopped between NGINX and Flask.
+to this:
+
+```nginx
+proxy_pass http://127.0.0.1:5999;
+```
+
+I changed it inside `proxy_pass` because that directive controls where NGINX forwards matching traffic after it receives the request. NGINX still listened on `8080`, but it tried to forward the request to port `5999` instead of the Flask app on `5000`.
+
+Then I reloaded NGINX:
+
+```bash
+/opt/homebrew/opt/nginx/bin/nginx -t
+/opt/homebrew/opt/nginx/bin/nginx -s reload
+```
+
+I sent the request through NGINX:
+
+```bash
+curl -i --max-time 5 http://127.0.0.1:8080/health
+```
+
+Client response:
+
+```text
+HTTP/1.1 502 Bad Gateway
+Server: nginx/1.31.3
+Content-Type: text/html
+```
+
+NGINX access log:
+
+```text
+127.0.0.1 - - [30/Jul/2026:17:19:25 -0400] "GET /health HTTP/1.1" 502 497 "-" "curl/8.7.1"
+```
+
+NGINX error log:
+
+```text
+connect() failed (61: Connection refused) while connecting to upstream, upstream: "http://127.0.0.1:5999/health"
+```
+
+Direct Flask test still worked:
+
+```bash
+curl -i --max-time 5 http://127.0.0.1:5000/health
+```
+
+Direct Flask response:
+
+```text
+HTTP/1.1 200 OK
+Server: Werkzeug/3.1.8 Python/3.9.6
+X-Request-ID: 0fd2efdc-7942-496f-a2bc-213a735a2942
+```
+
+This proved Flask itself was healthy. The failure happened because NGINX was pointed at the wrong upstream port.
+
+After the test, I restored the NGINX config back to:
+
+```nginx
+proxy_pass http://127.0.0.1:5000;
+```
+
+Then I reloaded NGINX and confirmed `http://127.0.0.1:8080/health` returned `200 OK` again.
 
 ## Key Takeaways
 
@@ -220,6 +286,10 @@ That would prove the request stopped between NGINX and Flask.
 
 **Headers carry context:** `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`, and `X-Request-ID` help Flask understand the original client request after it passes through NGINX.
 
+**`proxy_set_header` controls what NGINX forwards downstream:** These lines add or preserve headers before NGINX sends the request to Flask. I kept `proxy_set_header X-Request-ID $request_id;` because it lets NGINX generate a request ID. I removed the duplicate `proxy_set_header X-Request-ID $http_x_request_id;` because it only forwards a client-provided request ID and can be blank if the client did not send one.
+
 **A reverse proxy gives production systems a control point:** NGINX can route traffic, serve static files, terminate SSL, load balance, and act as an ingress layer in Kubernetes.
+
+**502 Bad Gateway means the proxy could not get a valid upstream response:** In this lab, the bad port made NGINX fail to connect to `127.0.0.1:5999`, so NGINX returned `502` even though Flask was still healthy on `5000`.
 
 **Reverse proxy vs forward proxy:** A reverse proxy sits in front of servers and represents the server side to clients. A forward proxy sits in front of clients and represents the client side to servers.
