@@ -7,41 +7,37 @@
 This view shows the major components I am about to build.
 
 ```mermaid
-flowchart LR
+flowchart TD
     Browser["Browser / curl"]
-    NGINX["NGINX<br/>Reverse Proxy"]
-    Flask["Flask API<br/>Application Logic"]
-    Postgres["PostgreSQL<br/>Durable Data Store"]
+    NGINX["NGINX Reverse Proxy"]
+    Flask["Flask API"]
+    Postgres["PostgreSQL"]
 
-    Browser -->|"HTTP request"| NGINX
-    NGINX -->|"Proxy request"| Flask
-    Flask -->|"SQL query"| Postgres
-    Postgres -->|"Query results"| Flask
-    Flask -->|"JSON response"| NGINX
-    NGINX -->|"HTTP response"| Browser
+    Browser -->|"GET /api/profile"| NGINX
+    NGINX --> Flask
+    Flask -->|"SQL Query"| Postgres
+    Postgres -->|"Query Results"| Flask
+    Flask -->|"JSON Response"| NGINX
+    NGINX -->|"HTTP Response"| Browser
 ```
 
 ### 2. Request-Tracing View
 
-This view follows one request through the system and shows where evidence should appear.
-
 ```mermaid
 flowchart TD
-    A["Client<br/>GET /api/profile<br/>Request ID: abc123"]
-    B["NGINX<br/>Access log<br/>Request ID: abc123"]
-    C["Flask API<br/>Application log<br/>Request ID: abc123"]
-    D["PostgreSQL<br/>Query evidence<br/>Request ID carried in app context"]
-    E["Flask API<br/>JSON response<br/>Request ID: abc123"]
-    F["NGINX<br/>Response log<br/>Request ID: abc123"]
-    G["Client<br/>HTTP response<br/>Request ID: abc123"]
+    A["Client<br/>GET /api/profile<br/>Request-ID: abc123"]
+    B["NGINX<br/>Reverse Proxy"]
+    C["Flask API<br/>Business Logic"]
+    D["PostgreSQL<br/>SQL Query"]
+    E["JSON Response"]
 
     A --> B
     B --> C
     C --> D
     D --> C
     C --> E
-    E --> F
-    F --> G
+    E --> B
+    B --> A
 ```
 
 ### 3. Request Path
@@ -56,28 +52,6 @@ For a successful `GET /api/profile` request:
 6. PostgreSQL returns the query result to Flask.
 7. Flask formats the result as JSON.
 8. NGINX returns the HTTP response to the client.
-
-### 4. Layer Responsibilities
-
-| Layer | Job | Evidence |
-| --- | --- | --- |
-| Browser or curl | Send the request and display the response | URL, method, status code, headers, response body, timing |
-| NGINX | Accept public traffic and proxy requests to Flask | Access logs, upstream status, request ID, latency |
-| Flask API | Run business logic and call dependencies | Application logs, request ID, route, status code, app latency |
-| PostgreSQL | Store durable application data and answer SQL queries | Query result, query latency, database errors |
-
-### 5. Request ID Plan
-
-The same request ID should appear in:
-
-```text
-Client response headers
-NGINX access logs
-Flask application logs
-Database-related application logs
-```
-
-The goal is to follow one request across every layer instead of guessing which log lines belong together.
 
 ## Prove
 
@@ -134,21 +108,3 @@ Troubleshooting becomes significantly more difficult because it is no longer pos
 **Why request IDs matter:**
 
 Request IDs allow us to trace one request throughout the entire system.
-
-## Evidence To Capture
-
-```text
-Architecture diagram:
-Component view:
-Request path:
-Layer responsibilities:
-Expected logs:
-Expected metrics:
-Expected failure symptoms:
-Interview explanation:
-Retained takeaway:
-```
-
-## Retained Takeaway
-
-A three-tier architecture is not just a list of components. It is a request path. To explain it well, I need to know where the request enters, which layer handles each responsibility, what evidence each layer produces, and how failures appear to the user.
