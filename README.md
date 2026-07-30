@@ -92,6 +92,18 @@ request-tracing-lab/
 ## Phase Structure
 
 ```text
+phases/phase-01-understanding-a-request/
+|-- README.md
+`-- labs/
+    |-- 01-establish-baseline/
+    |-- 02-inspect-request-devtools/
+    |-- 03-correlate-request-server-logs/
+    |-- 04-compare-get-and-post/
+    |-- 05-trace-session-authentication/
+    |-- 06-trace-jwt-authentication/
+    |-- 07-diagnose-failure-responses/
+    `-- 08-inspect-latency-and-tls/
+
 phases/phase-02-building-a-production-service/
 |-- README.md
 |-- labs/
