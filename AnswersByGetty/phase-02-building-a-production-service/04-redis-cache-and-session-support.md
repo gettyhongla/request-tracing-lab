@@ -26,7 +26,7 @@ For this lab, Redis is a cache. It is not the system of record. If Redis loses t
 
 ## Redis Core vs Redis Stack Modules
 
-For Lab 04, I only need Redis core:
+For Lab 04, you only need Redis core:
 
 ```text
 SET
@@ -109,7 +109,7 @@ The `POST /notes` path writes to PostgreSQL and deletes `notes:latest` from Redi
 
 ## Prove
 
-Clear the cache:
+**Clear the cache:**
 
 ```bash
 redis-cli DEL notes:latest
