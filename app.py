@@ -2,7 +2,8 @@ from datetime import datetime, timedelta, timezone
 import logging
 import os
 import uuid
-
+import json
+import redis
 import jwt
 import psycopg
 from psycopg.rows import dict_row
@@ -19,6 +20,9 @@ JWT_SECRET = os.environ.get(
     "local-jwt-secret-for-request-tracing-lab"
 )
 DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=request_tracing_lab")
+REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+NOTES_CACHE_KEY = "notes:latest"
+NOTES_CACHE_TTL_SECONDS = 30
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,6 +32,35 @@ logging.basicConfig(
 
 def get_db_connection():
     return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+
+
+def get_redis_client():
+    return redis.Redis.from_url(REDIS_URL, decode_responses=True)
+
+
+def read_notes_from_postgres():
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, message, created_at
+                FROM request_notes
+                ORDER BY id DESC
+                LIMIT 10;
+                """
+            )
+            return cur.fetchall()
+
+
+def serialize_notes(notes):
+    return [
+        {
+            "id": note["id"],
+            "message": note["message"],
+            "created_at": note["created_at"].isoformat()
+        }
+        for note in notes
+    ]
 
 
 @app.before_request
@@ -237,6 +270,20 @@ def create_note():
         note["id"]
     )
 
+    try:
+        get_redis_client().delete(NOTES_CACHE_KEY)
+        logging.info(
+            "cache_invalidated request_id=%s key=%s",
+            request.request_id,
+            NOTES_CACHE_KEY
+        )
+    except redis.RedisError:
+        logging.exception(
+            "cache_invalidation_error request_id=%s key=%s",
+            request.request_id,
+            NOTES_CACHE_KEY
+        )
+
     return jsonify({
         "note": note,
         "request_id": request.request_id
@@ -245,18 +292,38 @@ def create_note():
 
 @app.get("/notes")
 def list_notes():
+    cache_status = "miss"
+
     try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT id, message, created_at
-                    FROM request_notes
-                    ORDER BY id DESC
-                    LIMIT 10;
-                    """
-                )
-                notes = cur.fetchall()
+        cached_notes = get_redis_client().get(NOTES_CACHE_KEY)
+        if cached_notes:
+            notes = json.loads(cached_notes)
+            logging.info(
+                "cache_hit request_id=%s key=%s rows=%s",
+                request.request_id,
+                NOTES_CACHE_KEY,
+                len(notes)
+            )
+            return jsonify({
+                "cache": "hit",
+                "notes": notes,
+                "request_id": request.request_id
+            })
+        logging.info(
+            "cache_miss request_id=%s key=%s",
+            request.request_id,
+            NOTES_CACHE_KEY
+        )
+    except redis.RedisError:
+        cache_status = "unavailable"
+        logging.exception(
+            "cache_error request_id=%s key=%s",
+            request.request_id,
+            NOTES_CACHE_KEY
+        )
+
+    try:
+        notes = read_notes_from_postgres()
     except psycopg.Error:
         logging.exception(
             "database_error request_id=%s operation=list_notes",
@@ -273,8 +340,33 @@ def list_notes():
         len(notes)
     )
 
+    serialized_notes = serialize_notes(notes)
+
+    if cache_status == "miss":
+        try:
+            get_redis_client().setex(
+                NOTES_CACHE_KEY,
+                NOTES_CACHE_TTL_SECONDS,
+                json.dumps(serialized_notes)
+            )
+            logging.info(
+                "cache_store request_id=%s key=%s ttl_seconds=%s rows=%s",
+                request.request_id,
+                NOTES_CACHE_KEY,
+                NOTES_CACHE_TTL_SECONDS,
+                len(serialized_notes)
+            )
+        except redis.RedisError:
+            cache_status = "unavailable"
+            logging.exception(
+                "cache_store_error request_id=%s key=%s",
+                request.request_id,
+                NOTES_CACHE_KEY
+            )
+
     return jsonify({
-        "notes": notes,
+        "cache": cache_status,
+        "notes": serialized_notes,
         "request_id": request.request_id
     })
 
