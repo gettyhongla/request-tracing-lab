@@ -11,6 +11,7 @@ This document records completed Phase 2 evidence, commands, conclusions, and ret
 | [Lab 03](#lab-03-postgresql-persistence) | PostgreSQL persistence |
 | [Lab 04](#lab-04-redis-cache-and-session-support) | Redis cache and session support |
 | [Lab 05](#lab-05-support-ticket-data-model) | Support-ticket data model |
+| [Lab 06](#lab-06-database-operations-and-resilience) | Database operations and resilience |
 
 ## Lab 01: Three-Tier Architecture
 
@@ -1369,3 +1370,463 @@ This lab shows how one support-ticket action becomes durable database evidence. 
 ### Retained Takeaway
 
 The database is not just storage. It enforces relationships, protects ownership rules with constraints and foreign keys, speeds common lookups with indexes, and gives durable evidence that the application saved the customer's support request.
+
+## Lab 06: Database Operations And Resilience
+
+### Build
+
+The goal of this lab is to understand PostgreSQL as an operational dependency, not just a place where rows are stored.
+
+```text
+Browser or curl -> NGINX -> Flask support-ticket API -> PostgreSQL
+```
+
+Lab 06 keeps the same support-ticket request path from Lab 05, but asks database operations questions:
+
+```text
+Can Flask connect?
+Did the transaction commit fully?
+Which query is slow?
+Which index supports the lookup?
+What happens when PostgreSQL is unavailable?
+How would backup, restore, failover, and recovery targets affect support-ticket data?
+```
+
+### Connection Configuration
+
+Flask reads the database connection string from runtime configuration:
+
+```python
+DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=request_tracing_lab")
+```
+
+The connection helper is:
+
+```python
+def get_db_connection():
+    return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+```
+
+Local evidence:
+
+```bash
+psql request_tracing_lab -c "SELECT current_database(), current_user, inet_server_addr(), inet_server_port();"
+```
+
+Captured result:
+
+```text
+ current_database   | current_user  | inet_server_addr | inet_server_port
+--------------------+---------------+------------------+-----------------
+ request_tracing_lab | heavenlygetty |                  |
+```
+
+The blank server address and port are expected for this local Homebrew/PostgreSQL connection because `psql request_tracing_lab` used a local Unix socket instead of an explicit TCP host and port.
+
+### Transaction Path
+
+Creating a support ticket is a multi-table write. The app inserts:
+
+```text
+1. tickets row
+2. ticket_messages row
+3. ticket_events row
+```
+
+The important code path is:
+
+```text
+with get_db_connection() as conn:
+    with conn.cursor() as cur:
+        INSERT INTO tickets ...
+        INSERT INTO ticket_messages ...
+        INSERT INTO ticket_events ...
+```
+
+This matters because a support-ticket create request should not save only part of the data. The ticket, first message, and audit event should commit together or roll back together.
+
+### Healthy Read Timing
+
+Customer ticket lookup:
+
+```bash
+psql request_tracing_lab \
+  -c "\timing on" \
+  -c "SELECT id, ticket_number, created_by, status, priority
+      FROM tickets
+      WHERE created_by = 1
+      ORDER BY created_at DESC;"
+```
+
+Captured result:
+
+```text
+ id | ticket_number | created_by | status | priority
+----+---------------+------------+--------+----------
+  2 | TCK-DE75C223  |          1 | open   | medium
+  1 | TCK-96645C93  |          1 | open   | medium
+
+Time: 2.678 ms
+```
+
+This proves PostgreSQL can read one customer's tickets and gives a basic latency measurement.
+
+### EXPLAIN And Index Evidence
+
+Customer ticket lookup plan:
+
+```bash
+psql request_tracing_lab -c "EXPLAIN
+SELECT id, ticket_number, created_by, status, priority
+FROM tickets
+WHERE created_by = 1
+ORDER BY created_at DESC;"
+```
+
+Captured result:
+
+```text
+Index Scan using idx_tickets_created_by_created_at on tickets
+  Index Cond: (created_by = 1)
+```
+
+This proves PostgreSQL used the index designed for listing one customer's tickets newest first.
+
+With `EXPLAIN ANALYZE`, PostgreSQL also ran the query and measured it:
+
+```text
+Index Scan using idx_tickets_created_by_created_at on tickets
+  actual time=0.059..0.063 rows=2 loops=1
+Execution Time: 0.170 ms
+```
+
+Admin triage query:
+
+```bash
+psql request_tracing_lab -c "EXPLAIN
+SELECT id, ticket_number, status, priority
+FROM tickets
+WHERE status = 'open' AND priority = 'medium'
+ORDER BY id;"
+```
+
+Captured result:
+
+```text
+Index Scan using idx_tickets_status_priority on tickets
+  Index Cond: ((status = 'open') AND (priority = 'medium'))
+```
+
+This proves the `status, priority` index supports admin triage.
+
+### Missing Index Comparison
+
+Title search:
+
+```bash
+psql request_tracing_lab -c "EXPLAIN
+SELECT id, ticket_number, title
+FROM tickets
+WHERE title ILIKE '%trace%';"
+```
+
+Captured result:
+
+```text
+Seq Scan on tickets
+  Filter: (title ~~* '%trace%'::text)
+```
+
+This is a sequential scan because there is no matching index for this pattern. On a tiny local table this is fine. On a large production table, repeated wildcard searches can become expensive and may need a different search strategy.
+
+### Slow Query Evidence
+
+Safe latency demonstration:
+
+```bash
+psql request_tracing_lab -c "\timing on" -c "SELECT pg_sleep(1);"
+```
+
+Captured result:
+
+```text
+Time: 1004.019 ms (00:01.004)
+```
+
+This proves database-side waiting shows up as query latency. In a real incident, the next step would be to identify whether the time came from slow SQL, locks, connection waits, disk I/O, CPU, replication lag, or network/database availability.
+
+### Rollback Evidence
+
+Safe rollback test:
+
+```sql
+BEGIN;
+
+INSERT INTO tickets (
+  ticket_number,
+  created_by,
+  title,
+  description,
+  category,
+  priority
+)
+VALUES (
+  'TCK-ROLLBACK-LAB',
+  1,
+  'Rollback lab ticket',
+  'This row should not remain after rollback.',
+  'technical_question',
+  'low'
+);
+
+SELECT id, ticket_number, title
+FROM tickets
+WHERE ticket_number = 'TCK-ROLLBACK-LAB';
+
+ROLLBACK;
+
+SELECT id, ticket_number, title
+FROM tickets
+WHERE ticket_number = 'TCK-ROLLBACK-LAB';
+```
+
+Captured result:
+
+```text
+BEGIN
+INSERT 0 1
+ id |  ticket_number   |        title
+----+------------------+---------------------
+  4 | TCK-ROLLBACK-LAB | Rollback lab ticket
+
+ROLLBACK
+ id | ticket_number | title
+----+---------------+-------
+(0 rows)
+```
+
+This proves rollback removes uncommitted work and prevents partial records from remaining.
+
+### Constraint Failure Evidence
+
+Controlled bad insert:
+
+```sql
+BEGIN;
+
+INSERT INTO tickets (
+  ticket_number,
+  created_by,
+  title,
+  description,
+  category,
+  priority
+)
+VALUES (
+  'TCK-BAD-CATEGORY-LAB',
+  1,
+  'Bad category lab ticket',
+  'This insert should fail because category is invalid.',
+  'not_a_category',
+  'low'
+);
+
+COMMIT;
+```
+
+Captured result:
+
+```text
+ERROR: new row for relation "tickets" violates check constraint "tickets_category_check"
+DETAIL: Failing row contains (..., not_a_category, low, open, ...).
+```
+
+This proves PostgreSQL enforces valid ticket categories even if an application bug or bad client sends invalid data.
+
+### Bad Connection Evidence
+
+Wrong PostgreSQL port:
+
+```bash
+DATABASE_URL='host=127.0.0.1 port=5999 dbname=request_tracing_lab' \
+venv/bin/python - <<'PY'
+import os
+import psycopg
+
+try:
+    psycopg.connect(os.environ["DATABASE_URL"])
+except Exception as exc:
+    print(type(exc).__name__)
+    print(str(exc).split("\n")[0])
+PY
+```
+
+Captured result:
+
+```text
+OperationalError
+connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
+```
+
+This proves the failure happened before querying or committing. Flask would not reach the SQL statements if it could not connect to PostgreSQL.
+
+### Connection Count Evidence
+
+Connection activity check:
+
+```bash
+psql request_tracing_lab -c "SELECT count(*) AS active_connections
+FROM pg_stat_activity
+WHERE datname = 'request_tracing_lab';"
+```
+
+Captured result:
+
+```text
+ active_connections
+--------------------
+                  2
+```
+
+This is a small local count. In production, a high count may point to too many clients, missing connection pooling, slow queries holding connections open, or connection pool exhaustion.
+
+### Backup And Recovery Evidence
+
+Backup tool availability:
+
+```bash
+pg_dump --version
+```
+
+Captured result:
+
+```text
+pg_dump (PostgreSQL) 18.4 (Homebrew)
+```
+
+Schema-only backup command:
+
+```bash
+pg_dump --schema-only request_tracing_lab \
+  -f /private/tmp/request_tracing_lab_schema_lab06.sql
+```
+
+Captured file evidence:
+
+```text
+/private/tmp/request_tracing_lab_schema_lab06.sql
+size: 15051 bytes
+```
+
+The first lines of the dump showed:
+
+```text
+-- PostgreSQL database dump
+-- Dumped from database version 18.4 (Homebrew)
+-- Dumped by pg_dump version 18.4 (Homebrew)
+```
+
+For this lab, the backup approach is:
+
+```text
+Local: pg_dump for logical backups.
+Production: managed PostgreSQL backups, point-in-time recovery if available, restore testing, and documented retention.
+```
+
+### RPO And RTO
+
+**RPO:** how much data loss is acceptable.
+
+For support tickets, a reasonable target is low data loss because tickets are customer records. A production system should aim for point-in-time recovery or frequent backups so newly submitted tickets are not lost.
+
+**RTO:** how long recovery can take.
+
+For this project, a reasonable learning target is to define how quickly the service should recover enough for users to create and view tickets again.
+
+### Failover Explanation
+
+Failover means the app stops using one database instance and starts using another healthy one.
+
+In production, a managed database may fail over to a standby. During failover:
+
+```text
+active connections may drop
+in-flight requests may fail
+the app may need to reconnect
+DNS or the managed endpoint may point to a new primary
+read replicas may lag behind the primary
+```
+
+Failover can improve availability, but it does not remove the need for retries, safe error handling, idempotency, and restore testing.
+
+### Private Subnet And Security
+
+In a cloud design, PostgreSQL should not be publicly exposed. The app should reach it over private networking.
+
+Important controls:
+
+```text
+private subnet or private database endpoint
+security group or firewall rules allowing only app-to-database traffic
+credentials stored as secrets, not in source code
+TLS where required
+least-privilege database user
+backups encrypted and access-controlled
+```
+
+This local lab does not build a VPC, but the design expectation is that the database is private and only reachable by trusted application components.
+
+### Database Latency Causes
+
+If hardware looks healthy but database latency is still correlated with request latency, likely causes include:
+
+```text
+slow queries
+missing indexes
+queries that scan too many rows
+join-heavy queries as data grows
+lock contention
+long transactions
+too many active connections
+connection pool exhaustion
+replication lag on read replicas
+bad query patterns introduced by a migration
+large sorts or temporary files
+vacuum/analyze/statistics issues
+```
+
+The first evidence to collect:
+
+```text
+query timing
+EXPLAIN or EXPLAIN ANALYZE
+active connection count
+locks or long-running transactions
+recent schema/index changes
+application logs with request_id
+database logs or slow query logs
+```
+
+### Troubleshooting Questions
+
+**Did the request fail before connecting, while querying, or while committing?** The bad port failed before connecting. A constraint error failed while executing the insert. A rollback test proved uncommitted data can be removed before commit.
+
+**Did the app save all related ticket rows or none of them?** The ticket-create path should save the ticket, first message, and ticket event together. If the transaction fails before commit, the related rows should not remain partially saved.
+
+**Could a retry create duplicate data?** Yes, if the app retries a create request without an idempotency key. Unique ticket numbers reduce one class of duplicates, but client retries can still create multiple valid tickets unless the API has an idempotency design.
+
+**Which query is slow?** The lab used `pg_sleep(1)` as a controlled slow database operation. In production, identify the actual SQL with timing, slow query logs, and request IDs.
+
+**Which index should support this lookup?** `idx_tickets_created_by_created_at` supports listing one customer's tickets newest first. `idx_tickets_status_priority` supports admin triage by status and priority.
+
+**Would a replica help reads, writes, or neither?** A read replica can help read-heavy workloads if the app can tolerate replication lag. It does not help writes because writes go to the primary database.
+
+**What happens to active connections during failover?** Existing connections may drop. The app must reconnect and safely handle failed in-flight requests.
+
+### Overall Summary
+
+PostgreSQL is the durable source of truth for the support-ticket system. Flask connects through `DATABASE_URL`, writes related ticket records in transactions, and returns safe errors when database access fails. Indexes help common reads, `EXPLAIN` shows how PostgreSQL plans a query, and rollback prevents partial writes from becoming durable. For production design, the database should be private, observable, backed up, restorable, and protected by a clear RPO/RTO and failover plan.
+
+### Retained Takeaway
+
+Database operations are about protecting customer records and proving what happened when reads, writes, credentials, latency, transactions, or recovery fail.
