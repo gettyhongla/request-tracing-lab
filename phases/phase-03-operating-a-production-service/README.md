@@ -1,6 +1,6 @@
 # Phase 3: Operating a Containerized Production Service
 
-Phase 3 refactors the three-tier service built in Phase 2 into a containerized system that can be deployed, operated, observed, tested, and recovered safely.
+Phase 3 packages, deploys, operates, observes, updates, and recovers the support-ticket application built in Phase 2.
 
 This phase is not a separate demo application. It continues the same request path from Phases 1 and 2:
 
@@ -9,10 +9,10 @@ Phase 1:
 Trace one request through the Flask application and prove what happened.
 
 Phase 2:
-Build the production service path with NGINX, Flask, PostgreSQL, and Redis.
+Build the production service path with NGINX, Flask support-ticket API, PostgreSQL, Redis, workers, webhooks, and real-time update concepts.
 
 Phase 3:
-Package that same service into containers, run the complete stack locally, move it into Kubernetes, and operate it as a production-style workload.
+Package that same service into containers, run the complete stack locally with Docker Compose, move it into Kubernetes, template it with Helm, and operate it as a production-style workload.
 ```
 
 The application remains the practice environment. The main subject of this phase is the container platform and the operational behavior around it.
@@ -29,6 +29,7 @@ How is persistent data protected from container restarts?
 How does Kubernetes create, expose, replace, and scale application Pods?
 How does traffic move through Ingress, Service, EndpointSlice, and a ready Pod?
 How do probes decide whether a Pod is alive and safe to receive traffic?
+How are API and worker replicas scaled differently?
 How do we verify a rollout and roll it back safely?
 How do logs, metrics, traces, and request IDs support an RCA?
 Where could Helm reduce duplication without hiding the Kubernetes fundamentals?
@@ -45,9 +46,12 @@ Browser or curl
 NGINX reverse proxy
       |
       v
-Flask API
-   |-- PostgreSQL  # durable source of truth
-   `-- Redis       # temporary cache/session support
+Flask support-ticket API
+   |-- PostgreSQL  # users, tickets, messages, audit events
+   |-- Redis       # sessions, cache, queue
+   |-- worker      # notification or diagnostic jobs
+   |-- webhook receiver/test service
+   `-- WebSocket/SSE/polling path
 ```
 
 Phase 1 request IDs, client evidence, logs, latency measurements, and RCA habits must remain intact while the system is refactored.
@@ -65,9 +69,12 @@ Browser or curl
 NGINX container
       |
       v
-Flask API container
+Flask support-ticket API container
    |-- PostgreSQL container + persistent volume
-   `-- Redis container
+   |-- Redis container
+   |-- worker container
+   |-- optional webhook receiver/test container
+   `-- optional WebSocket/SSE/polling path
 ```
 
 The local container environment should prove:
@@ -99,10 +106,13 @@ Service
 EndpointSlice
   |
   v
-Ready Flask Pod
+Ready Flask API Pod
   |
   |-- PostgreSQL
-  `-- Redis
+  |-- Redis
+  |-- Worker Deployment
+  |-- optional webhook receiver/test service
+  `-- optional real-time update path
 
 Deployment
   |
@@ -188,7 +198,7 @@ Phase 3 may describe future extension points, but it should not become the home 
 
 The following can be expanded in later phases after this container platform is stable:
 
-- dedicated asynchronous workers and queue semantics
+- advanced asynchronous platform patterns beyond the small Phase 2 worker
 - Kafka or advanced messaging design
 - full CI/CD pipelines
 - GitOps and Argo CD
@@ -198,7 +208,7 @@ The following can be expanded in later phases after this container platform is s
 - advanced database high availability and disaster recovery exercises
 - mature SLO and error-budget programs
 
-Redis remains the Phase 2 cache/session dependency unless a specific Phase 3 lab deliberately introduces a small worker exercise to clarify container or Kubernetes operations.
+Redis remains the Phase 2 cache/session/queue dependency. Phase 3 operates that dependency and any worker process without re-teaching queue semantics from scratch.
 
 ## Lab Progression
 
@@ -206,16 +216,14 @@ The labs should preserve a deliberate learning order: build the container founda
 
 | Lab | Focus | Outcome |
 | --- | --- | --- |
-| [01](labs/01-containerize-the-system.md) | Containerize the Phase 2 system | Build production-minded images for NGINX and Flask and define how PostgreSQL and Redis run locally |
+| [01](labs/01-containerize-the-system.md) | Containerize the Phase 2 system | Build production-minded images for NGINX, Flask API, and worker, and define how PostgreSQL and Redis run locally |
 | [02](labs/02-configuration-and-secrets.md) | Runtime configuration and secrets | Separate image contents from environment-specific configuration and sensitive values |
 | [03](labs/03-observability.md) | Container observability and health | Preserve request IDs and expose useful logs, health, readiness, metrics, and dependency signals |
-| [04](labs/04-alerting-and-supportability.md) | Docker Compose operations and supportability | Run the entire stack, inspect networking and volumes, and diagnose container and dependency failures |
+| [04](labs/04-alerting-and-supportability.md) | Docker Compose operations and supportability | Run the entire stack, inspect networking and volumes, and diagnose API, worker, webhook, real-time, and dependency failures |
 | [05](labs/05-deployment-verification.md) | Kubernetes resource model and traffic flow | Deploy the service and prove how Ingress, Service, EndpointSlice, Pods, probes, and DNS work together |
 | [06](labs/06-rollback-and-release-safety.md) | Kubernetes rollout safety | Perform rolling updates, verify revisions, detect a bad release, and roll back safely |
 | [07](labs/07-kubernetes-migration.md) | Production-minded Kubernetes operations | Add resources, scaling concepts, persistent storage decisions, configuration updates, and controlled migrations |
 | [08](labs/08-production-incident.md) | Incident response, RCA, and Helm introduction | Investigate a containerized-service incident, write the RCA, then package understood manifests into a small Helm chart |
-
-The existing lab filenames may remain temporarily, but their instructions should be refactored to follow this progression before Phase 3 is considered complete.
 
 ## How To Work Through The Phase
 
@@ -314,6 +322,7 @@ What data must survive a restart?
 What belongs in PostgreSQL versus Redis?
 What is stored in a persistent volume?
 What happens if PostgreSQL or Redis is unavailable?
+What happens if the worker is stopped or the queue backs up?
 Can readiness prevent unsafe traffic from reaching the app?
 ```
 

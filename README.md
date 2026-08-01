@@ -41,8 +41,8 @@ The `main` branch contains the active public build path. Future work should be a
 | Phase | Focus | Outcome |
 | --- | --- | --- |
 | [Phase 1](phases/phase-01-understanding-a-request/) | Understanding a request | Understand HTTP, auth, cookies, JWTs, request IDs, logs, latency, and controlled failures |
-| [Phase 2](phases/phase-02-building-a-production-service/) | Building a production service | Build the service path: NGINX, Flask API, PostgreSQL, Redis cache/session support, health/readiness, observability, k6 load testing, and readiness review |
-| [Phase 3](phases/phase-03-operating-a-production-service/) | Operating a production service | Containerize, configure, observe, alert, verify deployments, roll back safely, migrate to Kubernetes, reason about workers/queues, and write incident notes |
+| [Phase 2](phases/phase-02-building-a-production-service/) | Building a production service | Build the support-ticket app and explain NGINX, Flask, PostgreSQL, Redis, APIs, auth, webhooks, queues, workers, real-time updates, health/readiness, observability, container basics, and readiness review |
+| [Phase 3](phases/phase-03-operating-a-production-service/) | Operating a production service | Package, deploy, operate, observe, update, and recover the support-ticket app with Docker Compose, Kubernetes, Helm, rollout safety, and incident operations |
 | [Production reviews](production-reviews/) | Interview-style production scenarios | Practice launch reviews, slow-login investigations, database latency, `502` failures, and resource sizing |
 
 ## Evidence Model
@@ -113,11 +113,15 @@ phases/phase-02-building-a-production-service/
 |   |-- 03-postgresql-persistence.md
 |   |-- 04-redis-cache-and-session-support.md
 |   |-- 05-support-ticket-data-model.md
-|   |-- 06-health-and-readiness-endpoints.md
-|   |-- 07-request-ids-logs-latency.md
-|   |-- 08-basic-observability.md
-|   |-- 09-k6-load-testing.md
-|   `-- 10-production-readiness-review.md
+|   |-- 06-database-operations-and-resilience.md
+|   |-- 07-api-design-and-authentication.md
+|   |-- 08-webhooks-and-asynchronous-delivery.md
+|   |-- 09-workers-and-queues.md
+|   |-- 10-websockets-and-real-time-updates.md
+|   |-- 11-health-and-readiness.md
+|   |-- 12-observability-and-request-correlation.md
+|   |-- 13-container-foundation.md
+|   `-- 14-production-readiness-review.md
 |-- assets/
 |-- configs/
 `-- manifests/
