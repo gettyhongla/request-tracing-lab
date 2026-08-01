@@ -1,114 +1,130 @@
-# Phase 2 Labs 01-06 Architecture
+# Phase 2 Labs 01-06 Request Path
 
-This diagram shows the current Phase 2 system after Labs 01-05 and the database-operations lens introduced in Lab 06.
+This diagram shows the current synchronous request path through Labs 01-06.
+
+The request starts when a browser or `curl` sends an HTTP request to NGINX. The request stops when NGINX returns the HTTP response to the client. Lab 06 does not add a new runtime component; it adds the database-operations questions used to troubleshoot the PostgreSQL part of the same request.
 
 ```mermaid
-flowchart TB
-    Client["Browser or curl<br/>Customer/Admin user"]
+flowchart LR
+    Start(("Start<br/>Browser or curl"))
+    NGINX["NGINX reverse proxy<br/>Port 8080<br/>Adds/forwards X-Request-ID"]
+    Flask["Flask support-ticket API<br/>Request tracing middleware<br/>Session auth + authorization"]
+    Routes{"Which endpoint?"}
 
-    subgraph Proxy["Lab 02: Proxy Layer"]
-        NGINX["NGINX reverse proxy<br/>Port 8080<br/>Access/error logs<br/>X-Request-ID"]
-    end
+    Notes["GET /notes<br/>Read cached notes"]
+    Tickets["Support-ticket action<br/>register, login, create ticket,<br/>reply, admin note, list ticket"]
+    Errors["Safe app response<br/>401, 403, 409, 503<br/>with request_id"]
 
-    subgraph App["Flask Support-Ticket API"]
-        RequestMiddleware["Request tracing middleware<br/>request_started/request_finished<br/>X-Request-ID"]
-        Auth["Session auth + authorization<br/>customer vs admin"]
-        Notes["/notes API<br/>Lab 03 persistence<br/>Lab 04 cache behavior"]
-        Tickets["Support-ticket routes<br/>register/login<br/>create/list/reply/admin note"]
-        ErrorHandling["Safe error responses<br/>401/403/409/503<br/>request_id in response"]
-    end
+    Redis{"Redis cache<br/>notes:latest"}
+    Postgres["PostgreSQL<br/>durable source of truth"]
 
-    subgraph RedisLayer["Lab 04: Redis Temporary State"]
-        Redis["Redis<br/>notes:latest cache<br/>TTL/expiry<br/>fallback when unavailable"]
-    end
+    Tables["Tables<br/>users<br/>tickets<br/>ticket_messages<br/>ticket_events<br/>request_notes"]
+    Events["ticket_events.request_id<br/>audit evidence"]
 
-    subgraph PostgresLayer["Labs 03, 05, 06: PostgreSQL Durable State"]
-        Pg["PostgreSQL<br/>DATABASE_URL runtime config"]
-        NotesTable["request_notes<br/>Lab 03"]
-        UsersTable["users<br/>identity + role"]
-        TicketsTable["tickets<br/>support issue"]
-        MessagesTable["ticket_messages<br/>customer replies + internal notes"]
-        EventsTable["ticket_events<br/>audit trail + request_id"]
-        DbOps["Lab 06 operations lens<br/>transactions<br/>query timing<br/>EXPLAIN + indexes<br/>rollback<br/>backup/RPO/RTO<br/>HA/failover concepts"]
-    end
+    DbQuestions["Lab 06 database checks<br/>DATABASE_URL<br/>transaction commit/rollback<br/>query timing<br/>EXPLAIN + indexes<br/>backup/RPO/RTO<br/>failover concepts"]
 
-    subgraph Evidence["Evidence To Correlate"]
-        ClientEvidence["Client response<br/>status, body, X-Request-ID"]
-        ProxyLogs["NGINX logs<br/>request reached proxy"]
-        AppLogs["Flask logs<br/>request path + errors"]
-        SqlEvidence["SQL evidence<br/>rows, constraints, events"]
-    end
+    Response(("Stop<br/>HTTP response<br/>status + body + X-Request-ID"))
 
-    Client -->|"HTTP request"| NGINX
-    NGINX -->|"proxy_pass to Flask"| RequestMiddleware
-    RequestMiddleware --> Auth
-    Auth --> Notes
-    Auth --> Tickets
-    Notes -->|"GET cache lookup"| Redis
-    Redis -->|"hit"| Notes
-    Redis -.->|"miss/unavailable fallback"| Pg
-    Notes -->|"read/write durable notes"| NotesTable
-    Tickets -->|"multi-table write transaction"| Pg
-    Pg --> UsersTable
-    Pg --> TicketsTable
-    Pg --> MessagesTable
-    Pg --> EventsTable
-    Pg --> DbOps
-    Tickets --> ErrorHandling
-    Notes --> ErrorHandling
-    ErrorHandling --> NGINX
-    NGINX -->|"HTTP response"| Client
+    Start -->|"HTTP request"| NGINX
+    NGINX -->|"proxy_pass"| Flask
+    Flask --> Routes
 
-    Client --> ClientEvidence
-    NGINX --> ProxyLogs
-    RequestMiddleware --> AppLogs
-    EventsTable --> SqlEvidence
-    DbOps --> SqlEvidence
+    Routes -->|"notes read"| Notes
+    Routes -->|"support-ticket workflow"| Tickets
+    Routes -->|"auth/validation/database failure"| Errors
 
-    classDef implemented fill:#e8f5e9,stroke:#2e7d32,color:#123524;
-    classDef lab6 fill:#fff8e1,stroke:#f9a825,color:#3a2a00;
-    classDef evidence fill:#e3f2fd,stroke:#1565c0,color:#0d2f52;
-    classDef deferred fill:#f5f5f5,stroke:#9e9e9e,color:#424242;
+    Notes -->|"synchronous cache lookup"| Redis
+    Redis -->|"cache hit"| Notes
+    Redis -->|"cache miss or unavailable"| Postgres
+    Notes -->|"read/write request_notes"| Postgres
 
-    class Client,NGINX,RequestMiddleware,Auth,Notes,Tickets,Redis,Pg,NotesTable,UsersTable,TicketsTable,MessagesTable,EventsTable,ErrorHandling implemented;
-    class DbOps lab6;
-    class ClientEvidence,ProxyLogs,AppLogs,SqlEvidence evidence;
+    Tickets -->|"synchronous SQL transaction"| Postgres
+    Postgres --> Tables
+    Tables --> Events
+
+    Postgres -.->|"inspected by Lab 06"| DbQuestions
+
+    Notes -->|"JSON result"| Flask
+    Tickets -->|"JSON result"| Flask
+    Errors --> Flask
+    Flask -->|"HTTP response"| NGINX
+    NGINX --> Response
 ```
 
 ## How To Read It
 
-Green areas are already implemented or exercised in Labs 01-05.
+Follow the solid arrows for one synchronous request.
 
-Yellow is the Lab 06 focus: not a new app feature, but the database operations lens for the same support-ticket request path.
+```text
+Start:
+Browser or curl sends an HTTP request.
 
-Blue is the evidence layer. The goal is to connect a client symptom to proxy logs, Flask logs, SQL rows, and `ticket_events.request_id`.
+Main path:
+Client -> NGINX -> Flask -> Redis and/or PostgreSQL -> Flask -> NGINX
+
+Stop:
+The client receives an HTTP response with status, body, and X-Request-ID.
+```
+
+The request is synchronous because the client waits for Flask to finish the work before receiving the response.
+
+## What Is Synchronous Here
+
+These actions are in the current request/response path:
+
+```text
+NGINX routing the request to Flask
+Flask assigning or forwarding X-Request-ID
+Flask checking the session cookie
+Flask enforcing customer/admin authorization
+Flask reading Redis for /notes cache
+Flask falling back to PostgreSQL when Redis misses or fails
+Flask writing users, tickets, messages, and ticket_events to PostgreSQL
+Flask returning JSON to the client
+```
+
+If PostgreSQL is slow during ticket creation, the client waits. That is why Lab 06 focuses on database latency, transactions, indexes, rollback, and failure evidence.
 
 ## What Lab 06 Adds
 
-Lab 06 does not replace the architecture from Labs 01-05. It asks better database questions about it:
+Lab 06 is not a new service. It is the operational lens on PostgreSQL:
 
 ```text
 Can Flask connect to PostgreSQL?
-Did a multi-table ticket write commit fully?
-Can a rollback prevent partial records?
+Did a multi-table write commit fully?
+Could a rollback prevent partial records?
 Which query is slow?
-Which index supports the lookup?
+Which index should support the lookup?
 What does EXPLAIN show?
 What happens when PostgreSQL is unavailable?
 What backup, RPO, RTO, and failover expectations protect ticket data?
 ```
 
-## Not Yet In Scope
+## What Is Not In This Request Yet
 
-The following concepts are intentionally not shown as implemented runtime components yet:
+These are not part of the current Lab 06 request path:
 
 ```text
-Background workers
-Redis queue processing
-Webhook delivery
-WebSockets/SSE
-Kubernetes deployment
-Managed cloud database HA
+Async worker:
+Work accepted now and processed later by a separate worker.
+
+Queue:
+Temporary job backlog for async work.
+
+Webhook:
+Server-to-server notification sent after an event.
+
+Real-time update:
+Browser receives live progress through WebSocket, SSE, or polling.
+
+Kubernetes:
+Container orchestration and production deployment platform.
 ```
 
-Those belong to later Phase 2 labs or Phase 3 operations work.
+Short version:
+
+```text
+Synchronous = user waits for the response.
+Asynchronous = work can continue after the response.
+Real-time = user receives live or near-live updates.
+```
