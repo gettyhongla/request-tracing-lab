@@ -8,54 +8,54 @@ The request starts when a browser or `curl` sends an HTTP request to NGINX. The 
 
 ```mermaid
 flowchart LR
-    Start(("Start<br/>Browser or curl"))
-    NGINX["NGINX reverse proxy<br/>Port 8080<br/>Adds/forwards X-Request-ID"]
-    Flask["Flask support-ticket API<br/>Request tracing middleware<br/>Session auth + authorization"]
-    Routes{"Which endpoint?"}
+    Start(("START<br/>Browser or curl<br/>sends HTTP request"))
+    NGINX["NGINX reverse proxy<br/>Port 8080<br/>adds/forwards X-Request-ID"]
+    Flask["Flask support-ticket API<br/>request tracing middleware<br/>session auth + authorization"]
+    Routes{"Route decision<br/>Which endpoint?"}
 
-    Notes["GET /notes<br/>Read cached notes"]
-    Tickets["Support-ticket action<br/>register, login, create ticket,<br/>reply, admin note, list ticket"]
-    Errors["Safe app response<br/>401, 403, 409, 503<br/>with request_id"]
+    Notes["Notes path<br/>GET /notes"]
+    Tickets["Support-ticket path<br/>register, login, create ticket,<br/>reply, admin note, list ticket"]
+    Errors["Safe error path<br/>401, 403, 409, 503<br/>with request_id"]
 
-    Redis{"Redis cache<br/>notes:latest"}
+    Redis{"Redis cache<br/>temporary notes:latest"}
     Postgres["PostgreSQL<br/>durable source of truth"]
 
-    Tables["Tables<br/>users<br/>tickets<br/>ticket_messages<br/>ticket_events<br/>request_notes"]
-    Events["ticket_events.request_id<br/>audit evidence"]
+    Tables["Database tables<br/>users<br/>tickets<br/>ticket_messages<br/>ticket_events<br/>request_notes"]
+    Events["Audit evidence<br/>ticket_events.request_id"]
 
-    DbChecks["Lab 06 database checks<br/>DATABASE_URL<br/>transaction commit/rollback<br/>query timing<br/>EXPLAIN + indexes<br/>failure evidence"]
+    DbChecks["Lab 06 inspection<br/>DATABASE_URL<br/>transaction commit/rollback<br/>query timing<br/>EXPLAIN + indexes<br/>failure evidence"]
 
-    Response(("Stop<br/>HTTP response<br/>status + body + X-Request-ID"))
+    Finish(("FINISH<br/>Client receives HTTP response<br/>status + body + X-Request-ID"))
 
-    Start -->|"HTTP request"| NGINX
-    NGINX -->|"proxy_pass"| Flask
-    Flask --> Routes
+    Start -->|"1. HTTP request enters app"| NGINX
+    NGINX -->|"2. proxy_pass to Flask"| Flask
+    Flask -->|"3. choose route"| Routes
 
-    Routes -->|"notes read"| Notes
-    Routes -->|"support-ticket workflow"| Tickets
-    Routes -->|"auth/validation/database failure"| Errors
+    Routes -->|"4a. notes read"| Notes
+    Routes -->|"4b. support-ticket workflow"| Tickets
+    Routes -->|"4c. auth, validation, or DB failure"| Errors
 
-    Notes -->|"synchronous cache lookup"| Redis
-    Redis -->|"cache hit"| Notes
+    Notes -->|"5a. check cache"| Redis
+    Redis -->|"cache hit returns temporary data"| Notes
     Redis -->|"cache miss or unavailable"| Postgres
-    Notes -->|"read/write request_notes"| Postgres
+    Notes -->|"read/write durable notes"| Postgres
 
-    Tickets -->|"synchronous SQL transaction"| Postgres
-    Postgres --> Tables
-    Tables --> Events
+    Tickets -->|"5b. SQL transaction"| Postgres
+    Postgres -.->|"stores rows in"| Tables
+    Tables -.->|"request_id proves change"| Events
 
     Postgres -.->|"inspected by Lab 06"| DbChecks
 
-    Notes -->|"JSON result"| Flask
-    Tickets -->|"JSON result"| Flask
-    Errors --> Flask
-    Flask -->|"HTTP response"| NGINX
-    NGINX --> Response
+    Notes -->|"6a. JSON result"| Flask
+    Tickets -->|"6b. JSON result"| Flask
+    Errors -->|"6c. safe error JSON"| Flask
+    Flask -->|"7. HTTP response"| NGINX
+    NGINX -->|"8. response returns to client"| Finish
 ```
 
 ## How To Read The Request
 
-Follow the solid arrows for one synchronous request.
+Follow the numbered solid arrows for one synchronous request. Dashed arrows show evidence or inspection paths, not separate user traffic.
 
 ```text
 Start:
@@ -216,9 +216,9 @@ These issues can cause database latency even when CPU and memory look healthy:
 | Disk I/O pressure | Storage is slow or saturated | Disk latency, IOPS, checkpoint pressure |
 | Bad growth pattern | Query works with small data but slows as rows grow | Latency rises with table size |
 
-## Interview Study Takeaways
+## Study Takeaways
 
-The interview pattern to practice is not only "the app works." It is:
+The study pattern to practice is not only "the app works." It is:
 
 ```text
 Can the database design be explained?
@@ -245,7 +245,7 @@ For Labs 05-06, the strongest takeaways are:
 | Transactions and rollback | Multi-table writes should commit fully or roll back fully so partial tickets are not saved. |
 | Connection exhaustion | Requests can become slow if too many app requests compete for limited database connections. |
 
-## Current Interview Questions This Lab Can Answer
+## This Lab Answers
 
 Use these answers as short speaking prompts, not memorized scripts.
 
