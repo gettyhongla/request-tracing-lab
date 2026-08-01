@@ -8,7 +8,7 @@ The goal is to build the mental model deeply enough to answer interview question
 
 ```text
 How does the request reach the app?
-Why do we put NGINX in front?
+Why is NGINX placed in front?
 Where does durable data live?
 How does one support ticket become database records?
 What is the difference between authentication and authorization?
@@ -16,7 +16,7 @@ What is the difference between an API, webhook, queue, worker, and WebSocket?
 What is the difference between health and readiness?
 Where does Redis fit, and what should not be stored there?
 How do request IDs, logs, metrics, and latency measurements help an RCA?
-How do I know CPU, memory, and replicas are enough?
+How can CPU, memory, and replica needs be justified from evidence?
 What evidence would prove the database is or is not the bottleneck?
 What is the difference between cache, queue, worker, async, and real-time?
 ```

@@ -906,7 +906,7 @@ Where is the failed delivery recorded?
 ### Interview Explanation
 
 ```text
-Webhook delivery lets the support-ticket app notify another system after a durable ticket event is saved. The receiver must verify signatures, handle retries, and process duplicate events safely because webhooks are commonly delivered at least once.
+Webhook delivery allows the support-ticket app to notify another system after a durable ticket event is saved. The receiver must verify signatures, handle retries, and process duplicate events safely because webhooks are commonly delivered at least once.
 ```
 
 ### Completion Standard
@@ -1343,7 +1343,7 @@ Correlate evidence across the support-ticket request path.
 
 Observability is not a dashboard collection. It is the ability to answer questions from evidence.
 
-When a customer says "my ticket submission failed" or "support replies are not updating," you need a path from symptom to request ID, logs, database rows, cache behavior, queue/worker state, webhook delivery, and real-time update evidence.
+When a customer reports that a ticket submission failed or support replies are not updating, the investigation needs a path from symptom to request ID, logs, database rows, cache behavior, queue/worker state, webhook delivery, and real-time update evidence.
 
 ### Architecture Before
 
@@ -1487,7 +1487,7 @@ What is the first mitigation?
 ### Interview Explanation
 
 ```text
-Request IDs connect client evidence to proxy and application logs. Metrics show patterns such as rate, errors, latency, saturation, queue depth, and cache behavior. Traces describe parent-child timing across HTTP, database, async jobs, and webhook delivery. Good observability lets us move from symptom to evidence to mitigation without guessing.
+Request IDs connect client evidence to proxy and application logs. Metrics show patterns such as rate, errors, latency, saturation, queue depth, and cache behavior. Traces describe parent-child timing across HTTP, database, async jobs, and webhook delivery. Good observability supports moving from symptom to evidence to mitigation without guessing.
 ```
 
 ### Completion Standard
@@ -1811,7 +1811,7 @@ Not ready because these blockers remain:
 ### Interview Explanation
 
 ```text
-I would not call the support-ticket app ready just because the happy path works. I would verify core workflows, authorization, database durability, backup and restore expectations, health/readiness behavior, observability, async delivery, real-time update behavior, and a rollback plan. Then I would use focused load tests and injected failures to prove where the service breaks and what evidence supports mitigation.
+Do not call the support-ticket app ready just because the happy path works. Verify core workflows, authorization, database durability, backup and restore expectations, health/readiness behavior, observability, async delivery, real-time update behavior, and a rollback plan. Then use focused load tests and injected failures to prove where the service breaks and what evidence supports mitigation.
 ```
 
 ### Completion Standard
@@ -1881,7 +1881,7 @@ Create a ticket:
 ```bash
 curl -i -b /tmp/rtl-customer.cookie \
   -H 'Content-Type: application/json' \
-  -d '{"title":"Cannot trace request","description":"I need help reading request logs.","category":"technical_question","priority":"medium"}' \
+  -d '{"title":"Cannot trace request","description":"Need help reading request logs.","category":"technical_question","priority":"medium"}' \
   http://127.0.0.1:8080/api/tickets
 ```
 

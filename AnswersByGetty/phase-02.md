@@ -1,8 +1,6 @@
 # Phase 2 Answers
 
-This document preserves completed learner evidence that previously lived in smaller answer files.
-
-## Lab 01: Three-Tier Architecture
+This document records completed Phase 2 evidence, commands, conclusions, and retained takeaways.
 
 ## Lab 01: Three-Tier Architecture
 
@@ -10,7 +8,7 @@ This document preserves completed learner evidence that previously lived in smal
 
 #### 1. Component View
 
-This view shows the major components I am about to build.
+This view shows the major components built in this phase.
 
 ```mermaid
 flowchart TD
@@ -59,29 +57,17 @@ For a successful `GET /api/profile` request:
 7. Flask formats the result as JSON.
 8. NGINX returns the HTTP response to the client.
 
-### Prove
+### Explain Each Layer
 
-Write a short explanation for each layer:
+**Browser or curl:** acts as the client. It sends an HTTP request, such as `GET /api/profile`, to the application and displays the HTTP response, including the status code, headers, timing, and any JSON returned by the API.
 
-**Browser or curl:**
+**NGINX:** acts as a reverse proxy. It accepts incoming client requests, forwards them to the Flask API, and returns the backend response to the client. NGINX also generates access logs, can forward request IDs, and provides a single public entry point to the application.
 
-The browser or curl acts as the client. It sends an HTTP request, such as `GET /api/profile`, to the application and displays the HTTP response, including the status code, headers, timing, and any JSON returned by the API.
+**Flask API:** contains the application's business logic. It receives requests from NGINX, validates authentication and authorization, processes the request, queries PostgreSQL for the required data, and returns a JSON response to the client.
 
-**NGINX:**
+**PostgreSQL:** is the application's durable data store. It stores user and application data, executes SQL queries from the Flask API, and returns the requested records. PostgreSQL is a backend service and is not directly accessible to clients.
 
-NGINX acts as a reverse proxy. It accepts incoming client requests, forwards them to the Flask API, and returns the backend response to the client. NGINX also generates access logs, can forward request IDs, and provides a single public entry point to the application.
-
-**Flask API:**
-
-The Flask API contains the application's business logic. It receives requests from NGINX, validates authentication and authorization, processes the request, queries PostgreSQL for the required data, and returns a JSON response to the client.
-
-**PostgreSQL:**
-
-PostgreSQL is the application's durable data store. It stores user and application data, executes SQL queries from the Flask API, and returns the requested records. PostgreSQL is a backend service and is not directly accessible to clients.
-
-### Break
-
-Before building, predict symptoms:
+### Break: Predicted Failure Symptoms
 
 **If NGINX cannot reach Flask:**
 
@@ -117,8 +103,6 @@ Request IDs allow us to trace one request throughout the entire system.
 
 ## Lab 02: NGINX Reverse Proxy
 
-## Lab 02: NGINX Reverse Proxy
-
 ### Build
 
 The goal of this lab was to put NGINX in front of the Flask app so the request path becomes:
@@ -127,9 +111,9 @@ The goal of this lab was to put NGINX in front of the Flask app so the request p
 Browser or curl -> NGINX on port 8080 -> Flask on port 5000 -> response
 ```
 
-This builds on Phase 1 because I am still tracing one request, but now I added a proxy layer before the application. It also builds on Lab 01 because the architecture is no longer just a diagram: traffic now actually flows through `Browser/curl -> NGINX -> Flask`.
+This builds on Phase 1 by tracing one request with an added proxy layer before the application. It also turns the Lab 01 architecture from a diagram into a working request path: `Browser/curl -> NGINX -> Flask`.
 
-#### Commands I ran
+#### Commands Used
 
 ```bash
 brew install nginx
@@ -177,7 +161,7 @@ The exact file locations change by operating system, but the purpose is the same
 
 #### NGINX config
 
-I updated the Homebrew NGINX config:
+The Homebrew NGINX config was updated:
 
 ```bash
 vim /opt/homebrew/etc/nginx/nginx.conf
@@ -234,9 +218,9 @@ NGINX is often used for more than one job:
 - **Load balancer:** distributes traffic across multiple upstream app instances.
 - **Ingress in Kubernetes:** routes external traffic into services inside a Kubernetes cluster.
 
-In this lab, I am using NGINX as a reverse proxy first. The other roles explain why NGINX commonly appears at the front of production systems.
+In this lab, NGINX is used as a reverse proxy first. The other roles explain why NGINX commonly appears at the front of production systems.
 
-### Prove
+### Proof
 
 **Flask direct test:**
 
@@ -320,13 +304,13 @@ This proves NGINX saw the request and returned a `200` response.
 tail -f /opt/homebrew/var/log/nginx/error.log
 ```
 
-This is where I would check for config errors, startup problems, permission issues, or upstream failures when NGINX cannot reach Flask.
+This is where to check for config errors, startup problems, permission issues, or upstream failures when NGINX cannot reach Flask.
 
 ### Break
 
-I completed the broken-upstream test by temporarily changing the upstream port in the NGINX config.
+The broken-upstream test was completed by temporarily changing the upstream port in the NGINX config.
 
-I changed this line:
+This line was changed:
 
 ```nginx
 proxy_pass http://127.0.0.1:5000;
@@ -338,16 +322,16 @@ to this:
 proxy_pass http://127.0.0.1:5999;
 ```
 
-I changed it inside `proxy_pass` because that directive controls where NGINX forwards matching traffic after it receives the request. NGINX still listened on `8080`, but it tried to forward the request to port `5999` instead of the Flask app on `5000`.
+The change belongs inside `proxy_pass` because that directive controls where NGINX forwards matching traffic after it receives the request. NGINX still listened on `8080`, but it tried to forward the request to port `5999` instead of the Flask app on `5000`.
 
-Then I reloaded NGINX:
+Then reload NGINX:
 
 ```bash
 /opt/homebrew/opt/nginx/bin/nginx -t
 /opt/homebrew/opt/nginx/bin/nginx -s reload
 ```
 
-I sent the request through NGINX:
+Send the request through NGINX:
 
 ```bash
 curl -i --max-time 5 http://127.0.0.1:8080/health
@@ -389,29 +373,29 @@ X-Request-ID: 0fd2efdc-7942-496f-a2bc-213a735a2942
 
 This proved Flask itself was healthy. The failure happened because NGINX was pointed at the wrong upstream port.
 
-After the test, I restored the NGINX config back to:
+After the test, restore the NGINX config back to:
 
 ```nginx
 proxy_pass http://127.0.0.1:5000;
 ```
 
-Then I reloaded NGINX and confirmed `http://127.0.0.1:8080/health` returned `200 OK` again.
+Then reload NGINX and confirm `http://127.0.0.1:8080/health` returned `200 OK` again.
 
 ### Key Takeaways
 
-**NGINX became the front door:** I no longer had to send the request directly to Flask. I could send it to NGINX on `8080`, and NGINX routed it to Flask on `5000`.
+**NGINX became the front door:** Requests no longer need to go directly to Flask. They can go to NGINX on `8080`, and NGINX routes them to Flask on `5000`.
 
 **The request path is now visible at the proxy layer:** The NGINX access log proves the request reached the proxy before Flask.
 
 **Headers carry context:** `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`, and `X-Request-ID` help Flask understand the original client request after it passes through NGINX.
 
-**`proxy_set_header` controls what NGINX forwards downstream:** These lines add or preserve headers before NGINX sends the request to Flask. I kept `proxy_set_header X-Request-ID $request_id;` because it lets NGINX generate a request ID. I removed the duplicate `proxy_set_header X-Request-ID $http_x_request_id;` because it only forwards a client-provided request ID and can be blank if the client did not send one.
+**`proxy_set_header` controls what NGINX forwards downstream:** These lines add or preserve headers before NGINX sends the request to Flask. Keep `proxy_set_header X-Request-ID $request_id;` because it allows NGINX to generate a request ID. Remove the duplicate `proxy_set_header X-Request-ID $http_x_request_id;` because it only forwards a client-provided request ID and can be blank if the client did not send one.
 
 **A reverse proxy gives production systems a control point:** NGINX can route traffic, serve static files, terminate SSL, load balance, and act as an ingress layer in Kubernetes.
 
 **502 Bad Gateway means the proxy could not get a valid upstream response:** In this lab, the bad port made NGINX fail to connect to `127.0.0.1:5999`, so NGINX returned `502` even though Flask was still healthy on `5000`.
 
-**An upstream is the backend service NGINX forwards traffic to:** In this lab, Flask on `127.0.0.1:5000` is the upstream. When I changed `proxy_pass` to `127.0.0.1:5999`, NGINX could not connect to the upstream, so the request stopped at NGINX and headers were never forwarded to Flask.
+**An upstream is the backend service NGINX forwards traffic to:** In this lab, Flask on `127.0.0.1:5000` is the upstream. When `proxy_pass` changed to `127.0.0.1:5999`, NGINX could not connect to the upstream, so the request stopped at NGINX and headers were never forwarded to Flask.
 
 **Request ID forwarding depends on reaching the upstream:** If the client sends `X-Request-ID`, `$http_x_request_id` can forward that client-provided value. If the client does not send one, it can be blank. In a broken-upstream failure, Flask receives neither value because NGINX cannot connect to Flask at all.
 
@@ -419,7 +403,6 @@ Then I reloaded NGINX and confirmed `http://127.0.0.1:8080/health` returned `200
 
 ## Lab 03: PostgreSQL Persistence
 
-## Lab 03: PostgreSQL Persistence
 
 ### Build
 
@@ -431,7 +414,7 @@ Browser or curl -> NGINX -> Flask -> PostgreSQL
 
 This builds on Lab 01 and Lab 02: NGINX routes the request to Flask, and Flask now writes to and reads from PostgreSQL instead of only returning hardcoded or in-memory data.
 
-### What PostgreSQL Is
+### What Is PostgreSQL
 
 PostgreSQL is a relational database management system. It stores structured data in tables, rows, and columns, and SQL is the language used to inspect and change that data.
 
@@ -439,10 +422,10 @@ Why it matters here:
 
 - **Durability:** data survives app restarts.
 - **Source of truth:** PostgreSQL owns whether the row actually exists.
-- **SQL evidence:** I can query the database directly instead of only trusting app logs.
+- **SQL evidence:** Query the database directly instead of only trusting app logs.
 - **Production fit:** PostgreSQL supports transactions, constraints, indexes, and operational inspection.
 
-For this lab, I do not need to become a database expert. I need to know how to start PostgreSQL, connect to it, create a simple schema, prove data was saved, and recognize what failure looks like when the app cannot reach the database.
+This lab does not require deep DBA knowledge. The practical goal is to start PostgreSQL, connect with `psql`, create a simple schema, prove data was saved, and recognize what failure looks like when the app cannot reach the database.
 
 ### Why PostgreSQL
 
@@ -456,7 +439,7 @@ PostgreSQL owns durable data.
 
 Compared with memory, PostgreSQL keeps data after Flask restarts. Compared with Redis, PostgreSQL is the durable system of record; Redis can come later for caching or sessions.
 
-### Commands I Ran
+### Commands Used
 
 ```bash
 brew search postgresql
@@ -608,13 +591,13 @@ The SQL query is the strongest proof because it checks the database directly.
 
 ### Break
 
-I stopped PostgreSQL while leaving NGINX and Flask running:
+PostgreSQL was stopped while NGINX and Flask kept running:
 
 ```bash
 brew services stop postgresql@18
 ```
 
-Then I sent the same write request:
+Then send the same write request:
 
 ```bash
 curl -i --max-time 5 http://127.0.0.1:8080/notes \
@@ -692,11 +675,10 @@ This proves the failed write was not saved.
 
 **The `/notes` route is a persistence test:** It is a simple write/read API for proving Flask can use PostgreSQL. A real authenticated notes feature can come later if the project needs it.
 
-**At this stage, I only need operational fluency:** I should know how to start PostgreSQL, connect with `psql`, create a table, insert a row, read it back, break the database dependency, and explain the evidence.
+**At this stage, operational fluency is enough:** Know how to start PostgreSQL, connect with `psql`, create a table, insert a row, read it back, break the database dependency, and explain the evidence.
 
 ## Lab 04: Redis Cache And Session Support
 
-## Lab 04: Redis Cache And Session Support
 
 ### Build
 
@@ -708,7 +690,7 @@ Browser or curl -> NGINX -> Flask -> Redis cache
                               -> PostgreSQL on cache miss
 ```
 
-For this lab, I chose one Redis responsibility:
+This lab uses one Redis responsibility:
 
 ```text
 Cache the GET /notes response.
@@ -736,7 +718,7 @@ DEL
 
 Redis Stack modules are optional extensions for specialized features such as search, JSON documents, bloom filters, and time-series data. They are not needed for this cache lab.
 
-### Commands I Ran
+### Commands Used
 
 Start and verify Redis:
 
@@ -869,7 +851,7 @@ This proves Redis stored the cached notes with an expiration.
 
 ### Break
 
-I tested Redis-unavailable behavior by pointing Flask at the wrong Redis port:
+Redis-unavailable behavior was tested by pointing Flask at the wrong Redis port:
 
 ```bash
 REDIS_URL=redis://127.0.0.1:6390/0
@@ -920,7 +902,7 @@ request_finished request_id=<id> status=200
 
 **Failure symptom:** Flask logged a Redis connection error to the bad Redis port, but the client still received notes.
 
-**Cache vs queue explanation:** In this lab, Redis is a cache inside the synchronous request path. I did not implement a queue or worker yet. The only queue/worker takeaway is the boundary: queue/worker Redis belongs later when I build asynchronous processing in Lab 09.
+**Cache vs queue explanation:** In this lab, Redis is a cache inside the synchronous request path. A queue or worker was not implemented yet. The only queue/worker takeaway is the boundary: queue/worker Redis belongs later when asynchronous processing is built in Lab 09.
 
 **Interview explanation:** Redis is fast temporary state. For this endpoint, Redis improves repeated reads, but PostgreSQL remains the durable source of truth. A cache miss or Redis outage should not erase data, and the app should fall back to PostgreSQL when that is safe.
 
@@ -956,4 +938,4 @@ Async does not automatically mean real-time. Async means work can happen after t
 
 **Redis failure should degrade gracefully:** For this endpoint, Redis unavailable means slower reads, not a failed user request.
 
-**Cache/session Redis belongs in Phase 2:** Queue/worker Redis is only a boundary preview here. I did not build it yet; it belongs later when the architecture adds asynchronous processing in Lab 09.
+**Cache/session Redis belongs in Phase 2:** Queue/worker Redis is only a boundary preview here. It was not built yet; it belongs later when the architecture adds asynchronous processing in Lab 09.
