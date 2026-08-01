@@ -280,7 +280,7 @@ Redis is fast temporary state.
 PostgreSQL is durable state.
 The app should know what behavior is safe when Redis is unavailable.
 Cache/session Redis belongs beside the app/data path.
-Queue/worker Redis belongs to the async production architecture path.
+Queue/worker Redis is only a boundary preview here; it is implemented later in Lab 09 when the architecture adds asynchronous processing.
 ```
 
 ### Evidence To Capture

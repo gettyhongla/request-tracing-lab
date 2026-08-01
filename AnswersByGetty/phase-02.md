@@ -904,6 +904,28 @@ request_finished request_id=<id> status=200
 
 **What was the impact?** Redis failure disabled cache behavior, but it did not block the whole request.
 
+### Evidence Checklist
+
+**Redis responsibility:** Cache the `GET /notes` response using the `notes:latest` key.
+
+**Connection configuration:** `REDIS_URL=redis://127.0.0.1:6379/0`, `NOTES_CACHE_KEY=notes:latest`, and `NOTES_CACHE_TTL_SECONDS=30`.
+
+**Cache miss evidence:** After `redis-cli DEL notes:latest`, the next `GET /notes` returned `"cache": "miss"` and Flask logged `cache_miss`, `database_read`, and `cache_store`.
+
+**Cache hit evidence:** The following `GET /notes` returned `"cache": "hit"` and Flask logged `cache_hit`.
+
+**Expiry evidence:** `redis-cli TTL notes:latest` returned a countdown value, which proved the cache key had an expiration.
+
+**Fallback behavior:** When Flask pointed to the wrong Redis port, the request still returned `200 OK` by reading from PostgreSQL.
+
+**Failure symptom:** Flask logged a Redis connection error to the bad Redis port, but the client still received notes.
+
+**Cache vs queue explanation:** In this lab, Redis is a cache inside the synchronous request path. I did not implement a queue or worker yet. The only queue/worker takeaway is the boundary: queue/worker Redis belongs later when I build asynchronous processing in Lab 09.
+
+**Interview explanation:** Redis is fast temporary state. For this endpoint, Redis improves repeated reads, but PostgreSQL remains the durable source of truth. A cache miss or Redis outage should not erase data, and the app should fall back to PostgreSQL when that is safe.
+
+**Retained takeaway:** Cache failure should degrade the experience instead of destroying the request when the database can still serve the source-of-truth data.
+
 ### Cache vs Queue
 
 This lab uses Redis as cache, not as a queue.
@@ -934,4 +956,4 @@ Async does not automatically mean real-time. Async means work can happen after t
 
 **Redis failure should degrade gracefully:** For this endpoint, Redis unavailable means slower reads, not a failed user request.
 
-**Cache/session Redis belongs in Phase 2:** Queue/worker Redis belongs later when the architecture adds asynchronous processing.
+**Cache/session Redis belongs in Phase 2:** Queue/worker Redis is only a boundary preview here. I did not build it yet; it belongs later when the architecture adds asynchronous processing in Lab 09.
