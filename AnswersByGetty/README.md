@@ -4,22 +4,18 @@ This directory contains Getty's completed lab work, investigation notes, deploym
 
 The `phases/` folders teach the process. `AnswersByGetty/` should only show completed evidence and conclusions from work that has actually been done.
 
-## Current Answer Sets
+## Answer Sets
 
 ```text
 AnswersByGetty/
-|-- phase-01-understanding-a-request/
-|   |-- phase-1-observe-successful-requests/
-|   `-- phase-2-inject-and-diagnose-failures/
-|
-`-- phase-03-operating-a-production-service/
-    `-- labs/
-        |-- 01-containerize-the-system.md
-        |-- 02-configuration-and-secrets.md
-        `-- 07-kubernetes-migration.md
+|-- phase-01.md
+|-- phase-02.md
+|-- phase-03.md
+`-- assets/
+    |-- phase-01/
+    |-- phase-02/
+    `-- phase-03/
 ```
-
-Phase 2 answers should be added only after the Phase 2 labs are completed.
 
 ## Evidence Standard
 

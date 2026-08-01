@@ -1,160 +1,101 @@
 # Production Systems Lab
 
-A hands-on engineering curriculum for learning how modern production systems are designed, built, operated, troubleshot, and explained.
+A hands-on curriculum for learning how production systems are built, operated, troubleshot, and explained from evidence.
 
-Every production incident starts with a request.
-Every request travels through multiple systems.
-Every system leaves evidence.
-This repository teaches you how to follow that evidence.
+The application is the practice environment. The lesson is how to follow a request through the system, prove what happened, and explain the result clearly during support, DevOps, customer engineering, or cloud operations work.
+
+## Who This Is For
+
+This project is for learners who want to build practical production-system judgment without turning the repo into an advanced backend-development course.
+
+It is especially useful for:
+
+- Cloud Operations
+- Technical Support Engineering
+- Customer Engineering
+- DevOps
+- Site Reliability foundations
+- Interview preparation around request tracing and production reasoning
 
 ## Philosophy
 
-The app is not the whole lesson. The app is the thing we use to practice production engineering.
+Every production incident starts with a request. Every request travels through multiple systems. Every system leaves evidence.
 
-Each phase adds a larger production concern:
-
-```text
-Follow one request.
-Build the service behind that request.
-Operate the service safely.
-Review production scenarios from evidence.
-```
-
-The goal is to answer production questions clearly:
+Use the repo in this order:
 
 ```text
-What is the user trying to do?
-Where does the request enter the system?
-Which components and dependencies does it touch?
-What does healthy behavior look like?
-What evidence proves each layer worked?
-Where did the request slow down or fail?
-What should be mitigated first?
-How do we explain the root cause clearly?
-How do we prevent the same failure next time?
+Start at root README
+    ↓
+Open the current phase README
+    ↓
+Work through that phase LABS.md
+    ↓
+Record evidence in AnswersByGetty/phase-XX.md
+    ↓
+Continue to the next phase
 ```
 
-## Project Roadmap
-
-The `main` branch contains the active public build path. Future work should be added only when the lab instructions or completed evidence are ready to publish.
-
-| Phase | Focus | Outcome |
-| --- | --- | --- |
-| [Phase 1](phases/phase-01-understanding-a-request/) | Understanding a request | Understand HTTP, auth, cookies, JWTs, request IDs, logs, latency, and controlled failures |
-| [Phase 2](phases/phase-02-building-a-production-service/) | Building a production service | Build the support-ticket app and explain NGINX, Flask, PostgreSQL, Redis, APIs, auth, webhooks, queues, workers, real-time updates, health/readiness, observability, container basics, and readiness review |
-| [Phase 3](phases/phase-03-operating-a-production-service/) | Operating a production service | Package, deploy, operate, observe, update, and recover the support-ticket app with Docker Compose, Kubernetes, Helm, rollout safety, and incident operations |
-| [Production reviews](production-reviews/) | Interview-style production scenarios | Practice launch reviews, slow-login investigations, database latency, `502` failures, and resource sizing |
-
-## Evidence Model
-
-Every lab should produce evidence, not just notes:
+## High-Level Architecture
 
 ```text
-Customer symptom:
-Request path:
-Expected healthy behavior:
-Observed behavior:
-Client evidence:
-Network or edge evidence:
-Infrastructure evidence:
-Application evidence:
-Dependency evidence:
-Metrics, logs, or traces:
-Hypotheses considered:
-Evidence that ruled causes out:
-Root cause or design conclusion:
-Mitigation:
-Prevention:
-Customer explanation:
-Engineering follow-up:
-Retained takeaway:
+Browser or curl
+  |
+  v
+NGINX
+  |
+  v
+Flask support-ticket API
+  |-- PostgreSQL  # durable users, tickets, messages, audit events
+  |-- Redis       # temporary sessions, cache, queue data
+  |-- Worker      # asynchronous notification or diagnostic jobs
+  |-- Webhooks    # outbound events to other systems
+  `-- WebSocket/SSE/polling path for live ticket updates
 ```
 
-Successful paths should read like trace reports. Broken paths should read like RCA reports. Design-heavy labs should read like short production reviews.
+Phase 3 packages and operates this application with Docker Compose, Kubernetes, Helm, rollout safety, and incident-response workflows.
+
+## Phases
+
+| Phase | Start Here | Labs | Answers |
+| --- | --- | --- | --- |
+| Phase 1: Understand and trace a request | [README](phases/phase-01-understanding-a-request/README.md) | [LABS](phases/phase-01-understanding-a-request/LABS.md) | [phase-01.md](AnswersByGetty/phase-01.md) |
+| Phase 2: Build the support-ticket application | [README](phases/phase-02-building-a-production-service/README.md) | [LABS](phases/phase-02-building-a-production-service/LABS.md) | [phase-02.md](AnswersByGetty/phase-02.md) |
+| Phase 3: Operate and recover the application | [README](phases/phase-03-operating-a-production-service/README.md) | [LABS](phases/phase-03-operating-a-production-service/LABS.md) | [phase-03.md](AnswersByGetty/phase-03.md) |
 
 ## Repository Structure
 
 ```text
 request-tracing-lab/
+|-- README.md
 |-- app.py
 |-- requirements.txt
 |-- Dockerfile
 |-- phases/
 |   |-- phase-01-understanding-a-request/
+|   |   |-- README.md
+|   |   `-- LABS.md
 |   |-- phase-02-building-a-production-service/
+|   |   |-- README.md
+|   |   |-- LABS.md
+|   |   |-- sql/
+|   |   |-- configs/
+|   |   `-- assets/
 |   `-- phase-03-operating-a-production-service/
+|       |-- README.md
+|       |-- LABS.md
+|       |-- docker/
+|       |-- kubernetes/
+|       |-- helm/
+|       `-- runbooks/
 |-- AnswersByGetty/
-|   |-- phase-01-understanding-a-request/
-|   |-- phase-02-building-a-production-service/
-|   `-- phase-03-operating-a-production-service/
-`-- production-reviews/
+|   |-- phase-01.md
+|   |-- phase-02.md
+|   |-- phase-03.md
+|   `-- assets/
+`-- tests/
 ```
 
-## Phase Structure
-
-```text
-phases/phase-01-understanding-a-request/
-|-- README.md
-`-- labs/
-    |-- 01-establish-baseline/
-    |-- 02-inspect-request-devtools/
-    |-- 03-correlate-request-server-logs/
-    |-- 04-compare-get-and-post/
-    |-- 05-trace-session-authentication/
-    |-- 06-trace-jwt-authentication/
-    |-- 07-diagnose-failure-responses/
-    `-- 08-inspect-latency-and-tls/
-
-phases/phase-02-building-a-production-service/
-|-- README.md
-|-- labs/
-|   |-- 01-three-tier-architecture.md
-|   |-- 02-nginx-reverse-proxy.md
-|   |-- 03-postgresql-persistence.md
-|   |-- 04-redis-cache-and-session-support.md
-|   |-- 05-support-ticket-data-model.md
-|   |-- 06-database-operations-and-resilience.md
-|   |-- 07-api-design-and-authentication.md
-|   |-- 08-webhooks-and-asynchronous-delivery.md
-|   |-- 09-workers-and-queues.md
-|   |-- 10-websockets-and-real-time-updates.md
-|   |-- 11-health-and-readiness.md
-|   |-- 12-observability-and-request-correlation.md
-|   |-- 13-container-foundation.md
-|   `-- 14-production-readiness-review.md
-|-- assets/
-|-- configs/
-`-- manifests/
-
-phases/phase-03-operating-a-production-service/
-|-- README.md
-|-- labs/
-|   |-- 01-containerize-the-system.md
-|   |-- 02-configuration-and-secrets.md
-|   |-- 03-observability.md
-|   |-- 04-alerting-and-supportability.md
-|   |-- 05-deployment-verification.md
-|   |-- 06-rollback-and-release-safety.md
-|   |-- 07-kubernetes-migration.md
-|   `-- 08-production-incident.md
-|-- docker/
-|-- kubernetes/
-|-- observability/
-`-- runbooks/
-```
-
-## Answers By Getty
-
-The `phases/` folders teach the labs. `AnswersByGetty/` captures one engineer's completed evidence, conclusions, and retained takeaways.
-
-Phase 2 answers should be added only after the Phase 2 labs are completed. When added, completed Phase 2 and Phase 3 work should mirror the lab filenames:
-
-```text
-AnswersByGetty/phase-02-building-a-production-service/labs/
-AnswersByGetty/phase-03-operating-a-production-service/labs/
-```
-
-## Install And Run
+## How To Run The Current Application
 
 Create a virtual environment:
 
@@ -181,25 +122,15 @@ Open:
 http://127.0.0.1:5000
 ```
 
-The default lab credentials are:
+The default Phase 1 lab credentials are:
 
 ```text
 username: getty
 password: cloud
 ```
 
-## How To Work Through The Lab
+## Answers By Getty
 
-Start with the request path before adding tools:
+The `phases/` directory contains reusable curriculum. `AnswersByGetty/` contains completed evidence, commands, conclusions, and retained takeaways from actual work.
 
-```text
-What request was sent?
-What response came back?
-Which request ID ties client and server evidence together?
-Where did authentication state appear?
-Where did the request go next?
-Where did a failed request stop?
-What evidence proves that conclusion?
-```
-
-Each later phase adds one architectural layer, one operational concern, and one new class of failure. The end goal is to design, build, operate, troubleshoot, and explain production systems clearly to both customers and engineering teams.
+Do not invent answers. Add evidence only after doing the lab work.

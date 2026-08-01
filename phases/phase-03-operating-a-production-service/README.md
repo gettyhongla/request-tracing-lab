@@ -216,14 +216,14 @@ The labs should preserve a deliberate learning order: build the container founda
 
 | Lab | Focus | Outcome |
 | --- | --- | --- |
-| [01](labs/01-containerize-the-system.md) | Containerize the Phase 2 system | Build production-minded images for NGINX, Flask API, and worker, and define how PostgreSQL and Redis run locally |
-| [02](labs/02-configuration-and-secrets.md) | Runtime configuration and secrets | Separate image contents from environment-specific configuration and sensitive values |
-| [03](labs/03-observability.md) | Container observability and health | Preserve request IDs and expose useful logs, health, readiness, metrics, and dependency signals |
-| [04](labs/04-alerting-and-supportability.md) | Docker Compose operations and supportability | Run the entire stack, inspect networking and volumes, and diagnose API, worker, webhook, real-time, and dependency failures |
-| [05](labs/05-deployment-verification.md) | Kubernetes resource model and traffic flow | Deploy the service and prove how Ingress, Service, EndpointSlice, Pods, probes, and DNS work together |
-| [06](labs/06-rollback-and-release-safety.md) | Kubernetes rollout safety | Perform rolling updates, verify revisions, detect a bad release, and roll back safely |
-| [07](labs/07-kubernetes-migration.md) | Production-minded Kubernetes operations | Add resources, scaling concepts, persistent storage decisions, configuration updates, and controlled migrations |
-| [08](labs/08-production-incident.md) | Incident response, RCA, and Helm introduction | Investigate a containerized-service incident, write the RCA, then package understood manifests into a small Helm chart |
+| [01](LABS.md#lab-01-containerize-the-system) | Containerize the Phase 2 system | Build production-minded images for NGINX, Flask API, and worker, and define how PostgreSQL and Redis run locally |
+| [02](LABS.md#lab-02-configuration-and-secrets) | Runtime configuration and secrets | Separate image contents from environment-specific configuration and sensitive values |
+| [03](LABS.md#lab-03-observability) | Container observability and health | Preserve request IDs and expose useful logs, health, readiness, metrics, and dependency signals |
+| [04](LABS.md#lab-04-alerting-and-supportability) | Docker Compose operations and supportability | Run the entire stack, inspect networking and volumes, and diagnose API, worker, webhook, real-time, and dependency failures |
+| [05](LABS.md#lab-05-deployment-verification) | Kubernetes resource model and traffic flow | Deploy the service and prove how Ingress, Service, EndpointSlice, Pods, probes, and DNS work together |
+| [06](LABS.md#lab-06-rollback-and-release-safety) | Kubernetes rollout safety | Perform rolling updates, verify revisions, detect a bad release, and roll back safely |
+| [07](LABS.md#lab-07-kubernetes-migration) | Production-minded Kubernetes operations | Add resources, scaling concepts, persistent storage decisions, configuration updates, and controlled migrations |
+| [08](LABS.md#lab-08-production-incident) | Incident response, RCA, and Helm introduction | Investigate a containerized-service incident, write the RCA, then package understood manifests into a small Helm chart |
 
 ## How To Work Through The Phase
 
@@ -255,7 +255,7 @@ phases/phase-03-operating-a-production-service/
 Completed commands, screenshots, logs, diagrams, conclusions, rollout notes, and RCA evidence belong under:
 
 ```text
-AnswersByGetty/phase-03-operating-a-production-service/labs/
+AnswersByGetty/phase-03.md
 ```
 
 Phase 3 answers should explicitly connect back to evidence produced in Phases 1 and 2 whenever the behavior is being preserved or compared.

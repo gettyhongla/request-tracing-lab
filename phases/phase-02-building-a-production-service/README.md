@@ -85,20 +85,20 @@ WebSockets provide live client updates.
 
 | Lab | Focus | Outcome |
 | --- | --- | --- |
-| [01](labs/01-three-tier-architecture.md) | Three-tier architecture | Draw the system, name each layer, and define the request path before coding |
-| [02](labs/02-nginx-reverse-proxy.md) | NGINX reverse proxy | Put NGINX in front of Flask and prove how traffic is routed |
-| [03](labs/03-postgresql-persistence.md) | PostgreSQL persistence | Add durable data and prove reads/writes with SQL and app evidence |
-| [04](labs/04-redis-cache-and-session-support.md) | Redis cache and session support | Add Redis for one temporary responsibility and prove hit, miss, expiry, and fallback behavior |
-| [05](labs/05-support-ticket-data-model.md) | Support ticket data model | Evolve notes into users, tickets, messages, admin actions, authorization, indexes, and request-traced database evidence |
-| [06](labs/06-database-operations-and-resilience.md) | Database operations and resilience | Explain connections, transactions, indexes, slow queries, backups, recovery, HA concepts, and database failure modes |
-| [07](labs/07-api-design-and-authentication.md) | API design and authentication | Explain REST resources, status codes, validation, sessions, JWT comparison, authorization, and idempotency |
-| [08](labs/08-webhooks-and-asynchronous-delivery.md) | Webhooks and asynchronous delivery | Send ticket events to another system and reason about signatures, retries, duplicate delivery, and failed delivery evidence |
-| [09](labs/09-workers-and-queues.md) | Workers and queues | Queue notification or diagnostic jobs after ticket creation and explain backlog, retries, failed jobs, and idempotency |
-| [10](labs/10-websockets-and-real-time-updates.md) | WebSockets and real-time updates | Compare polling, SSE, WebSockets, and webhooks while demonstrating live ticket update behavior |
-| [11](labs/11-health-and-readiness.md) | Health and readiness | Decide which dependencies are critical, degraded, or optional for safe traffic |
-| [12](labs/12-observability-and-request-correlation.md) | Observability and request correlation | Correlate logs, metrics, traces, request IDs, DB, Redis, worker, webhook, and WebSocket evidence |
-| [13](labs/13-container-foundation.md) | Container foundation | Manually containerize the Flask API and prepare for Phase 3 without building the full orchestration platform |
-| [14](labs/14-production-readiness-review.md) | Production-readiness review | Review functional readiness, DB recovery, async behavior, observability, focused k6 tests, rollback, and RCA |
+| [01](LABS.md#lab-01-three-tier-architecture) | Three-tier architecture | Draw the system, name each layer, and define the request path before coding |
+| [02](LABS.md#lab-02-nginx-reverse-proxy) | NGINX reverse proxy | Put NGINX in front of Flask and prove how traffic is routed |
+| [03](LABS.md#lab-03-postgresql-persistence) | PostgreSQL persistence | Add durable data and prove reads/writes with SQL and app evidence |
+| [04](LABS.md#lab-04-redis-cache-and-session-support) | Redis cache and session support | Add Redis for one temporary responsibility and prove hit, miss, expiry, and fallback behavior |
+| [05](LABS.md#lab-05-support-ticket-data-model) | Support ticket data model | Evolve notes into users, tickets, messages, admin actions, authorization, indexes, and request-traced database evidence |
+| [06](LABS.md#lab-06-database-operations-and-resilience) | Database operations and resilience | Explain connections, transactions, indexes, slow queries, backups, recovery, HA concepts, and database failure modes |
+| [07](LABS.md#lab-07-api-design-and-authentication) | API design and authentication | Explain REST resources, status codes, validation, sessions, JWT comparison, authorization, and idempotency |
+| [08](LABS.md#lab-08-webhooks-and-asynchronous-delivery) | Webhooks and asynchronous delivery | Send ticket events to another system and reason about signatures, retries, duplicate delivery, and failed delivery evidence |
+| [09](LABS.md#lab-09-workers-and-queues) | Workers and queues | Queue notification or diagnostic jobs after ticket creation and explain backlog, retries, failed jobs, and idempotency |
+| [10](LABS.md#lab-10-websockets-and-real-time-updates) | WebSockets and real-time updates | Compare polling, SSE, WebSockets, and webhooks while demonstrating live ticket update behavior |
+| [11](LABS.md#lab-11-health-and-readiness) | Health and readiness | Decide which dependencies are critical, degraded, or optional for safe traffic |
+| [12](LABS.md#lab-12-logs-metrics-traces-and-request-ids) | Observability and request correlation | Correlate logs, metrics, traces, request IDs, DB, Redis, worker, webhook, and WebSocket evidence |
+| [13](LABS.md#lab-13-container-foundation) | Container foundation | Manually containerize the Flask API and prepare for Phase 3 without building the full orchestration platform |
+| [14](LABS.md#lab-14-production-readiness-review) | Production-readiness review | Review functional readiness, DB recovery, async behavior, observability, focused k6 tests, rollback, and RCA |
 
 ## How To Use These Labs
 
@@ -117,7 +117,7 @@ Do not race through the files. For each lab:
 Each completed lab belongs in:
 
 ```text
-AnswersByGetty/phase-02-building-a-production-service/labs/
+AnswersByGetty/phase-02.md
 ```
 
 ## Evidence Standard

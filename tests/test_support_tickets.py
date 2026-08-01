@@ -20,7 +20,9 @@ def client(monkeypatch):
     monkeypatch.setattr(app_module, "DATABASE_URL", TEST_DATABASE_URL)
     app_module.app.config.update(TESTING=True, SECRET_KEY="test-secret")
 
-    migration = Path("migrations/001_support_tickets.sql").read_text()
+    migration = Path(
+        "phases/phase-02-building-a-production-service/sql/001_support_tickets.sql"
+    ).read_text()
     with psycopg.connect(TEST_DATABASE_URL) as conn:
         with conn.cursor() as cur:
             cur.execute(migration)

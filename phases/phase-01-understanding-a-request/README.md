@@ -50,14 +50,14 @@ Complete these in order:
 
 | Lab | Focus | Completion standard |
 | --- | --- | --- |
-| [1](labs/01-establish-baseline/) | Establish a baseline | Prove the app is reachable and healthy |
-| [2](labs/02-inspect-request-devtools/) | Inspect a request in DevTools | Separate URL, method, headers, status, and body |
-| [3](labs/03-correlate-request-server-logs/) | Correlate server logs | Match `X-Request-ID` to Flask log entries |
-| [4](labs/04-compare-get-and-post/) | Compare GET and POST | Explain retrieval versus submitted request body |
-| [5](labs/05-trace-session-authentication/) | Trace session authentication | Follow `Set-Cookie` and `Cookie` across requests |
-| [6](labs/06-trace-jwt-authentication/) | Trace JWT authentication | Follow token creation and `Authorization: Bearer` usage |
-| [7](labs/07-diagnose-failure-responses/) | Diagnose failure responses | Compare bad auth, missing state, bad paths, and app errors |
-| [8](labs/08-inspect-latency-and-tls/) | Inspect latency and TLS | Distinguish slow app behavior from connection and certificate behavior |
+| [1](LABS.md#lab-01-establish-a-baseline) | Establish a baseline | Prove the app is reachable and healthy |
+| [2](LABS.md#lab-02-inspect-a-request-in-devtools) | Inspect a request in DevTools | Separate URL, method, headers, status, and body |
+| [3](LABS.md#lab-03-correlate-server-logs) | Correlate server logs | Match `X-Request-ID` to Flask log entries |
+| [4](LABS.md#lab-04-compare-get-and-post) | Compare GET and POST | Explain retrieval versus submitted request body |
+| [5](LABS.md#lab-05-trace-session-authentication) | Trace session authentication | Follow `Set-Cookie` and `Cookie` across requests |
+| [6](LABS.md#lab-06-trace-jwt-authentication) | Trace JWT authentication | Follow token creation and `Authorization: Bearer` usage |
+| [7](LABS.md#lab-07-diagnose-failure-responses) | Diagnose failure responses | Compare bad auth, missing state, bad paths, and app errors |
+| [8](LABS.md#lab-08-inspect-latency-and-tls) | Inspect latency and TLS | Distinguish slow app behavior from connection and certificate behavior |
 
 ## Evidence Location
 
@@ -66,15 +66,10 @@ The reusable lab prompts live in this `phases/` directory.
 Completed evidence, commands, logs, conclusions, and RCA notes belong in:
 
 ```text
-AnswersByGetty/phase-01-understanding-a-request/
+AnswersByGetty/phase-01.md
 ```
 
-Use these answer folders:
-
-```text
-phase-1-observe-successful-requests/
-phase-2-inject-and-diagnose-failures/
-```
+Use the consolidated answer document: `AnswersByGetty/phase-01.md`.
 
 ## Evidence Worksheet
 

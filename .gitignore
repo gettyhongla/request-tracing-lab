@@ -10,3 +10,4 @@ cookies.txt
 k8s/
 operations/kubernetes-helm/
 AnswersByGetty/operations/kubernetes-helm/
+.pytest_cache/
