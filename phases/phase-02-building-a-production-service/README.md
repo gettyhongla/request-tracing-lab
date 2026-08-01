@@ -85,10 +85,6 @@ For the current implemented Phase 2 architecture through Lab 06, use the editabl
 
 [Labs 01-06 current architecture](assets/lab-06-current-architecture.md)
 
-For database interview review and Lab 05-06 study notes, use:
-
-[Database operations and resilience cheat sheet](database-operations-cheatsheet.md)
-
 ## Lab Order
 
 | Lab | Focus | Outcome |
