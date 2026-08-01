@@ -513,7 +513,7 @@ SELECT id, message, created_at FROM request_notes ORDER BY id DESC;
 
 **`SELECT`:** prove what rows actually exist in PostgreSQL.
 
-### Prove
+### Proof
 
 **Connection configuration:**
 
@@ -787,7 +787,7 @@ The `GET /notes` path now works like this:
 
 The `POST /notes` path writes to PostgreSQL and deletes `notes:latest` from Redis so the next read refreshes the cache.
 
-### Prove
+### Proof
 
 **Clear the cache:**
 
