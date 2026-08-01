@@ -698,7 +698,7 @@ Cache the GET /notes response.
 
 PostgreSQL remains the durable source of truth. Redis stores a temporary copy of the latest notes response so repeated reads can be served faster.
 
-### What Redis Is
+### What Is Redis
 
 Redis is an in-memory key/value store. It is commonly used for fast temporary data such as cache entries, sessions, counters, locks, and queue-related state.
 
