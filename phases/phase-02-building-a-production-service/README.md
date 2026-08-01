@@ -81,6 +81,10 @@ WebSockets provide live client updates.
 
 ![Three-tier architecture request flow](assets/three-tier-request-flow.png)
 
+For the current implemented Phase 2 architecture through Lab 06, use the editable Mermaid view:
+
+[Labs 01-06 current architecture](assets/lab-06-current-architecture.md)
+
 ## Lab Order
 
 | Lab | Focus | Outcome |
