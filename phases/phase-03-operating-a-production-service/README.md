@@ -30,7 +30,7 @@ How does Kubernetes create, expose, replace, and scale application Pods?
 How does traffic move through Ingress, Service, EndpointSlice, and a ready Pod?
 How do probes decide whether a Pod is alive and safe to receive traffic?
 How are API and worker replicas scaled differently?
-How do we verify a rollout and roll it back safely?
+How can a rollout be verified and rolled back safely?
 How do logs, metrics, traces, and request IDs support an RCA?
 Where could Helm reduce duplication without hiding the Kubernetes fundamentals?
 ```
@@ -329,7 +329,7 @@ Can readiness prevent unsafe traffic from reaching the app?
 ### Rollout and recovery
 
 ```text
-How do we know the new version is healthy?
+How is the new version proven healthy?
 Can old and new versions safely run at the same time?
 What signals would stop the rollout?
 How is the previous revision restored?
@@ -339,8 +339,8 @@ What happens to database changes during application rollback?
 ### Supportability and RCA
 
 ```text
-Can we trace one request across the edge, proxy, Pod, application, and dependencies?
-Can we distinguish a routing failure from an application, database, Redis, or resource failure?
+Can one request be traced across the edge, proxy, Pod, application, and dependencies?
+Can a routing failure be distinguished from an application, database, Redis, or resource failure?
 What would alert before customers report the issue?
 What evidence proves the release caused or did not cause the incident?
 What should support, engineering, and customers each be told?

@@ -1,10 +1,31 @@
 # Phase 3 Answers
 
-This document preserves completed learner evidence that previously lived in smaller answer files.
+This document records completed Phase 3 container and Kubernetes evidence, conclusions, and retained takeaways.
 
-## Lab 01 Answer: Containerize The System
+## Recorded Labs
 
-## Lab 01 Answer: Containerize The System
+| Lab | Topic | Status |
+| --- | --- | --- |
+| [Lab 01](#lab-01-containerize-the-system) | Containerize the system | Recorded |
+| [Lab 02](#lab-02-configuration-and-secrets) | Configuration and secrets | Recorded |
+| [Lab 03](../phases/phase-03-operating-a-production-service/LABS.md#lab-03-observability) | Observability | Not yet recorded |
+| [Lab 04](../phases/phase-03-operating-a-production-service/LABS.md#lab-04-alerting-and-supportability) | Alerting and supportability | Not yet recorded |
+| [Lab 05](../phases/phase-03-operating-a-production-service/LABS.md#lab-05-deployment-verification) | Deployment verification | Not yet recorded |
+| [Lab 06](../phases/phase-03-operating-a-production-service/LABS.md#lab-06-rollback-and-release-safety) | Rollback and release safety | Not yet recorded |
+| [Lab 07](#lab-07-kubernetes-migration) | Kubernetes migration | Recorded out of order |
+| [Lab 08](../phases/phase-03-operating-a-production-service/LABS.md#lab-08-production-incident) | Production incident | Not yet recorded |
+
+## Study Gaps To Return To
+
+```text
+Lab 03: preserve request IDs, logs, metrics, and traces inside containers.
+Lab 04: define alerts, triage steps, and support escalation evidence.
+Lab 05: prove deployments before and after traffic reaches the service.
+Lab 06: practice rollback versus roll-forward decisions.
+Lab 08: investigate one realistic production incident and write an RCA.
+```
+
+## Lab 01: Containerize The System
 
 ### Goal
 
@@ -340,9 +361,7 @@ Tracing:
 The same /health endpoint and X-Request-ID behavior worked after packaging, proving the request-tracing behavior survived the move into a container.
 ```
 
-## Lab 02 Answer: Configuration And Secrets
-
-## Lab 02 Answer: Configuration And Secrets
+## Lab 02: Configuration And Secrets
 
 ### Goal
 
@@ -512,7 +531,7 @@ ControlCe was listening on *:commplex-main, which maps to port 5000.
 Conclusion:
 
 ```text
-The startup failure was not caused by Flask code. Port 5000 was already owned by a macOS system process, so I used FLASK_RUN_PORT=5001.
+The startup failure was not caused by Flask code. Port 5000 was already owned by a macOS system process, so `FLASK_RUN_PORT=5001` was used.
 ```
 
 Why this matters:
@@ -559,9 +578,7 @@ Port troubleshooting:
 When the app cannot start, check whether the expected port is already in use before assuming the application code is broken.
 ```
 
-## Lab 07 Answer: Kubernetes Migration
-
-## Lab 07 Answer: Kubernetes Migration
+## Lab 07: Kubernetes Migration
 
 ### Goal
 
@@ -688,7 +705,7 @@ minikube image load request-tracing-lab:local
 Meaning:
 
 ```text
-Copy my local Docker image into minikube so Kubernetes can run it.
+Copy the local Docker image into minikube so Kubernetes can run it.
 ```
 
 Why this is needed:
@@ -921,7 +938,7 @@ Why:
 
 ```text
 The Service can send different requests to different Pod replicas.
-The request ID lets me separate my curl request from Kubernetes probe traffic.
+The request ID separates the curl request from Kubernetes probe traffic.
 ```
 
 ### Record
@@ -1012,5 +1029,5 @@ Operational evidence:
 Use Pods, Deployments, Services, Endpoints, Events, HPA, curl, and logs together. One command rarely tells the whole story.
 
 Production framing:
-For an app moving toward production, I would confirm image availability, runtime config, secrets, probes, resource requests/limits, scaling behavior, service routing, logs, and clear rollback/deployment ownership with the developer.
+For an app moving toward production, confirm image availability, runtime config, secrets, probes, resource requests/limits, scaling behavior, service routing, logs, and clear rollback/deployment ownership with the developer.
 ```
