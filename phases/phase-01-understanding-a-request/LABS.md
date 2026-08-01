@@ -8,7 +8,7 @@
 4. [Lab 04: Compare GET And POST](#lab-04-compare-get-and-post)
 5. [Lab 05: Trace Session Authentication](#lab-05-trace-session-authentication)
 6. [Lab 06: Trace JWT Authentication](#lab-06-trace-jwt-authentication)
-7. [Lab 7: Diagnose Failure Responses](#lab-7-diagnose-failure-responses)
+7. [Lab 07: Diagnose Failure Responses](#lab-07-diagnose-failure-responses)
 8. [Failure 01: Wrong Password](#failure-01-wrong-password)
 9. [Failure 02: Missing Session Cookie](#failure-02-missing-session-cookie)
 10. [Failure 03: Invalid JWT](#failure-03-invalid-jwt)
@@ -21,7 +21,7 @@
 17. [Failure 10: Slow Request](#failure-10-slow-request)
 18. [Failure 11: Application Exception](#failure-11-application-exception)
 19. [Failure 12: Untrusted Certificate](#failure-12-untrusted-certificate)
-20. [Lab 8: Inspect Latency And TLS](#lab-8-inspect-latency-and-tls)
+20. [Lab 08: Inspect Latency And TLS](#lab-08-inspect-latency-and-tls)
 
 ## Lab 01: Establish Baseline
 
@@ -418,7 +418,7 @@ Use:
 AnswersByGetty/phase-01.md
 ```
 
-## Lab 7: Diagnose Failure Responses
+## Lab 07: Diagnose Failure Responses
 
 This lab is the failure-injection half of Phase 1.
 
@@ -1027,7 +1027,7 @@ Use:
 AnswersByGetty/phase-01.md
 ```
 
-## Lab 8: Inspect Latency And TLS
+## Lab 08: Inspect Latency And TLS
 
 This lab separates slow application behavior from connection and TLS behavior.
 

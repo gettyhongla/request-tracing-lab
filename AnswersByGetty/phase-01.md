@@ -1,31 +1,42 @@
 # Phase 1 Answers
 
-This document preserves completed learner evidence that previously lived in smaller answer files.
+This document records completed Phase 1 request-tracing evidence, conclusions, and retained takeaways.
 
-## Phase 1 Answers: Understanding a Request
-
-## Phase 1 Answers: Understanding a Request
-
-These answers capture the completed Phase 1 request-tracing work.
-
-Read them for structure:
+Use each answer with this structure:
 
 ```text
 Observation -> Evidence -> Conclusion -> Takeaway
 ```
 
-### Completed Answers
+## Completed Labs
 
-```text
-phase-1-observe-successful-requests/lab-01-establish-baseline.md
-phase-1-observe-successful-requests/lab-02-inspect-request-devtools.md
-phase-1-observe-successful-requests/lab-03-correlate-request-server-logs.md
-phase-1-observe-successful-requests/lab-04-compare-get-and-post.md
-phase-1-observe-successful-requests/lab-05-trace-session-authentication.md
-phase-1-observe-successful-requests/lab-06-trace-jwt-authentication.md
-```
+| Lab | Topic |
+| --- | --- |
+| [Lab 01](#trace-report-lab-01---establish-baseline) | Establish baseline |
+| [Lab 02](#trace-report-lab-02---inspect-a-request-in-devtools) | Inspect a request in DevTools |
+| [Lab 03](#trace-report-lab-03---correlate-a-request-with-server-logs) | Correlate a request with server logs |
+| [Lab 04](#trace-report-lab-04---compare-get-and-post) | Compare GET and POST |
+| [Lab 05](#trace-report-lab-05---trace-session-authentication) | Trace session authentication |
+| [Lab 06](#trace-report-lab-06---trace-jwt-authentication) | Trace JWT authentication |
 
-### Phase 1 Concepts To Retain
+## Failure Reports
+
+| Failure | Topic |
+| --- | --- |
+| [Failure 01](#rca-failure-01---invalid-login-credentials) | Invalid login credentials |
+| [Failure 02](#rca-failure-02---missing-session-cookie) | Missing session cookie |
+| [Failure 03](#failure-03-invalid-jwt) | Invalid JWT |
+| [Failure 04](#failure-04-expired-jwt) | Expired JWT |
+| [Failure 05](#failure-05-nonexistent-route) | Nonexistent route |
+| [Failure 06](#failure-06-server-unavailable) | Server unavailable |
+| [Failure 07](#failure-07-wrong-port) | Wrong port |
+| [Failure 08](#failure-08-malformed-json) | Malformed JSON |
+| [Failure 09](#failure-09-missing-content-type) | Missing content type |
+| [Failure 10](#failure-10-slow-request) | Slow request |
+| [Failure 11](#failure-11-application-exception) | Application exception |
+| [Failure 12](#failure-12-untrusted-certificate) | Untrusted certificate |
+
+## Concepts To Retain
 
 ```text
 Request evidence:
@@ -47,26 +58,7 @@ Phase 2 bridge:
 When NGINX, PostgreSQL, and Redis are added, the same evidence discipline expands across more layers.
 ```
 
-### Failure Answers
-
-```text
-phase-2-inject-and-diagnose-failures/failure-01-wrong-password.md
-phase-2-inject-and-diagnose-failures/failure-02-missing-session-cookie.md
-phase-2-inject-and-diagnose-failures/failure-03-invalid-jwt.md
-phase-2-inject-and-diagnose-failures/failure-04-expired-jwt.md
-phase-2-inject-and-diagnose-failures/failure-05-nonexistent-route.md
-phase-2-inject-and-diagnose-failures/failure-06-server-unavailable.md
-phase-2-inject-and-diagnose-failures/failure-07-wrong-port.md
-phase-2-inject-and-diagnose-failures/failure-08-malformed-json.md
-phase-2-inject-and-diagnose-failures/failure-09-missing-content-type.md
-phase-2-inject-and-diagnose-failures/failure-10-slow-request.md
-phase-2-inject-and-diagnose-failures/failure-11-application-exception.md
-phase-2-inject-and-diagnose-failures/failure-12-untrusted-certificate.md
-```
-
 For each failure, the answer should show the triggered symptom, client evidence, server evidence if the request reaches Flask, conclusion, and retained takeaway.
-
-## Trace Report: Lab 01 - Establish Baseline
 
 ## Trace Report: Lab 01 - Establish Baseline
 
@@ -149,8 +141,6 @@ Later failures can be compared against this baseline to identify what changed: m
 
 Phase 2 bridge:
 Before adding NGINX, PostgreSQL, or Redis, capture healthy behavior so later failures can be compared against known-good request flow.
-
-## Trace Report: Lab 02 - Inspect A Request In DevTools
 
 ## Trace Report: Lab 02 - Inspect A Request In DevTools
 
@@ -243,8 +233,6 @@ When a reverse proxy is added, compare browser evidence with proxy evidence and 
 
 ## Trace Report: Lab 03 - Correlate A Request With Server Logs
 
-## Trace Report: Lab 03 - Correlate A Request With Server Logs
-
 ### Purpose
 
 Use `X-Request-ID` to connect client-side browser evidence to Flask server logs.
@@ -325,8 +313,6 @@ A strong operational note includes request ID, timestamp, route, status, user im
 
 Phase 2 bridge:
 In a layered system, this same request ID should appear in proxy logs, application logs, and dependency telemetry so one user action can be traced end to end.
-
-## Trace Report: Lab 04 - Compare GET And POST
 
 ## Trace Report: Lab 04 - Compare GET And POST
 
@@ -451,8 +437,6 @@ GET `/health` retrieved information without a request body. POST `/session/login
 
 Phase 2 bridge:
 When NGINX and PostgreSQL are added, method, body, content type, and cookies still determine what the application can safely parse and process.
-
-## Trace Report: Lab 05 - Trace Session Authentication
 
 ## Trace Report: Lab 05 - Trace Session Authentication
 
@@ -632,8 +616,6 @@ When NGINX is introduced, confirm whether cookie headers are forwarded correctly
 
 ## Trace Report: Lab 06 - Trace JWT Authentication
 
-## Trace Report: Lab 06 - Trace JWT Authentication
-
 ### Purpose
 
 Trace successful JWT authentication from token issuance through a protected profile request.
@@ -786,8 +768,6 @@ When NGINX is introduced, verify that the `Authorization` header reaches Flask b
 
 ## RCA: Failure 01 - Invalid Login Credentials
 
-## RCA: Failure 01 - Invalid Login Credentials
-
 ### Incident Summary
 
 A login request with invalid credentials was submitted to `POST /session/login`.
@@ -896,8 +876,6 @@ Authentication rejection is not the same as application outage.
 
 A request can succeed at the application-routing layer and still fail at the authentication layer. The evidence is the combination of request_started, request_finished, matching request ID, expected route, and controlled 401 response.
 ```
-
-## RCA: Failure 02 - Missing Session Cookie
 
 ## RCA: Failure 02 - Missing Session Cookie
 
@@ -1024,8 +1002,6 @@ The request reached Flask, the protected route executed, and the application int
 
 ## Failure 03: Invalid JWT
 
-## Failure 03: Invalid JWT
-
 ### Scenario
 
 Call `GET /jwt/profile` with a malformed or invalid bearer token.
@@ -1058,7 +1034,7 @@ What failed:
 Failed layer:
 Evidence:
 What this rules out:
-What I would tell engineering:
+Engineering note:
 ```
 
 ### Key Takeaway
@@ -1066,8 +1042,6 @@ What I would tell engineering:
 ```text
 JWT failures require checking whether the token was missing, malformed, expired, or rejected by signature validation.
 ```
-
-## Failure 04: Expired JWT
 
 ## Failure 04: Expired JWT
 
@@ -1104,7 +1078,7 @@ What failed:
 Failed layer:
 Evidence:
 What this rules out:
-What I would tell engineering:
+Engineering note:
 ```
 
 ### Key Takeaway
@@ -1112,8 +1086,6 @@ What I would tell engineering:
 ```text
 An expired JWT can prove the client had a token but the application rejected it because its validity window had passed.
 ```
-
-## Failure 05: Nonexistent Route
 
 ## Failure 05: Nonexistent Route
 
@@ -1147,7 +1119,7 @@ What failed:
 Failed layer:
 Evidence:
 What this rules out:
-What I would tell engineering:
+Engineering note:
 ```
 
 ### Key Takeaway
@@ -1155,8 +1127,6 @@ What I would tell engineering:
 ```text
 A 404 proves the server was reachable but the requested route did not exist.
 ```
-
-## Failure 06: Server Unavailable
 
 ## Failure 06: Server Unavailable
 
@@ -1190,7 +1160,7 @@ What failed:
 Failed layer:
 Evidence:
 What this rules out:
-What I would tell engineering:
+Engineering note:
 ```
 
 ### Key Takeaway
@@ -1198,8 +1168,6 @@ What I would tell engineering:
 ```text
 If Flask is unavailable, there may be no application log for the request. Absence of server evidence can itself be evidence.
 ```
-
-## Failure 07: Wrong Port
 
 ## Failure 07: Wrong Port
 
@@ -1233,7 +1201,7 @@ What failed:
 Failed layer:
 Evidence:
 What this rules out:
-What I would tell engineering:
+Engineering note:
 ```
 
 ### Key Takeaway
@@ -1241,8 +1209,6 @@ What I would tell engineering:
 ```text
 A wrong port fails before the request reaches Flask, so the client error and missing app log are both important evidence.
 ```
-
-## Failure 08: Malformed JSON
 
 ## Failure 08: Malformed JSON
 
@@ -1280,7 +1246,7 @@ What failed:
 Failed layer:
 Evidence:
 What this rules out:
-What I would tell engineering:
+Engineering note:
 ```
 
 ### Key Takeaway
@@ -1288,8 +1254,6 @@ What I would tell engineering:
 ```text
 Malformed request bodies can look like auth failures if the app silently fails to parse input. Check the request payload and parsing behavior before assuming credentials are wrong.
 ```
-
-## Failure 09: Missing Content Type
 
 ## Failure 09: Missing Content Type
 
@@ -1326,7 +1290,7 @@ What failed:
 Failed layer:
 Evidence:
 What this rules out:
-What I would tell engineering:
+Engineering note:
 ```
 
 ### Key Takeaway
@@ -1334,8 +1298,6 @@ What I would tell engineering:
 ```text
 Content-Type tells the application how to parse the body. A valid-looking payload can still fail if the server does not treat it as JSON.
 ```
-
-## Failure 10: Slow Request
 
 ## Failure 10: Slow Request
 
@@ -1370,7 +1332,7 @@ What failed:
 Failed layer:
 Evidence:
 What this rules out:
-What I would tell engineering:
+Engineering note:
 ```
 
 ### Key Takeaway
@@ -1378,8 +1340,6 @@ What I would tell engineering:
 ```text
 Latency is not always failure. A slow successful response still needs timing evidence so the time spent can be located.
 ```
-
-## Failure 11: Application Exception
 
 ## Failure 11: Application Exception
 
@@ -1414,7 +1374,7 @@ What failed:
 Failed layer:
 Evidence:
 What this rules out:
-What I would tell engineering:
+Engineering note:
 ```
 
 ### Key Takeaway
@@ -1422,8 +1382,6 @@ What I would tell engineering:
 ```text
 A 500 means the request reached the application and the application failed while handling it.
 ```
-
-## Failure 12: Untrusted Certificate
 
 ## Failure 12: Untrusted Certificate
 
@@ -1458,7 +1416,7 @@ What failed:
 Failed layer:
 Evidence:
 What this rules out:
-What I would tell engineering:
+Engineering note:
 ```
 
 ### Key Takeaway
