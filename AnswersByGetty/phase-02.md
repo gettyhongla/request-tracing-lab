@@ -798,102 +798,162 @@ The `POST /notes` path writes to PostgreSQL and deletes `notes:latest` from Redi
 
 ### Proof
 
-**Clear the cache:**
+**Redis connection evidence:**
+
+```bash
+redis-cli ping
+```
+
+Captured result:
+
+```text
+PONG
+```
+
+This proves the Redis server accepted a client connection on `127.0.0.1:6379`.
+
+**Connection configuration:**
+
+```text
+REDIS_URL=redis://127.0.0.1:6379/0
+NOTES_CACHE_KEY=notes:latest
+NOTES_CACHE_TTL_SECONDS=30
+```
+
+This tells Flask where Redis is, which key stores the cached notes response, and how long the cache entry should live.
+
+**Cache miss evidence:**
 
 ```bash
 redis-cli DEL notes:latest
+curl -s -i --max-time 5 http://127.0.0.1:8080/notes
 ```
 
-**Cache miss:**
-
-```bash
-curl -i http://127.0.0.1:8080/notes
-```
-
-Expected evidence:
+Captured response evidence:
 
 ```text
 HTTP/1.1 200 OK
+X-Request-ID: 757a81ebffa29d9f58e636f6ab37f377
 "cache": "miss"
+"request_id": "757a81ebffa29d9f58e636f6ab37f377"
 ```
 
-Flask log evidence:
+This proves Redis was empty for `notes:latest`, so Flask read from PostgreSQL and returned the notes through NGINX.
 
-```text
-cache_miss request_id=<id> key=notes:latest
-database_read request_id=<id> table=request_notes rows=3
-cache_store request_id=<id> key=notes:latest ttl_seconds=30 rows=3
-```
-
-**Cache hit:**
+**Cache hit evidence:**
 
 ```bash
-curl -i http://127.0.0.1:8080/notes
+curl -s -i --max-time 5 http://127.0.0.1:8080/notes
 ```
 
-Expected evidence:
+Captured response evidence:
 
 ```text
 HTTP/1.1 200 OK
+X-Request-ID: b12b5df54c43b8b9f41efe6874c20141
 "cache": "hit"
+"request_id": "b12b5df54c43b8b9f41efe6874c20141"
 ```
 
-Flask log evidence:
+This proves the follow-up read came from Redis instead of rebuilding the response from PostgreSQL again.
+
+**Cached value evidence:**
+
+```bash
+redis-cli GET notes:latest
+```
+
+Captured result:
 
 ```text
-cache_hit request_id=<id> key=notes:latest rows=3
+[{"id": 3, "message": "first postgres lab row from flask", ...},
+ {"id": 2, "message": "postgres row through flask and nginx", ...},
+ {"id": 1, "message": "first postgres lab row", ...}]
 ```
 
-**TTL evidence:**
+This proves Redis stored a serialized copy of the latest notes response.
+
+**TTL or expiry evidence:**
 
 ```bash
 redis-cli TTL notes:latest
 ```
 
-Observed evidence:
+Captured result:
 
 ```text
-18
+28
 ```
 
-This proves Redis stored the cached notes with an expiration.
+This proves Redis stored `notes:latest` with an expiration countdown. The cache is temporary by design.
+
+**PostgreSQL remains source of truth:**
+
+```bash
+psql request_tracing_lab -c "SELECT id, message, created_at FROM request_notes ORDER BY id DESC;"
+```
+
+Captured SQL evidence:
+
+```text
+ id |               message                |          created_at
+----+--------------------------------------+-------------------------------
+  3 | first postgres lab row from flask    | 2026-07-30 17:51:35.63169-04
+  2 | postgres row through flask and nginx | 2026-07-30 17:51:24.177706-04
+  1 | first postgres lab row               | 2026-07-30 17:33:42.778478-04
+(3 rows)
+```
+
+Redis can speed up reads, but PostgreSQL is the durable proof that the notes actually exist. If the Redis key is deleted or expires, Flask can rebuild the cache from PostgreSQL.
 
 ### Break
 
-Redis-unavailable behavior was tested by pointing Flask at the wrong Redis port:
+Redis-unavailable behavior was tested by starting a temporary Flask process on port `5002` with Redis pointed at the wrong port:
 
 ```bash
-REDIS_URL=redis://127.0.0.1:6390/0
+REDIS_URL=redis://127.0.0.1:6390/0 \
+FLASK_RUN_HOST=127.0.0.1 \
+FLASK_RUN_PORT=5002 \
+FLASK_DEBUG=false \
+venv/bin/python app.py
 ```
 
-Observed result:
+Then send the request directly to that temporary Flask process:
 
-```text
-status 200
-cache unavailable
-rows 3
+```bash
+curl -s -i --max-time 5 http://127.0.0.1:5002/notes
 ```
 
-Flask log evidence:
+Captured response evidence:
 
 ```text
-cache_error request_id=<id> key=notes:latest
+HTTP/1.1 200 OK
+X-Request-ID: 097509d9-d8af-4728-a36e-e20604cccc46
+"cache":"unavailable"
+"request_id":"097509d9-d8af-4728-a36e-e20604cccc46"
+```
+
+Captured Flask log evidence for the same request ID:
+
+```text
+request_started request_id=097509d9-d8af-4728-a36e-e20604cccc46 method=GET path=/notes
+cache_error request_id=097509d9-d8af-4728-a36e-e20604cccc46 key=notes:latest
 redis.exceptions.ConnectionError: Error 61 connecting to 127.0.0.1:6390. Connection refused.
-database_read request_id=<id> table=request_notes rows=3
-request_finished request_id=<id> status=200
+database_read request_id=097509d9-d8af-4728-a36e-e20604cccc46 table=request_notes rows=3
+request_finished request_id=097509d9-d8af-4728-a36e-e20604cccc46 status=200
 ```
 
 ### Failure Conclusion
 
-**What did the user see?** The user still received `200 OK` with notes.
+**What did the user see?** The user still received `200 OK` with notes and `"cache":"unavailable"`.
 
-**Did the app fail closed, fail open, or fall back?** The app fell back to PostgreSQL.
+**Did the app fail closed, fail open, or fall back?** The app fell back to PostgreSQL. This is a graceful fallback, not a full request failure.
 
-**Did PostgreSQL still work?** Yes. PostgreSQL returned the notes when Redis was unavailable.
+**Did PostgreSQL still work?** Yes. The same failed-Redis request logged `database_read` with `rows=3`.
 
-**What proved Redis was the failed dependency?** Flask logged a Redis connection error to `127.0.0.1:6390`.
+**What evidence proves Redis was the failed dependency?** The Flask log shows `cache_error` and `redis.exceptions.ConnectionError` for `127.0.0.1:6390`, while the same request ID also shows a successful PostgreSQL `database_read` and `request_finished status=200`.
 
-**What was the impact?** Redis failure disabled cache behavior, but it did not block the whole request.
+**Would this block the whole request, degrade performance, or only disable cache/session behavior?** For `GET /notes`, Redis failure only disables cache behavior and may make reads slower because Flask must query PostgreSQL. It does not block the whole request as long as PostgreSQL is healthy.
 
 ### Evidence Checklist
 
@@ -901,21 +961,23 @@ request_finished request_id=<id> status=200
 
 **Connection configuration:** `REDIS_URL=redis://127.0.0.1:6379/0`, `NOTES_CACHE_KEY=notes:latest`, and `NOTES_CACHE_TTL_SECONDS=30`.
 
-**Cache miss evidence:** After `redis-cli DEL notes:latest`, the next `GET /notes` returned `"cache": "miss"` and Flask logged `cache_miss`, `database_read`, and `cache_store`.
+**Cache miss evidence:** After `redis-cli DEL notes:latest`, `GET /notes` returned `"cache": "miss"` with request ID `757a81ebffa29d9f58e636f6ab37f377`.
 
-**Cache hit evidence:** The following `GET /notes` returned `"cache": "hit"` and Flask logged `cache_hit`.
+**Cache hit evidence:** The following `GET /notes` returned `"cache": "hit"` with request ID `b12b5df54c43b8b9f41efe6874c20141`.
 
-**Expiry evidence:** `redis-cli TTL notes:latest` returned a countdown value, which proved the cache key had an expiration.
+**Expiry evidence:** `redis-cli TTL notes:latest` returned `28`, proving the cache key had an expiration countdown.
 
-**Fallback behavior:** When Flask pointed to the wrong Redis port, the request still returned `200 OK` by reading from PostgreSQL.
+**Fallback behavior:** When Redis was pointed to bad port `6390`, `GET /notes` returned `"cache":"unavailable"` and still returned the notes from PostgreSQL.
 
-**Failure symptom:** Flask logged a Redis connection error to the bad Redis port, but the client still received notes.
+**Failure symptom:** Flask logged `cache_error` and `redis.exceptions.ConnectionError`, but the client still received notes if PostgreSQL was healthy.
 
-**Cache vs queue explanation:** In this lab, Redis is a cache inside the synchronous request path. A queue or worker was not implemented yet. The only queue/worker takeaway is the boundary: queue/worker Redis belongs later when asynchronous processing is built in Lab 09.
+**PostgreSQL source-of-truth proof:** A direct SQL query against `request_notes` returned the same three rows, independent of Redis.
 
-**Interview explanation:** Redis is fast temporary state. For this endpoint, Redis improves repeated reads, but PostgreSQL remains the durable source of truth. A cache miss or Redis outage should not erase data, and the app should fall back to PostgreSQL when that is safe.
+**Cache vs queue explanation:** In this lab, Redis is a cache inside the synchronous request path. It stores a temporary copy of data that PostgreSQL already owns. A queue is different: it stores work for a worker to process later outside the request/response path.
 
-**Retained takeaway:** Cache failure should degrade the experience instead of destroying the request when the database can still serve the source-of-truth data.
+**Interview explanation:** Redis is fast temporary state. It can improve repeated reads and support sessions, but it should not be treated as durable storage for this lab. PostgreSQL remains the source of truth. If Redis is empty, Flask rebuilds the cache from PostgreSQL. If Redis is unavailable, the endpoint should degrade gracefully when PostgreSQL can still serve the data.
+
+**Retained takeaway:** Cache failure should degrade the experience instead of destroying the request when the durable database can still answer.
 
 ### Cache vs Queue
 
