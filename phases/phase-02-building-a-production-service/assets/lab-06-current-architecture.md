@@ -216,6 +216,69 @@ These issues can cause database latency even when CPU and memory look healthy:
 | Disk I/O pressure | Storage is slow or saturated | Disk latency, IOPS, checkpoint pressure |
 | Bad growth pattern | Query works with small data but slows as rows grow | Latency rises with table size |
 
+## Interview Study Takeaways
+
+The interview pattern to practice is not only "the app works." It is:
+
+```text
+Can the database design be explained?
+Can the request path to the database be traced?
+Can database evidence prove what happened?
+Can latency be isolated to PostgreSQL instead of guessed?
+Can security, observability, and supportability be discussed at the right depth?
+```
+
+For Labs 05-06, the strongest takeaways are:
+
+| Topic | What To Be Able To Say |
+| --- | --- |
+| Durable source of truth | PostgreSQL owns users, tickets, messages, and audit events. Redis may speed up or support the request, but PostgreSQL owns the real records. |
+| Basic schema design | Tables separate different concepts: users, tickets, messages, and events. Relationships use IDs instead of copying full records everywhere. |
+| Primary keys | A primary key uniquely identifies one row and gives other tables something stable to reference. |
+| Foreign keys | A foreign key proves one row belongs to or references another row, such as a ticket created by a user. |
+| Constraints | Constraints protect data quality even if application code has a bug. |
+| Indexes | Indexes help common lookups avoid scanning too much data, but they should support real query patterns. |
+| Request ID evidence | `ticket_events.request_id` connects a client request to the database change it caused. |
+| Redis vs PostgreSQL | Redis is temporary support infrastructure. PostgreSQL is durable system-of-record storage. |
+| Connection configuration | `DATABASE_URL` tells Flask where PostgreSQL is and which credentials to use. |
+| Bad credentials or wrong host | The app may fail before a query runs, which is different from a slow or broken SQL query. |
+| Transactions and rollback | Multi-table writes should commit fully or roll back fully so partial tickets are not saved. |
+| Connection exhaustion | Requests can become slow if too many app requests compete for limited database connections. |
+
+## Current Interview Questions This Lab Can Answer
+
+Use these answers as short speaking prompts, not memorized scripts.
+
+| Question | Answer Shape |
+| --- | --- |
+| How do you determine whether the database is the bottleneck? | Start with the request ID, compare NGINX and Flask timings, then inspect the SQL query, query timing, `EXPLAIN`, locks, connections, and whether the database committed data. |
+| What DB issues can cause high latency when compute looks healthy? | Slow queries, missing indexes, inefficient joins, table scans, lock contention, long transactions, too many connections, pool exhaustion, disk I/O pressure, and query patterns that get worse as data grows. |
+| If the app uses Redis plus PostgreSQL, what should each handle? | PostgreSQL should store durable data. Redis should handle temporary cache/session behavior in this phase. Queue/worker responsibilities come later. |
+| What kinds of queries usually create performance issues? | Unbounded reads, missing filters, missing indexes, large joins, N+1 patterns, sorting large result sets, and queries that return more data than needed. |
+| What is an N+1 query problem? | The app fetches a list, then runs one extra query per item. It looks fine with small data and slows badly as the list grows. |
+| How would database connection exhaustion show up? | Requests may wait or time out before SQL even runs. Evidence may show pool timeouts, high active connections, or too many app requests competing for database slots. |
+| If CPU is low but queries are slow, what might be happening? | The database could be waiting on locks, disk I/O, missing indexes, connection slots, inefficient joins, or long transactions instead of burning CPU. |
+| How would indexing be explained simply? | An index is like a textbook index. It helps PostgreSQL jump to likely rows instead of reading every row in the table. |
+| What would be checked if login is slow only for authenticated users? | Check session lookup, user query, authorization query, Redis behavior if sessions/cache are involved, database indexes, route timing, and request IDs. |
+| How do you separate an application bug from a database problem? | Prove whether Flask reached PostgreSQL, which query ran, how long it took, what PostgreSQL returned, and whether the expected rows were committed. |
+
+## Security, Observability, And Supportability At This Stage
+
+These topics matter now, but only at the level this project has reached:
+
+```text
+Security:
+Do not expose PostgreSQL directly to clients.
+Do not hardcode credentials in committed code.
+Use app-level authorization so customers only see allowed tickets.
+
+Observability:
+Capture request IDs, Flask logs, NGINX timing, SQL evidence, and database failure symptoms.
+
+Supportability:
+Return safe errors to users, keep enough evidence for troubleshooting, and prove whether the failed layer was NGINX, Flask, Redis, or PostgreSQL.
+```
+
 ## What Is Not In This Request Yet
 
 These are not part of the current Lab 06 request path:
