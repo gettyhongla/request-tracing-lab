@@ -66,7 +66,7 @@ Failure injection notes
 | [02](labs/02-nginx-reverse-proxy.md) | NGINX reverse proxy | Put NGINX in front of Flask and prove how traffic is routed |
 | [03](labs/03-postgresql-persistence.md) | PostgreSQL persistence | Add durable data and prove reads/writes with SQL and app evidence |
 | [04](labs/04-redis-cache-and-session-support.md) | Redis cache and session support | Add Redis for one temporary responsibility and prove hit, miss, expiry, and fallback behavior |
-| [05](labs/05-database-and-cache-evidence.md) | Database and cache evidence | Investigate credentials, connectivity, query timing, cache behavior, dependency failures, and cache vs queue boundaries |
+| [05](labs/05-support-ticket-data-model.md) | Support ticket data model | Evolve notes into users, tickets, messages, admin actions, authorization, indexes, and request-traced database evidence |
 | [06](labs/06-health-and-readiness-endpoints.md) | Health and readiness | Add endpoints and explain why liveness and readiness are different |
 | [07](labs/07-request-ids-logs-latency.md) | Request IDs, logs, and latency | Make requests traceable and measurable across NGINX and Flask |
 | [08](labs/08-basic-observability.md) | Basic observability | Define useful logs, metrics, and evidence collection habits |

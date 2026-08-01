@@ -85,6 +85,7 @@ request-tracing-lab/
 |   `-- phase-03-operating-a-production-service/
 |-- AnswersByGetty/
 |   |-- phase-01-understanding-a-request/
+|   |-- phase-02-building-a-production-service/
 |   `-- phase-03-operating-a-production-service/
 `-- production-reviews/
 ```
@@ -111,7 +112,7 @@ phases/phase-02-building-a-production-service/
 |   |-- 02-nginx-reverse-proxy.md
 |   |-- 03-postgresql-persistence.md
 |   |-- 04-redis-cache-and-session-support.md
-|   |-- 05-database-and-cache-evidence.md
+|   |-- 05-support-ticket-data-model.md
 |   |-- 06-health-and-readiness-endpoints.md
 |   |-- 07-request-ids-logs-latency.md
 |   |-- 08-basic-observability.md
