@@ -16,7 +16,7 @@
 12. [Lab 12: Logs, Metrics, Traces, And Request IDs](#lab-12-logs-metrics-traces-and-request-ids)
 13. [Lab 13: Container Foundation](#lab-13-container-foundation)
 14. [Lab 14: Production-Readiness Review](#lab-14-production-readiness-review)
-- [Support Ticket Implementation Guide](#support-ticket-implementation-guide)
+- [Lab 05 Setup Reference](#lab-05-setup-reference)
 - [Production Review Scenarios](#production-review-scenarios)
 
 ## Lab 01: Three-Tier Architecture
@@ -1826,20 +1826,9 @@ The learner can give a two-minute production-readiness review, name known risks,
 Readiness is a decision backed by evidence, not a feeling that the app seems to work.
 ```
 
-## Support Ticket Implementation Guide
+## Lab 05 Setup Reference
 
-
-This guide supports Phase 2 Lab 05.
-
-### Files Changed
-
-```text
-app.py
-requirements.txt
-sql/001_support_tickets.sql
-phases/phase-02-building-a-production-service/LABS.md#lab-05-support-ticket-data-model
-tests/test_support_tickets.py
-```
+Use this reference when you are ready to run the support-ticket data model locally. It explains the commands to apply the schema, start the app, send API requests, inspect PostgreSQL, and test one database failure.
 
 ### Initialize The Database
 
