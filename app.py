@@ -28,6 +28,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=request_tracing_lab")
 REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
 NOTES_CACHE_KEY = "notes:latest"
 NOTES_CACHE_TTL_SECONDS = 30
+PASSWORD_HASH_METHOD = "pbkdf2:sha256"
 
 TICKET_CATEGORIES = {
     "bug",
@@ -697,7 +698,15 @@ def api_register():
                     VALUES (%s, %s, %s, %s)
                     RETURNING id, username, email, role, is_active, created_at;
                     """,
-                    (username, email, generate_password_hash(password), role)
+                    (
+                        username,
+                        email,
+                        generate_password_hash(
+                            password,
+                            method=PASSWORD_HASH_METHOD
+                        ),
+                        role
+                    )
                 )
                 user = cur.fetchone()
     except errors.UniqueViolation:
