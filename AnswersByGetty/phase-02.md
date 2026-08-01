@@ -2,6 +2,15 @@
 
 This document records completed Phase 2 evidence, commands, conclusions, and retained takeaways.
 
+## Completed Labs
+
+| Lab | Topic |
+| --- | --- |
+| [Lab 01](#lab-01-three-tier-architecture) | Three-tier architecture |
+| [Lab 02](#lab-02-nginx-reverse-proxy) | NGINX reverse proxy |
+| [Lab 03](#lab-03-postgresql-persistence) | PostgreSQL persistence |
+| [Lab 04](#lab-04-redis-cache-and-session-support) | Redis cache and session support |
+
 ## Lab 01: Three-Tier Architecture
 
 ### Build
