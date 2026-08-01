@@ -509,8 +509,6 @@ PostgreSQL
 | Retry | A controlled second attempt after a transient failure |
 | Transaction | Work that commits fully or rolls back fully |
 | `EXPLAIN` | PostgreSQL command that shows how a query may run |
-| RPO | How much data loss the business can tolerate |
-| RTO | How long recovery can take |
 
 ### Must Implement Or Inspect
 
@@ -521,31 +519,6 @@ PostgreSQL
 5. Run `EXPLAIN` for a beginner-friendly ticket query.
 6. Demonstrate rollback with a controlled failed transaction.
 7. Simulate connection exhaustion conceptually or with a small local limit.
-8. Document backup and restore expectations.
-9. Explain how a database failover would affect the app.
-
-### Conceptual Only
-
-Do not build a PostgreSQL HA cluster or shard the database in this lab.
-
-You should understand:
-
-```text
-Primary database:
-Replica:
-Read replica:
-Synchronous replication:
-Asynchronous replication:
-Replication lag:
-Multi-AZ design:
-Automatic failover:
-Application reconnection:
-DNS or endpoint changes during failover:
-Sharding:
-Shard key:
-Hot shard:
-Cross-shard query:
-```
 
 ### Healthy-Path Verification
 
@@ -572,7 +545,6 @@ Slow query:
 Missing index comparison:
 Transaction rollback:
 Simulated connection exhaustion:
-Failover explanation:
 ```
 
 ### Evidence To Capture
@@ -586,12 +558,9 @@ Read query evidence:
 Query timing:
 EXPLAIN output:
 Rollback evidence:
-Backup approach:
-RPO:
-RTO:
 Failure symptom:
 What was ruled out:
-Interview explanation:
+Overall summary:
 Retained takeaway:
 ```
 
@@ -603,26 +572,25 @@ Did the app save all related ticket rows or none of them?
 Could a retry create duplicate data?
 Which query is slow?
 Which index should support this lookup?
-Would a replica help reads, writes, or neither?
-What happens to active connections during failover?
+Did the database have a query problem, connection problem, or transaction problem?
 ```
 
-### Interview Explanation
+### Overall Summary
 
 ```text
-PostgreSQL is the durable source of truth for support tickets. Flask should connect with explicit runtime configuration, use transactions for multi-table writes, avoid unlimited retries, and return safe errors when PostgreSQL is unavailable. Indexes help common reads, backups protect against data loss, and restore testing proves the recovery plan instead of assuming it works.
+PostgreSQL is the durable source of truth for support tickets. Flask should connect with explicit runtime configuration, use transactions for multi-table writes, avoid unlimited retries, and return safe errors when PostgreSQL is unavailable. Indexes help common reads, request IDs connect app behavior to database evidence, and query timing helps prove whether PostgreSQL is or is not the bottleneck.
 ```
 
 ### Completion Standard
 
 ```text
-The learner can explain why a ticket write must commit atomically, how to collect query and connection evidence, and what recovery targets mean for customer-impacting data.
+The learner can explain why a ticket write must commit atomically, how to collect query and connection evidence, and how to prove whether PostgreSQL caused a request failure or latency symptom.
 ```
 
 ### Retained Takeaway
 
 ```text
-Database operations are about protecting customer records and proving what happened when reads, writes, credentials, latency, or recovery fail.
+Database operations are about protecting customer records and proving what happened when reads, writes, credentials, transactions, or latency fail.
 ```
 
 ## Lab 07: API Design And Authentication
