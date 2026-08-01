@@ -10,6 +10,7 @@ This document records completed Phase 2 evidence, commands, conclusions, and ret
 | [Lab 02](#lab-02-nginx-reverse-proxy) | NGINX reverse proxy |
 | [Lab 03](#lab-03-postgresql-persistence) | PostgreSQL persistence |
 | [Lab 04](#lab-04-redis-cache-and-session-support) | Redis cache and session support |
+| [Lab 05](#lab-05-support-ticket-data-model) | Support-ticket data model |
 
 ## Lab 01: Three-Tier Architecture
 
@@ -1010,3 +1011,361 @@ Async does not automatically mean real-time. Async means work can happen after t
 **Redis failure should degrade gracefully:** For this endpoint, Redis unavailable means slower reads, not a failed user request.
 
 **Cache/session Redis belongs in Phase 2:** Queue/worker Redis is only a boundary preview here. It was not built yet; it belongs later when the architecture adds asynchronous processing in Lab 09.
+
+## Lab 05: Support-Ticket Data Model
+
+### Build
+
+The goal of this lab is to turn the request-tracing app into a durable support-ticket workflow.
+
+```text
+Browser or curl -> NGINX -> Flask support-ticket API -> PostgreSQL
+```
+
+PostgreSQL owns the durable records:
+
+```text
+users
+tickets
+ticket_messages
+ticket_events
+```
+
+Redis can support temporary cache, sessions, or queues later, but support tickets belong in PostgreSQL because they are business records that must survive app restarts and cache expiration.
+
+### Schema
+
+The migration file is:
+
+```text
+phases/phase-02-building-a-production-service/sql/001_support_tickets.sql
+```
+
+It creates:
+
+**`users`:** identities that can log in. Customers create tickets; admins support tickets.
+
+**`tickets`:** durable support issues created by users.
+
+**`ticket_messages`:** customer replies, support replies, internal notes, and system messages connected to a ticket.
+
+**`ticket_events`:** audit trail records with `request_id` so database changes can be traced back to one request.
+
+Important relationship rules:
+
+```text
+tickets.created_by -> users.id
+tickets.assigned_to -> users.id
+ticket_messages.ticket_id -> tickets.id
+ticket_messages.author_id -> users.id
+ticket_events.ticket_id -> tickets.id
+ticket_events.actor_id -> users.id
+```
+
+Important constraints:
+
+```text
+users_role_check
+tickets_category_check
+tickets_priority_check
+tickets_status_check
+ticket_messages_type_check
+```
+
+Important indexes:
+
+```text
+idx_users_username_lower
+idx_users_email_lower
+idx_tickets_created_by_created_at
+idx_tickets_status_priority
+idx_ticket_messages_ticket_id_created_at
+idx_ticket_events_ticket_id_created_at
+```
+
+Indexes are not cache. An index is a database lookup structure that helps PostgreSQL find or order rows efficiently. A cache stores reusable data or query results.
+
+### Proof
+
+**Schema applied:**
+
+```bash
+psql request_tracing_lab -f phases/phase-02-building-a-production-service/sql/001_support_tickets.sql
+```
+
+**Tables verified:**
+
+```text
+request_notes
+ticket_events
+ticket_messages
+tickets
+users
+```
+
+`request_notes` came from Lab 03. The support-ticket tables are `users`, `tickets`, `ticket_messages`, and `ticket_events`.
+
+**Customer registration:**
+
+```bash
+curl -i -c /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -d '{"username":"customer1","email":"customer1@example.com","password":"customerpass"}' \
+  http://127.0.0.1:8080/api/auth/register
+```
+
+Captured evidence:
+
+```text
+HTTP/1.1 201 CREATED
+X-Request-ID: 0b84cac18d2655b76148b32d77862fd9
+Set-Cookie: session=...
+user.id: 1
+user.username: customer1
+user.role: customer
+```
+
+**Customer login:**
+
+```bash
+curl -i -c /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -d '{"username":"customer1","password":"customerpass"}' \
+  http://127.0.0.1:8080/api/auth/login
+```
+
+Captured evidence:
+
+```text
+HTTP/1.1 200 OK
+X-Request-ID: b0f1399932f4fef4512222b40ca6aa4b
+Set-Cookie: session=...
+user.id: 1
+user.role: customer
+```
+
+**Admin login:**
+
+```bash
+curl -i -c /tmp/rtl-admin.cookie \
+  -H "Content-Type: application/json" \
+  -d '{"username":"getty","password":"cloudpass"}' \
+  http://127.0.0.1:8080/api/auth/login
+```
+
+Captured evidence:
+
+```text
+HTTP/1.1 200 OK
+X-Request-ID: 14b60a523e4db3066cf453e984235991
+Set-Cookie: session=...
+user.id: 3
+user.role: admin
+```
+
+`/tmp/rtl-customer.cookie` and `/tmp/rtl-admin.cookie` are temporary curl cookie files. Browser login cookies and curl login cookies are separate.
+
+**Customer reply added to ticket `1`:**
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -d '{"body":"Adding more evidence from the request log for Lab 05."}' \
+  http://127.0.0.1:8080/api/tickets/1/messages
+```
+
+Captured evidence:
+
+```text
+HTTP/1.1 201 CREATED
+X-Request-ID: 603b5f0c73c0cea5f9e153fb5a73f125
+message.id: 7
+message.ticket_id: 1
+message.author_id: 1
+message.message_type: customer_reply
+```
+
+**Admin internal note added to ticket `1`:**
+
+```bash
+curl -i -b /tmp/rtl-admin.cookie \
+  -H "Content-Type: application/json" \
+  -d '{"body":"Internal note: reviewed support evidence for Lab 05."}' \
+  http://127.0.0.1:8080/api/admin/tickets/1/internal-notes
+```
+
+Captured evidence:
+
+```text
+HTTP/1.1 201 CREATED
+X-Request-ID: 82923023031cc3fd7a0a7007414a5b04
+message.id: 8
+message.ticket_id: 1
+message.author_id: 3
+message.message_type: internal_note
+```
+
+**Customer view of ticket `1`:**
+
+```text
+HTTP/1.1 200 OK
+X-Request-ID: c1b34bde49a70983a1fd7473e1669bbf
+Visible message types: customer_reply
+Hidden message types: internal_note
+```
+
+**Admin view of ticket `1`:**
+
+```text
+HTTP/1.1 200 OK
+X-Request-ID: 71c7dcea9f8a9a623ecde600bbd89dfe
+Visible message types: customer_reply, internal_note
+```
+
+This proves the app hides internal notes from regular customers and exposes them to admins.
+
+### SQL Evidence
+
+**Users:**
+
+```text
+ id | username  |   role
+----+-----------+----------
+  1 | customer1 | customer
+  2 | getty2    | customer
+  3 | getty     | admin
+```
+
+**Tickets:**
+
+```text
+ id | ticket_number | created_by | status | priority
+----+---------------+------------+--------+----------
+  1 | TCK-96645C93  |          1 | open   | medium
+  2 | TCK-DE75C223  |          1 | open   | medium
+  3 | TCK-C1151726  |          2 | open   | medium
+```
+
+**Ticket messages:**
+
+```text
+ id | ticket_id | author_id |  message_type  | body
+----+-----------+-----------+----------------+-------------------------------------------------------
+  7 |         1 |         1 | customer_reply | Adding more evidence from the request log for Lab 05.
+  8 |         1 |         3 | internal_note  | Internal note: reviewed support evidence for Lab 05.
+```
+
+**Ticket events:**
+
+```text
+ id | ticket_id | actor_id |    action     |   new_value    |              request_id
+----+-----------+----------+---------------+----------------+----------------------------------
+  7 |         1 |        1 | message_added | customer_reply | 603b5f0c73c0cea5f9e153fb5a73f125
+  8 |         1 |        3 | message_added | internal_note  | 82923023031cc3fd7a0a7007414a5b04
+```
+
+The `ticket_events.request_id` values match the API responses for the customer reply and admin internal note.
+
+### Controlled Failures
+
+**Duplicate username:**
+
+```bash
+curl -i -H "Content-Type: application/json" \
+  -d '{"username":"customer1","email":"customer1-again@example.com","password":"customerpass"}' \
+  http://127.0.0.1:8080/api/auth/register
+```
+
+Captured evidence:
+
+```text
+HTTP/1.1 409 CONFLICT
+X-Request-ID: d0f364454a13b4a80c2de81de47d52ec
+category: duplicate_account
+error: username or email already exists
+```
+
+This proves the database uniqueness rule prevents duplicate account identity.
+
+**Unauthenticated ticket creation:**
+
+```bash
+curl -i -H "Content-Type: application/json" \
+  -d '{"title":"Unauth test","description":"No cookie sent.","category":"technical_question","priority":"medium"}' \
+  http://127.0.0.1:8080/api/tickets
+```
+
+Captured evidence:
+
+```text
+HTTP/1.1 401 UNAUTHORIZED
+X-Request-ID: f48a55b59384fe87f76f236ad6f8fad5
+category: unauthenticated
+error: authentication required
+```
+
+This proves ticket creation requires a logged-in Flask session.
+
+**Customer tries admin endpoint:**
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  http://127.0.0.1:8080/api/admin/tickets
+```
+
+Captured evidence:
+
+```text
+HTTP/1.1 403 FORBIDDEN
+X-Request-ID: c9827e82904a16c311e269cd7059b02b
+category: unauthorized
+error: administrator access required
+```
+
+This proves a logged-in customer is authenticated but not authorized for admin actions.
+
+**Customer tries another customer's ticket:**
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  http://127.0.0.1:8080/api/tickets/3
+```
+
+Captured evidence:
+
+```text
+HTTP/1.1 403 FORBIDDEN
+X-Request-ID: 4fd4085caa17e190dc0eb0e2e4e3b664
+category: unauthorized
+error: ticket access denied
+```
+
+This proves customers can only access tickets they own.
+
+### Troubleshooting Questions
+
+**Which table owns each kind of data?** `users` owns identities, `tickets` owns support issues, `ticket_messages` owns conversation history, and `ticket_events` owns audit evidence.
+
+**Which foreign keys describe ownership and relationships?** `tickets.created_by -> users.id`, `ticket_messages.ticket_id -> tickets.id`, `ticket_messages.author_id -> users.id`, `ticket_events.ticket_id -> tickets.id`, and `ticket_events.actor_id -> users.id`.
+
+**Which constraint prevented bad data?** Unique indexes prevented duplicate usernames and emails. Check constraints prevent invalid roles, categories, priorities, statuses, and message types.
+
+**Which index supports listing one customer's tickets?** `idx_tickets_created_by_created_at` supports finding one customer's tickets in newest-first order.
+
+**Why can customers only see their own tickets?** Flask loads the session user and checks `tickets.created_by`. If the user is not an admin and did not create the ticket, the app returns `403`.
+
+**Why can admins see all tickets and internal notes?** Admin users have `role=admin`, so they can use admin endpoints and bypass the customer-only ownership filter.
+
+**Why do ticket records belong in PostgreSQL instead of Redis?** Tickets are durable business records. They must survive app restarts, Redis loss, and cache expiration.
+
+**Which SQL query proves the ticket exists?** `SELECT id, ticket_number, created_by, status, priority FROM tickets ORDER BY id;`
+
+**Which logs prove the request path?** NGINX access logs prove the request entered through the proxy. Flask logs prove the application handled the request. `ticket_events.request_id` proves the database change is tied to a specific request.
+
+### Interview Explanation
+
+When a customer creates or updates a support ticket, Flask authenticates the user from the session cookie, validates the request body, writes durable records to PostgreSQL, and records an audit event with the request ID. The `tickets` table owns the support issue, `ticket_messages` owns the conversation, and `ticket_events` owns traceable audit history. PostgreSQL is the source of truth because support history must survive restarts and cache loss. Redis can support temporary cache, sessions, or queues, but it should not be the durable store for customer support history.
+
+### Retained Takeaway
+
+The database is not just storage. It enforces relationships, protects ownership rules with constraints and foreign keys, speeds common lookups with indexes, and gives durable evidence that the application saved the customer's support request.
