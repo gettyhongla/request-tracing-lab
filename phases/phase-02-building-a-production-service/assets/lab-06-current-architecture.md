@@ -55,17 +55,22 @@ flowchart LR
 
 ## How To Read The Request
 
-Follow the numbered solid arrows for one synchronous request. Dashed arrows show evidence or inspection paths, not separate user traffic.
+Follow the numbered solid arrows as the trace request steps. Dashed arrows show evidence or inspection paths, not separate user traffic.
 
 ```text
-Start:
-Browser or curl sends an HTTP request.
-
-Main path:
-Client -> NGINX -> Flask -> Redis and/or PostgreSQL -> Flask -> NGINX
-
-Stop:
-The client receives an HTTP response with status, body, and X-Request-ID.
+1. Browser or curl sends an HTTP request to NGINX.
+2. NGINX accepts the request and proxies it to Flask.
+3. Flask chooses which route should handle the request.
+4. Flask follows one path:
+   4a. Notes read path for GET /notes.
+   4b. Support-ticket workflow for auth, tickets, replies, admin notes, or listing tickets.
+   4c. Safe error path for auth, validation, or database failure.
+5. Flask reaches the data layer:
+   5a. Notes can check Redis first, then fall back to PostgreSQL when cache misses or fails.
+   5b. Support-ticket actions use PostgreSQL transactions for durable writes.
+6. Flask builds the JSON result or safe error body.
+7. Flask returns the HTTP response to NGINX.
+8. NGINX returns the final response to the client with status, body, and X-Request-ID.
 ```
 
 The request is synchronous because the client waits for Flask to finish the work before receiving the response.
