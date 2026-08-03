@@ -124,6 +124,26 @@ Request IDs connect the request path to the database evidence. In this project, 
 
 An index is not the same as cache. A cache stores a temporary copy of data for speed. An index is a maintained database lookup structure that still points to the real table data.
 
+## SQL Reading Cheat Sheet
+
+These SQL keywords show up when reading PostgreSQL evidence. The goal is not to memorize SQL syntax deeply yet. The goal is to understand what a query is asking the database to do.
+
+| SQL Keyword | Think Of It As | Example |
+| --- | --- | --- |
+| `SELECT` | Show me | Show me the tickets |
+| `FROM` | From this table | From the `tickets` table |
+| `WHERE` | Only if | Only tickets created by one user |
+| `ORDER BY` | Sort by | Sort by newest |
+| `LIMIT` | Only show the first | Show only the first 10 |
+| `INSERT` | Create | Create a new ticket |
+| `UPDATE` | Change | Change ticket status |
+| `DELETE` | Remove | Delete a ticket |
+| `JOIN` | Combine related tables | Combine `tickets` with `users` |
+| `GROUP BY` | Group similar rows together | Count tickets by status |
+| `COUNT()` | Count them | Count open tickets |
+| `DISTINCT` | Only unique values | Show unique priorities |
+| `AS` | Rename this column in the result | `COUNT(*) AS total_tickets` |
+
 ## Lab 05 Data Model
 
 The support-ticket schema answers four questions:
