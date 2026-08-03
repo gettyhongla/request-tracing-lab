@@ -4,6 +4,8 @@ This note shows the current synchronous request path through Labs 01-06 and expl
 
 The request starts when a browser or `curl` sends an HTTP request to NGINX. The request stops when NGINX returns the HTTP response to the client. Lab 06 does not add a new runtime component; it adds the database-operations lens used to inspect the PostgreSQL part of the same request.
 
+This page is the reference model. Commands, logs, SQL output, and break-test proof belong in [AnswersByGetty/phase-02.md](../../../AnswersByGetty/phase-02.md).
+
 ## Current Architecture
 
 ```mermaid
@@ -73,22 +75,7 @@ Follow the numbered solid arrows as the trace request steps. Dashed arrows show 
 8. NGINX returns the final response to the client with status, body, and X-Request-ID.
 ```
 
-The request is synchronous because the client waits for Flask to finish the work before receiving the response.
-
-These actions are in the current request/response path:
-
-```text
-NGINX routing the request to Flask
-Flask assigning or forwarding X-Request-ID
-Flask checking the session cookie
-Flask enforcing customer/admin authorization
-Flask reading Redis for /notes cache
-Flask falling back to PostgreSQL when Redis misses or fails
-Flask writing users, tickets, messages, and ticket_events to PostgreSQL
-Flask returning JSON to the client
-```
-
-If PostgreSQL is slow during ticket creation, the client waits. That is why Lab 06 focuses on database latency, transactions, indexes, rollback, and failure evidence.
+The request is synchronous because the client waits for Flask to finish the work before receiving the response. If PostgreSQL is slow during ticket creation, the client waits too.
 
 ## PostgreSQL And Redis Ownership
 
@@ -184,45 +171,6 @@ ticket_events
 
 The important design idea is ownership. A customer should see their own tickets. An admin can see all tickets and internal notes. The database stores the records, but the application enforces who is allowed to read or write each record.
 
-## Lab 06 Database Checks
-
-Lab 06 moves from "does the feature work?" to "can the database explain what happened?"
-
-The core operating questions are:
-
-```text
-Can Flask connect to PostgreSQL?
-Did the app commit all related rows or none of them?
-Could a rollback prevent partial ticket records?
-Which query is slow?
-Which index should support the lookup?
-What does EXPLAIN show?
-What happens when PostgreSQL is unavailable?
-What evidence proves PostgreSQL was or was not the failed dependency?
-```
-
-Use evidence from each layer before blaming the database.
-
-| Layer | Evidence | What It Proves |
-| --- | --- | --- |
-| Client | Slow response, timeout, or error body | User impact exists |
-| NGINX | `request_time`, `upstream_response_time`, status code | Delay is before, inside, or after Flask |
-| Flask | Route timing, error logs, request ID | Which handler was slow or failed |
-| PostgreSQL | Query timing, `EXPLAIN`, locks, connection count | Whether database work was slow, blocked, or unavailable |
-| Data state | Rows inserted or missing | Whether the transaction actually committed |
-
-Good troubleshooting sequence:
-
-```text
-1. Confirm the user-facing symptom.
-2. Use the request ID to find NGINX and Flask logs.
-3. Compare total request time with upstream/app time.
-4. Identify the route and SQL query involved.
-5. Run EXPLAIN or EXPLAIN ANALYZE on the query.
-6. Check indexes, table scans, locks, and active connections.
-7. Confirm whether data committed, rolled back, or never reached PostgreSQL.
-```
-
 ## Database Latency Causes
 
 These issues can cause database latency even when CPU and memory look healthy:
@@ -240,52 +188,6 @@ These issues can cause database latency even when CPU and memory look healthy:
 | Pool exhaustion | App pool is full even if the database is alive | Timeout waiting for connection |
 | Disk I/O pressure | Storage is slow or saturated | Disk latency, IOPS, checkpoint pressure |
 | Bad growth pattern | Query works with small data but slows as rows grow | Latency rises with table size |
-
-## Study Takeaways
-
-The study pattern to practice is not only "the app works." It is:
-
-```text
-Can the database design be explained?
-Can the request path to the database be traced?
-Can database evidence prove what happened?
-Can latency be isolated to PostgreSQL instead of guessed?
-Can security, observability, and supportability be discussed at the right depth?
-```
-
-For Labs 05-06, the strongest takeaways are:
-
-| Topic | What To Be Able To Say |
-| --- | --- |
-| Durable source of truth | PostgreSQL owns users, tickets, messages, and audit events. Redis may speed up or support the request, but PostgreSQL owns the real records. |
-| Basic schema design | Tables separate different concepts: users, tickets, messages, and events. Relationships use IDs instead of copying full records everywhere. |
-| Primary keys | A primary key uniquely identifies one row and gives other tables something stable to reference. |
-| Foreign keys | A foreign key proves one row belongs to or references another row, such as a ticket created by a user. |
-| Constraints | Constraints protect data quality even if application code has a bug. |
-| Indexes | Indexes help common lookups avoid scanning too much data, but they should support real query patterns. |
-| Request ID evidence | `ticket_events.request_id` connects a client request to the database change it caused. |
-| Redis vs PostgreSQL | Redis is temporary support infrastructure. PostgreSQL is durable system-of-record storage. |
-| Connection configuration | `DATABASE_URL` tells Flask where PostgreSQL is and which credentials to use. |
-| Bad credentials or wrong host | The app may fail before a query runs, which is different from a slow or broken SQL query. |
-| Transactions and rollback | Multi-table writes should commit fully or roll back fully so partial tickets are not saved. |
-| Connection exhaustion | Requests can become slow if too many app requests compete for limited database connections. |
-
-## This Lab Answers
-
-Use these answers as short speaking prompts, not memorized scripts.
-
-| Question | Answer Shape |
-| --- | --- |
-| How do you determine whether the database is the bottleneck? | Start with the request ID, compare NGINX and Flask timings, then inspect the SQL query, query timing, `EXPLAIN`, locks, connections, and whether the database committed data. |
-| What DB issues can cause high latency when compute looks healthy? | Slow queries, missing indexes, inefficient joins, table scans, lock contention, long transactions, too many connections, pool exhaustion, disk I/O pressure, and query patterns that get worse as data grows. |
-| If the app uses Redis plus PostgreSQL, what should each handle? | PostgreSQL should store durable data. Redis should handle temporary cache/session behavior in this phase. Queue/worker responsibilities come later. |
-| What kinds of queries usually create performance issues? | Unbounded reads, missing filters, missing indexes, large joins, N+1 patterns, sorting large result sets, and queries that return more data than needed. |
-| What is an N+1 query problem? | The app fetches a list, then runs one extra query per item. It looks fine with small data and slows badly as the list grows. |
-| How would database connection exhaustion show up? | Requests may wait or time out before SQL even runs. Evidence may show pool timeouts, high active connections, or too many app requests competing for database slots. |
-| If CPU is low but queries are slow, what might be happening? | The database could be waiting on locks, disk I/O, missing indexes, connection slots, inefficient joins, or long transactions instead of burning CPU. |
-| How would indexing be explained simply? | An index is like a textbook index. It helps PostgreSQL jump to likely rows instead of reading every row in the table. |
-| What would be checked if login is slow only for authenticated users? | Check session lookup, user query, authorization query, Redis behavior if sessions/cache are involved, database indexes, route timing, and request IDs. |
-| How do you separate an application bug from a database problem? | Prove whether Flask reached PostgreSQL, which query ran, how long it took, what PostgreSQL returned, and whether the expected rows were committed. |
 
 ## Security, Observability, And Supportability At This Stage
 
