@@ -1834,3 +1834,534 @@ PostgreSQL is the durable source of truth for the support-ticket system. Flask c
 ### Retained Takeaway
 
 Database operations are about protecting customer records and proving what happened when reads, writes, credentials, latency, transactions, or recovery fail.
+
+## Lab 07: API Design And Authentication
+
+### Build
+
+This lab studies the support-ticket API boundary that already exists in the Flask app.
+
+```text
+Browser or curl
+  -> NGINX
+  -> Flask REST API
+  -> session authentication
+  -> authorization / ownership check
+  -> PostgreSQL
+```
+
+The implemented API uses session cookies for the support-ticket workflow. A successful register or login stores user identity in the Flask session, and later ticket routes use that session to decide who the user is.
+
+### API Resources
+
+| Resource | Method | Route | Purpose | Auth Needed |
+| --- | --- | --- | --- | --- |
+| Auth | `POST` | `/api/auth/register` | Create user and log in | No |
+| Auth | `POST` | `/api/auth/login` | Log in existing user | No |
+| Auth | `POST` | `/api/auth/logout` | Clear session | No, but uses current session if present |
+| Auth | `GET` | `/api/auth/me` | Show current logged-in user | Yes |
+| Tickets | `POST` | `/api/tickets` | Create a support ticket | Yes |
+| Tickets | `GET` | `/api/tickets` | List current customer's tickets | Yes |
+| Tickets | `GET` | `/api/tickets/<ticket_id>` | Read one allowed ticket and its messages | Yes |
+| Messages | `POST` | `/api/tickets/<ticket_id>/messages` | Add customer reply or support reply | Yes |
+| Admin tickets | `GET` | `/api/admin/tickets` | Admin can list all tickets | Admin |
+| Admin tickets | `PATCH` | `/api/admin/tickets/<ticket_id>` | Admin can update status, priority, or assignment | Admin |
+| Admin messages | `POST` | `/api/admin/tickets/<ticket_id>/messages` | Admin support reply | Admin |
+| Admin notes | `POST` | `/api/admin/tickets/<ticket_id>/internal-notes` | Admin-only internal note | Admin |
+
+### Authentication And Authorization
+
+Authentication answers:
+
+```text
+Who is this user?
+```
+
+Authorization answers:
+
+```text
+Is this user allowed to access this ticket or route?
+```
+
+In this app:
+
+```text
+Session cookie proves login state.
+Customer routes require a logged-in user.
+Customer ticket reads are limited to tickets created by that user.
+Admin routes require role = admin.
+Internal notes are visible to admins, not regular customers.
+```
+
+The important lesson is that login alone is not enough. A logged-in customer still should not read another customer's ticket or call admin routes.
+
+### Healthy-Path Evidence
+
+Register request:
+
+```bash
+curl -i -c /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -d '{"username":"customer1","email":"customer1@example.com","password":"customerpass"}' \
+  http://127.0.0.1:8080/api/auth/register
+```
+
+Expected evidence:
+
+```text
+HTTP 201
+Set-Cookie: session=...
+JSON response includes user id, username, email, role, and request_id
+PostgreSQL users row exists
+```
+
+Create ticket request:
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Login issue","description":"Customer cannot log in","category":"access","priority":"medium"}' \
+  http://127.0.0.1:8080/api/tickets
+```
+
+Expected evidence:
+
+```text
+HTTP 201
+Response includes ticket and request_id
+PostgreSQL tickets row exists
+PostgreSQL ticket_messages row exists
+PostgreSQL ticket_events row exists with request_id evidence
+```
+
+Admin route evidence:
+
+```bash
+curl -i -b /tmp/rtl-admin.cookie \
+  http://127.0.0.1:8080/api/admin/tickets
+```
+
+Expected evidence:
+
+```text
+Admin session -> HTTP 200
+Customer session -> HTTP 403
+No session -> HTTP 401
+```
+
+### Controlled Failures
+
+| Failure | Expected Result | What It Proves |
+| --- | --- | --- |
+| Missing JSON body | `400 invalid_input` | API validates required body fields before writing |
+| Wrong password | `401 invalid_credentials` | Authentication failed |
+| No session on protected route | `401 unauthenticated` | Login is required |
+| Customer calls admin route | `403 unauthorized` | Authorization is separate from authentication |
+| Customer reads another customer's ticket | `403 unauthorized` or `404 missing_ticket` depending path | Ownership is enforced |
+| Duplicate account registration | `409 duplicate_account` | Unique database rules protect identity |
+| Bad category or priority | `400 invalid_input` | API validates allowed values |
+
+### Pagination, Filtering, Sorting, And Versioning
+
+The current ticket list returns all rows for the user ordered by newest first:
+
+```sql
+SELECT *
+FROM tickets
+WHERE created_by = %s
+ORDER BY created_at DESC;
+```
+
+For production, the API should eventually add:
+
+```text
+pagination: limit and cursor/page
+filtering: status, priority, category
+sorting: created_at, updated_at, priority
+versioning: /api/v1/... when the contract needs long-term compatibility
+```
+
+This is not urgent for the local lab, but it is useful for support and DevOps because large unpaginated reads can become a latency problem.
+
+### Idempotency Concept
+
+Ticket creation is not currently idempotent. If a client times out and retries the same `POST /api/tickets`, the app could create a second valid ticket.
+
+A production design could accept:
+
+```text
+Idempotency-Key: unique-client-generated-key
+```
+
+Then the server would store the key with the original result and return the same result for safe retries.
+
+### Overall Summary
+
+The support-ticket API uses clear resource routes, session authentication, role-based admin checks, ownership checks, request IDs, and status codes that make support triage easier.
+
+### Retained Takeaway
+
+A clear API makes support easier because each request has an expected method, request body, status code, owner, and evidence trail.
+
+## Lab 08: Webhooks And Asynchronous Delivery
+
+### Build
+
+This lab is a design and study answer. The current Flask app stores ticket events in PostgreSQL, but it does not yet send outbound webhook HTTP requests.
+
+Webhook mental model:
+
+```text
+API request:
+Client asks the app for something.
+
+Webhook:
+The app tells another system that something happened.
+```
+
+For this project, the best event to start with would be:
+
+```text
+ticket.created
+```
+
+because the app already records `ticket_created` in `ticket_events`.
+
+### Proposed Event Payload
+
+```json
+{
+  "event_id": "evt_20260803_001",
+  "event_type": "ticket.created",
+  "created_at": "2026-08-03T12:00:00Z",
+  "request_id": "request-id-from-flask",
+  "ticket": {
+    "id": 1,
+    "ticket_number": "TCK-20260803-ABC123",
+    "title": "Login issue",
+    "priority": "medium",
+    "status": "open"
+  }
+}
+```
+
+Important fields:
+
+```text
+event_id: lets receiver detect duplicates
+event_type: tells receiver what happened
+created_at: supports replay protection and timeline
+request_id: connects webhook delivery to the original customer request
+ticket id/number: identifies the business object
+```
+
+### Signature Concept
+
+A webhook should include a signature header so the receiver can verify the event came from this app.
+
+```text
+X-Webhook-Signature: hmac-sha256(payload, shared_secret)
+X-Webhook-Timestamp: event timestamp
+```
+
+The receiver should reject:
+
+```text
+missing signature
+wrong signature
+old timestamp
+duplicate event_id already processed
+```
+
+### Delivery Rule
+
+The ticket should be saved before webhook delivery matters.
+
+Correct order:
+
+```text
+1. Customer creates ticket.
+2. Flask writes ticket, first message, and ticket event to PostgreSQL.
+3. Transaction commits.
+4. Webhook delivery is attempted or queued.
+5. Customer should not lose the ticket because the webhook receiver is down.
+```
+
+### Healthy-Path Evidence
+
+If implemented, capture:
+
+```text
+Ticket action: POST /api/tickets
+Event type: ticket.created
+Event ID: unique event id
+Payload: JSON body
+Signature header: X-Webhook-Signature
+Receiver log: request received
+Receiver response: 2xx
+Delivery status: delivered
+Request ID: same request_id as ticket event or linked event id
+```
+
+### Controlled Failures
+
+| Failure | Expected Behavior | Operational Meaning |
+| --- | --- | --- |
+| Receiver returns 500 | Delivery fails and should be retried later | External system failed |
+| Receiver times out | Delivery attempt records timeout | Network or receiver latency |
+| Wrong shared secret | Receiver rejects request | Security protection worked |
+| Duplicate delivery | Receiver ignores already-seen `event_id` | At-least-once delivery is safe |
+| Old timestamp replay | Receiver rejects old event | Replay protection worked |
+| Network refused | Delivery fails but ticket remains saved | Webhook is not source of truth |
+
+### Troubleshooting Questions
+
+**Was the ticket saved before webhook delivery failed?** It should be. PostgreSQL owns the ticket, and webhook delivery should not erase the committed ticket.
+
+**Did the receiver receive the request?** Check receiver logs, HTTP status, timestamp, and event ID.
+
+**Was the signature valid?** Compare the signature header against the payload and shared secret.
+
+**Was this a new event or duplicate delivery?** Check `event_id`.
+
+**Should the customer request fail because the webhook failed?** Usually no. The customer action should commit durable ticket data first. Webhook failure should create delivery evidence and retry work.
+
+**Where is failed delivery recorded?** In a future implementation, store it in a delivery table, failed-event table, queue, or logs with event ID and request ID.
+
+### Overall Summary
+
+Webhooks are outbound event delivery. They are useful for notifying other systems, but they introduce signatures, retries, duplicates, replay protection, and delivery evidence.
+
+### Retained Takeaway
+
+An API is client-to-app. A webhook is app-to-system after something happens. Webhook failure should be visible, retryable, and separate from the durable ticket write.
+
+## Lab 09: Workers And Queues
+
+### Build
+
+This lab is a design and study answer. The current app uses Redis for cache/session-style temporary behavior, but it does not yet implement a Redis queue or background worker.
+
+Queue mental model:
+
+```text
+Producer:
+Flask code that puts work onto a queue.
+
+Queue:
+Temporary place where jobs wait.
+
+Worker:
+Separate process that reads jobs and performs the work.
+```
+
+The best first workflow for this project would be:
+
+```text
+After ticket creation, enqueue a notification or diagnostic-summary job.
+```
+
+### Request Path With Queue
+
+```text
+Client submits ticket
+  -> Flask validates request
+  -> Flask writes ticket/message/event to PostgreSQL
+  -> PostgreSQL transaction commits
+  -> Flask enqueues background job
+  -> Flask returns 201 to customer
+  -> Worker processes job later
+```
+
+The customer should not wait for the worker to finish.
+
+### Proposed Job Payload
+
+```json
+{
+  "job_id": "job_20260803_001",
+  "job_type": "ticket.notification",
+  "ticket_id": 1,
+  "ticket_number": "TCK-20260803-ABC123",
+  "request_id": "request-id-from-flask",
+  "attempt": 1
+}
+```
+
+Important fields:
+
+```text
+job_id: identifies the background work
+job_type: tells worker what to do
+ticket_id: lets worker load durable data from PostgreSQL
+request_id: links job back to the customer request
+attempt: supports retry tracking
+```
+
+### Healthy-Path Evidence
+
+If implemented, capture:
+
+```text
+Ticket created: HTTP 201 and PostgreSQL ticket row
+Job enqueued: queue contains job payload
+Worker started: worker process log
+Job completed: worker log or job status
+Queue depth before: number of waiting jobs before worker
+Queue depth after: number of waiting jobs after worker
+Processing duration: worker start-to-finish time
+Request ID or event ID: links async work to original request
+```
+
+### Controlled Failures
+
+| Failure | Expected Behavior | What It Proves |
+| --- | --- | --- |
+| Worker stopped | Ticket still saves, queue depth grows | Async path is separate from customer request |
+| Queue backlog | Jobs wait longer before processing | Need queue depth and worker capacity metrics |
+| Job failure | Job records failure and retry attempt | Worker failure is visible |
+| Retry | Same job may run again | Side effects must be duplicate-safe |
+| Failed job | Job moves to failed/dead-letter state after limit | Operators have evidence to inspect |
+| Poison message | Same bad job fails repeatedly | Need retry limit and dead-letter behavior |
+
+### Troubleshooting Questions
+
+**Was the ticket saved even if the worker failed?** It should be. PostgreSQL ticket data should commit before async work.
+
+**Is the queue growing?** Check queue depth and age of oldest job.
+
+**Are workers processing jobs?** Check worker logs, job completion count, error count, and processing duration.
+
+**Which job failed?** Use `job_id`, `job_type`, ticket ID, and request ID.
+
+**Can the same job produce duplicate side effects?** Yes, because async systems often use at-least-once delivery. The worker must avoid duplicate email or duplicate notification by checking job ID, event ID, or a sent-record table.
+
+### Queue Metrics
+
+```text
+queue depth
+oldest job age
+job processing duration
+worker count
+success count
+failure count
+retry count
+dead-letter count
+```
+
+### Overall Summary
+
+Queues move slow follow-up work out of the customer request. They improve responsiveness, but they add a second operational path with its own backlog, retries, failed jobs, and duplicate-processing risk.
+
+### Retained Takeaway
+
+Async means the customer request can finish before all work is complete. It is useful only if the async path has evidence: queue depth, worker logs, retries, and failed-job visibility.
+
+## Lab 10: WebSockets And Real-Time Updates
+
+### Build
+
+This lab is a design and study answer. The current Flask app uses normal HTTP request/response. It does not yet implement WebSockets.
+
+WebSocket mental model:
+
+```text
+HTTP:
+Client asks, server responds, connection can close.
+
+WebSocket:
+Client opens a persistent connection, then the server can push updates.
+```
+
+For this project, the best first real-time event would be:
+
+```text
+ticket.message_added
+```
+
+because customers and admins care when a new support reply appears.
+
+### Real-Time Request Path
+
+```text
+Browser opens ticket page
+  -> Browser authenticates with session cookie
+  -> Browser opens WebSocket connection
+  -> Server verifies user can access ticket
+  -> Browser joins ticket room/channel
+  -> Admin adds support reply
+  -> Flask saves message to PostgreSQL
+  -> Server emits ticket.message_added to that ticket room
+  -> Browser receives update without manual refresh
+```
+
+### Polling, SSE, WebSockets, And Webhooks
+
+| Pattern | Best For | Tradeoff |
+| --- | --- | --- |
+| Polling | Simple periodic checks | Extra requests and delay |
+| Server-sent events | One-way server-to-browser updates | Simpler than WebSockets, less flexible |
+| WebSockets | Interactive live browser updates | Persistent connections and scaling concerns |
+| Webhooks | Server-to-server event delivery | Not for browser live UI updates |
+
+### Healthy-Path Evidence
+
+If implemented, capture:
+
+```text
+Connection opened: browser WebSocket connected
+Authenticated user: session user is known
+Authorized ticket: user can access ticket room
+Update event: ticket.message_added or ticket.status_changed
+Client received update: browser log/UI changed
+Server log: emit recorded
+Request ID or event ID: links update to saved ticket event
+```
+
+### Controlled Failures
+
+| Failure | Expected Behavior | What It Proves |
+| --- | --- | --- |
+| Unauthenticated connection | Connection rejected | Login required |
+| Unauthorized ticket room | Connection or room join rejected | Ownership still matters |
+| Client disconnect | Server notices disconnect or stops sending | Connection state is operational evidence |
+| Server restart | Client loses connection and must reconnect | Real-time path needs reconnect behavior |
+| Proxy timeout | Connection closes unexpectedly | NGINX/load balancer timeouts matter |
+| Multiple clients on different tickets | Only authorized room receives update | Room/channel isolation works |
+
+### Scaling Note
+
+One Flask process can emit to clients connected to that same process.
+
+At multiple replicas:
+
+```text
+Client A may be connected to replica 1.
+Admin update may hit replica 2.
+Replica 2 must publish the update through shared pub/sub.
+Replica 1 must receive it and emit to Client A.
+```
+
+That is why production WebSockets often need Redis pub/sub, a message broker, sticky sessions, or a managed real-time service.
+
+### Troubleshooting Questions
+
+**Is the user connected?** Check active WebSocket connections and server connection logs.
+
+**Is the user authorized for this ticket?** Check session identity and ticket ownership before joining the room.
+
+**Did the server emit an update?** Check server log or event ID.
+
+**Did the proxy close the connection?** Check NGINX/load balancer timeout and close logs.
+
+**Would another app replica know about this update?** Only if shared pub/sub or sticky routing is designed.
+
+**Should this feature use polling, SSE, or WebSockets?** Use WebSockets only when live bidirectional updates justify connection-state complexity. For simple updates, polling or SSE may be enough.
+
+### Overall Summary
+
+WebSockets are for live browser updates, not server-to-server notifications. They require authentication, authorization, persistent connection handling, reconnect behavior, proxy timeout awareness, and a scaling plan across replicas.
+
+### Retained Takeaway
+
+Real-time means live client updates. It adds connection state, room authorization, disconnect/reconnect behavior, proxy timeouts, and replica coordination that normal HTTP requests do not have.
