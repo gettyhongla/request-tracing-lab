@@ -511,70 +511,73 @@ Mitigation, recovery, and prevention
 
 ```mermaid
 flowchart LR
-    Start(("START<br/>Browser or curl<br/>sends HTTP request"))
-    NGINX["NGINX reverse proxy<br/>Port 8080<br/>adds/forwards X-Request-ID"]
-    Flask["Flask support-ticket API<br/>request tracing middleware<br/>session auth + authorization"]
-    Routes{"Route decision<br/>Which endpoint?"}
+    Start(("1. START<br/>Browser or curl<br/>sends HTTP request"))
+    NGINX["2. NGINX reverse proxy<br/>Port 8080<br/>adds/forwards X-Request-ID"]
+    Flask["3. Flask support-ticket API<br/>request tracing middleware<br/>session auth + authorization"]
+    Routes{"4. Route decision<br/>Which endpoint?"}
 
-    Notes["Notes path<br/>GET /notes"]
-    Tickets["Support-ticket path<br/>register, login, create ticket,<br/>reply, admin note, list ticket"]
-    Errors["Safe error path<br/>401, 403, 409, 503<br/>with request_id"]
+    Notes["5a. Notes path<br/>GET /notes"]
+    Tickets["5b. Support-ticket path<br/>register, login, create ticket,<br/>reply, admin note, list ticket"]
+    Errors["5c. Safe error path<br/>401, 403, 409, 503<br/>with request_id"]
 
-    Redis{"Redis cache<br/>temporary notes:latest"}
-    Pool["Database connection boundary<br/>current app: psycopg.connect per operation"]
-    Postgres["PostgreSQL primary<br/>durable source of truth"]
+    Redis{"6a. Redis cache<br/>temporary notes:latest"}
+    Pool["6b. Database connection boundary<br/>current app: psycopg.connect per operation"]
+    Postgres["7. PostgreSQL primary<br/>durable source of truth"]
 
-    Tables["Database tables<br/>users<br/>tickets<br/>ticket_messages<br/>ticket_events<br/>request_notes"]
-    Events["Audit evidence<br/>ticket_events.request_id"]
+    Tables["7a. Database tables<br/>users<br/>tickets<br/>ticket_messages<br/>ticket_events<br/>request_notes"]
+    Events["7b. Audit evidence<br/>ticket_events.request_id"]
 
-    DbChecks["Lab 06 inspection<br/>connections and pool concept<br/>transactions and locks<br/>query timing and EXPLAIN<br/>backup, replica, failover concepts"]
+    DbChecks["7c. Lab 06 inspection<br/>connections and pool concept<br/>transactions and locks<br/>query timing and EXPLAIN<br/>backup, replica, failover concepts"]
 
-    Finish(("FINISH<br/>Client receives HTTP response<br/>status + body + X-Request-ID"))
+    Finish(("8. FINISH<br/>Client receives HTTP response<br/>status + body + X-Request-ID"))
 
-    Start -->|"1. HTTP request enters app"| NGINX
-    NGINX -->|"2. proxy_pass to Flask"| Flask
-    Flask -->|"3. choose route"| Routes
+    Start -->|"HTTP request enters app"| NGINX
+    NGINX -->|"proxy_pass to Flask"| Flask
+    Flask -->|"choose route"| Routes
 
-    Routes -->|"4a. notes read"| Notes
-    Routes -->|"4b. support-ticket workflow"| Tickets
-    Routes -->|"4c. auth, validation, or DB failure"| Errors
+    Routes -->|"notes read"| Notes
+    Routes -->|"support-ticket workflow"| Tickets
+    Routes -->|"auth, validation, or DB failure"| Errors
 
-    Notes -->|"5a. check cache"| Redis
+    Notes -->|"check cache"| Redis
     Redis -->|"cache hit returns temporary data"| Notes
     Redis -->|"cache miss or unavailable"| Pool
     Notes -->|"read/write durable notes"| Pool
 
-    Tickets -->|"5b. SQL transaction"| Pool
+    Tickets -->|"SQL transaction"| Pool
     Pool -->|"database call"| Postgres
     Postgres -.->|"stores rows in"| Tables
     Tables -.->|"request_id proves change"| Events
 
     Postgres -.->|"inspected by Lab 06"| DbChecks
 
-    Notes -->|"6a. JSON result"| Flask
-    Tickets -->|"6b. JSON result"| Flask
-    Errors -->|"6c. safe error JSON"| Flask
-    Flask -->|"7. HTTP response"| NGINX
-    NGINX -->|"8. response returns to client"| Finish
+    Notes -->|"JSON result"| Flask
+    Tickets -->|"JSON result"| Flask
+    Errors -->|"safe error JSON"| Flask
+    Flask -->|"HTTP response"| NGINX
+    NGINX -->|"response returns to client"| Finish
 ```
 
-Follow the numbered solid arrows as the trace request steps. Dashed arrows show evidence or inspection paths, not separate user traffic.
+#### How To Read The Diagram
 
-```text
-1. Browser or curl sends an HTTP request to NGINX.
-2. NGINX accepts the request and proxies it to Flask.
-3. Flask chooses which route should handle the request.
-4. Flask follows one path:
-   4a. Notes read path for GET /notes.
-   4b. Support-ticket workflow for auth, tickets, replies, admin notes, or listing tickets.
-   4c. Safe error path for auth, validation, or database failure.
-5. Flask reaches the data layer:
-   5a. Notes can check Redis first, then fall back to PostgreSQL when cache misses or fails.
-   5b. Support-ticket actions use PostgreSQL transactions for durable writes.
-6. Flask builds the JSON result or safe error body.
-7. Flask returns the HTTP response to NGINX.
-8. NGINX returns the final response to the client with status, body, and X-Request-ID.
-```
+Follow the numbered boxes for the request path. Solid arrows show request/response movement. Dashed arrows show evidence or inspection paths, not separate user traffic.
+
+| Step | What happens | Evidence to look for |
+| --- | --- | --- |
+| 1 | Browser or `curl` sends the HTTP request. | URL, method, request body, client timing |
+| 2 | NGINX accepts the request and proxies it to Flask. | NGINX access log, upstream status, upstream time, `X-Request-ID` |
+| 3 | Flask receives the request and starts route handling. | Flask log, route name, request ID, status code |
+| 4 | Flask chooses the route path. | Route decision, auth/validation result, error category if it fails early |
+| 5a | The notes path may check Redis before PostgreSQL. | Redis hit/miss, TTL, fallback behavior |
+| 5b | The support-ticket path uses PostgreSQL for durable ticket work. | SQL transaction, ticket/message/event rows |
+| 5c | Safe errors return with a request ID instead of hiding the failed layer. | `401`, `403`, `409`, or `503` response with request ID |
+| 6a | Redis may serve temporary cached data, or the request may fall back toward PostgreSQL. | Redis hit/miss, TTL, Redis availability, fallback behavior |
+| 6b | The database connection boundary is where Lab 06 starts asking connection questions. | connection configuration, connection acquisition time, active/idle/waiting connections |
+| 7 | PostgreSQL executes the query or transaction against durable data. | query timing, locks, rollback, `EXPLAIN`, CPU, memory, I/O |
+| 7a/7b | PostgreSQL stores durable rows and audit evidence. | `users`, `tickets`, `ticket_messages`, `ticket_events`, `request_id` |
+| 7c | Lab 06 inspection explains whether the DB layer caused the symptom. | pool wait, query duration, lock wait, disk wait, replica lag, failover evidence |
+| Response arrows | Flask builds a JSON result or safe error and sends it back through NGINX. | response body, final status, response headers, `X-Request-ID` |
+| 8 | The client receives the final HTTP response. | browser/curl output, final status, total request latency |
 
 The request is synchronous because the client waits for Flask to finish the work before receiving the response. If PostgreSQL is slow during ticket creation, the client waits too.
 

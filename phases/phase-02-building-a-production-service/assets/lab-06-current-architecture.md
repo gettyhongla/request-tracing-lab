@@ -10,51 +10,51 @@ This page is the reference model. Commands, logs, SQL output, and break-test pro
 
 ```mermaid
 flowchart LR
-    Start(("START<br/>Browser or curl<br/>sends HTTP request"))
-    NGINX["NGINX reverse proxy<br/>Port 8080<br/>adds/forwards X-Request-ID"]
-    Flask["Flask support-ticket API<br/>request tracing middleware<br/>session auth + authorization"]
-    Routes{"Route decision<br/>Which endpoint?"}
+    Start(("1. START<br/>Browser or curl<br/>sends HTTP request"))
+    NGINX["2. NGINX reverse proxy<br/>Port 8080<br/>adds/forwards X-Request-ID"]
+    Flask["3. Flask support-ticket API<br/>request tracing middleware<br/>session auth + authorization"]
+    Routes{"4. Route decision<br/>Which endpoint?"}
 
-    Notes["Notes path<br/>GET /notes"]
-    Tickets["Support-ticket path<br/>register, login, create ticket,<br/>reply, admin note, list ticket"]
-    Errors["Safe error path<br/>401, 403, 409, 503<br/>with request_id"]
+    Notes["5a. Notes path<br/>GET /notes"]
+    Tickets["5b. Support-ticket path<br/>register, login, create ticket,<br/>reply, admin note, list ticket"]
+    Errors["5c. Safe error path<br/>401, 403, 409, 503<br/>with request_id"]
 
-    Redis{"Redis cache<br/>temporary notes:latest"}
-    Pool["Database connection boundary<br/>current app: psycopg.connect per operation"]
-    Postgres["PostgreSQL primary<br/>durable source of truth"]
+    Redis{"6a. Redis cache<br/>temporary notes:latest"}
+    Pool["6b. Database connection boundary<br/>current app: psycopg.connect per operation"]
+    Postgres["7. PostgreSQL primary<br/>durable source of truth"]
 
-    Tables["Database tables<br/>users<br/>tickets<br/>ticket_messages<br/>ticket_events<br/>request_notes"]
-    Events["Audit evidence<br/>ticket_events.request_id"]
+    Tables["7a. Database tables<br/>users<br/>tickets<br/>ticket_messages<br/>ticket_events<br/>request_notes"]
+    Events["7b. Audit evidence<br/>ticket_events.request_id"]
 
-    DbChecks["Lab 06 inspection<br/>connections and pool concept<br/>transactions and locks<br/>query timing and EXPLAIN<br/>backup, replica, failover concepts"]
+    DbChecks["7c. Lab 06 inspection<br/>connections and pool concept<br/>transactions and locks<br/>query timing and EXPLAIN<br/>backup, replica, failover concepts"]
 
-    Finish(("FINISH<br/>Client receives HTTP response<br/>status + body + X-Request-ID"))
+    Finish(("8. FINISH<br/>Client receives HTTP response<br/>status + body + X-Request-ID"))
 
-    Start -->|"1. HTTP request enters app"| NGINX
-    NGINX -->|"2. proxy_pass to Flask"| Flask
-    Flask -->|"3. choose route"| Routes
+    Start -->|"HTTP request enters app"| NGINX
+    NGINX -->|"proxy_pass to Flask"| Flask
+    Flask -->|"choose route"| Routes
 
-    Routes -->|"4a. notes read"| Notes
-    Routes -->|"4b. support-ticket workflow"| Tickets
-    Routes -->|"4c. auth, validation, or DB failure"| Errors
+    Routes -->|"notes read"| Notes
+    Routes -->|"support-ticket workflow"| Tickets
+    Routes -->|"auth, validation, or DB failure"| Errors
 
-    Notes -->|"5a. check cache"| Redis
+    Notes -->|"check cache"| Redis
     Redis -->|"cache hit returns temporary data"| Notes
     Redis -->|"cache miss or unavailable"| Pool
     Notes -->|"read/write durable notes"| Pool
 
-    Tickets -->|"5b. SQL transaction"| Pool
+    Tickets -->|"SQL transaction"| Pool
     Pool -->|"database call"| Postgres
     Postgres -.->|"stores rows in"| Tables
     Tables -.->|"request_id proves change"| Events
 
     Postgres -.->|"inspected by Lab 06"| DbChecks
 
-    Notes -->|"6a. JSON result"| Flask
-    Tickets -->|"6b. JSON result"| Flask
-    Errors -->|"6c. safe error JSON"| Flask
-    Flask -->|"7. HTTP response"| NGINX
-    NGINX -->|"8. response returns to client"| Finish
+    Notes -->|"JSON result"| Flask
+    Tickets -->|"JSON result"| Flask
+    Errors -->|"safe error JSON"| Flask
+    Flask -->|"HTTP response"| NGINX
+    NGINX -->|"response returns to client"| Finish
 ```
 
 ## How To Read The Request
