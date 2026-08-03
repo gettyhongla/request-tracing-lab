@@ -11,7 +11,7 @@ This document records completed Phase 2 evidence, commands, conclusions, and ret
 | [Lab 03](#lab-03-postgresql-persistence) | PostgreSQL persistence |
 | [Lab 04](#lab-04-redis-cache-and-session-support) | Redis cache and session support |
 | [Lab 05](#lab-05-support-ticket-data-model) | Support-ticket data model |
-| [Lab 06](#lab-06-database-operations-and-resilience) | Database operations and resilience |
+| [Lab 06](#lab-06-database-operations-performance-and-resilience) | Database operations, performance, and resilience |
 
 ## Lab 01: Three-Tier Architecture
 
@@ -1371,7 +1371,7 @@ This lab shows how one support-ticket action becomes durable database evidence. 
 
 The database is not just storage. It enforces relationships, protects ownership rules with constraints and foreign keys, speeds common lookups with indexes, and gives durable evidence that the application saved the customer's support request.
 
-## Lab 06: Database Operations And Resilience
+## Lab 06: Database Operations, Performance, And Resilience
 
 ### Build
 
@@ -1392,6 +1392,8 @@ What happens when PostgreSQL is unavailable?
 How would backup, restore, failover, and recovery targets affect support-ticket data?
 ```
 
+This answer section preserves the completed local evidence. It aligns to the revised Lab 06 structure by treating local commands as hands-on proof and production topics such as pooling, replica lag, failover, RPO, and RTO as operational concepts unless they were directly tested locally.
+
 ### Connection Configuration
 
 Flask reads the database connection string from runtime configuration:
@@ -1406,6 +1408,8 @@ The connection helper is:
 def get_db_connection():
     return psycopg.connect(DATABASE_URL, row_factory=dict_row)
 ```
+
+The current app opens PostgreSQL connections with `psycopg.connect(...)` when a route needs the database. It does not currently use a real application-side connection pool, so pool exhaustion is discussed as an operational concept and inspected locally through active connection counts.
 
 Local evidence:
 
@@ -1757,7 +1761,7 @@ DNS or the managed endpoint may point to a new primary
 read replicas may lag behind the primary
 ```
 
-Failover can improve availability, but it does not remove the need for retries, safe error handling, idempotency, and restore testing.
+Failover can improve availability, but it does not remove the need for database reconnect handling, safe error handling, and restore testing.
 
 ### Private Subnet And Security
 
@@ -1813,7 +1817,7 @@ database logs or slow query logs
 
 **Did the app save all related ticket rows or none of them?** The ticket-create path should save the ticket, first message, and ticket event together. If the transaction fails before commit, the related rows should not remain partially saved.
 
-**Could a retry create duplicate data?** Yes, if the app retries a create request without an idempotency key. Unique ticket numbers reduce one class of duplicates, but client retries can still create multiple valid tickets unless the API has an idempotency design.
+**Could retrying after a database failure create duplicate data?** Yes, if the original transaction committed but the client or app did not receive the response. Unique ticket numbers reduce one class of duplicates, but duplicate-prevention design belongs to the later API-focused lab.
 
 **Which query is slow?** The lab used `pg_sleep(1)` as a controlled slow database operation. In production, identify the actual SQL with timing, slow query logs, and request IDs.
 

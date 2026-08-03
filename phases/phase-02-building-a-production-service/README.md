@@ -94,7 +94,7 @@ For the current implemented Phase 2 architecture through Lab 06, use the editabl
 | [03](LABS.md#lab-03-postgresql-persistence) | PostgreSQL persistence | Add durable data and prove reads/writes with SQL and app evidence |
 | [04](LABS.md#lab-04-redis-cache-and-session-support) | Redis cache and session support | Add Redis for one temporary responsibility and prove hit, miss, expiry, and fallback behavior |
 | [05](LABS.md#lab-05-support-ticket-data-model) | Support ticket data model | Evolve notes into users, tickets, messages, admin actions, authorization, indexes, and request-traced database evidence |
-| [06](LABS.md#lab-06-database-operations-and-resilience) | Database operations and resilience | Explain connections, transactions, indexes, slow queries, rollback, and database failure evidence |
+| [06](LABS.md#lab-06-database-operations-performance-and-resilience) | Database operations, performance, and resilience | Investigate whether customer symptoms belong to connection handling, query execution, transactions, locks, storage, backups, replicas, failover, or another layer |
 | [07](LABS.md#lab-07-api-design-and-authentication) | API design and authentication | Explain REST resources, status codes, validation, sessions, JWT comparison, authorization, and idempotency |
 | [08](LABS.md#lab-08-webhooks-and-asynchronous-delivery) | Webhooks and asynchronous delivery | Send ticket events to another system and reason about signatures, retries, duplicate delivery, and failed delivery evidence |
 | [09](LABS.md#lab-09-workers-and-queues) | Workers and queues | Queue notification or diagnostic jobs after ticket creation and explain backlog, retries, failed jobs, and idempotency |

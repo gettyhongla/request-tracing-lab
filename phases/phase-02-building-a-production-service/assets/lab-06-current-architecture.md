@@ -20,12 +20,13 @@ flowchart LR
     Errors["Safe error path<br/>401, 403, 409, 503<br/>with request_id"]
 
     Redis{"Redis cache<br/>temporary notes:latest"}
-    Postgres["PostgreSQL<br/>durable source of truth"]
+    Pool["Database connection boundary<br/>current app: psycopg.connect per operation"]
+    Postgres["PostgreSQL primary<br/>durable source of truth"]
 
     Tables["Database tables<br/>users<br/>tickets<br/>ticket_messages<br/>ticket_events<br/>request_notes"]
     Events["Audit evidence<br/>ticket_events.request_id"]
 
-    DbChecks["Lab 06 inspection<br/>DATABASE_URL<br/>transaction commit/rollback<br/>query timing<br/>EXPLAIN + indexes<br/>failure evidence"]
+    DbChecks["Lab 06 inspection<br/>connections and pool concept<br/>transactions and locks<br/>query timing and EXPLAIN<br/>backup, replica, failover concepts"]
 
     Finish(("FINISH<br/>Client receives HTTP response<br/>status + body + X-Request-ID"))
 
@@ -39,10 +40,11 @@ flowchart LR
 
     Notes -->|"5a. check cache"| Redis
     Redis -->|"cache hit returns temporary data"| Notes
-    Redis -->|"cache miss or unavailable"| Postgres
-    Notes -->|"read/write durable notes"| Postgres
+    Redis -->|"cache miss or unavailable"| Pool
+    Notes -->|"read/write durable notes"| Pool
 
-    Tickets -->|"5b. SQL transaction"| Postgres
+    Tickets -->|"5b. SQL transaction"| Pool
+    Pool -->|"database call"| Postgres
     Postgres -.->|"stores rows in"| Tables
     Tables -.->|"request_id proves change"| Events
 
@@ -82,6 +84,8 @@ The request is synchronous because the client waits for Flask to finish the work
 PostgreSQL is the durable source of truth. If Flask restarts, Redis expires, or cache is empty, PostgreSQL should still contain the real users, tickets, messages, and audit events.
 
 Redis is temporary support infrastructure. In this phase, Redis supports cache/session behavior. Queue/worker Redis belongs to the async production architecture path later, not the durable data model.
+
+The current Flask app opens PostgreSQL connections through `psycopg.connect(...)` when a route needs the database. It does not currently implement a real application-side connection pool, but Lab 06 studies pooling because production services need to limit and reuse database connections.
 
 Request IDs connect the request path to the database evidence. In this project, `ticket_events.request_id` helps prove which client request caused an important database change.
 
@@ -228,7 +232,6 @@ Container orchestration and production deployment platform.
 ```
 
 Short version:
-
 ```text
 Synchronous = user waits for the response.
 Asynchronous = work can continue after the response.

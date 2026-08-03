@@ -7,7 +7,7 @@
 3. [Lab 03: PostgreSQL Persistence](#lab-03-postgresql-persistence)
 4. [Lab 04: Redis Cache And Session Support](#lab-04-redis-cache-and-session-support)
 5. [Lab 05: Support-Ticket Data Model](#lab-05-support-ticket-data-model)
-6. [Lab 06: Database Operations And Resilience](#lab-06-database-operations-and-resilience)
+6. [Lab 06: Database Operations, Performance, And Resilience](#lab-06-database-operations-performance-and-resilience)
 7. [Lab 07: API Design And Authentication](#lab-07-api-design-and-authentication)
 8. [Lab 08: Webhooks And Asynchronous Delivery](#lab-08-webhooks-and-asynchronous-delivery)
 9. [Lab 09: Workers And Queues](#lab-09-workers-and-queues)
@@ -467,130 +467,623 @@ The learner can explain how one submitted support issue becomes related PostgreS
 The database is not just storage. It enforces relationships, protects ownership rules with data structure, and gives evidence that the application actually saved the customer's support request.
 ```
 
-## Lab 06: Database Operations And Resilience
+## Lab 06: Database Operations, Performance, And Resilience
 
-Learn how PostgreSQL behaves when the support-ticket app depends on it.
+Learn how to determine whether a customer-visible symptom belongs to PostgreSQL, the database connection path, or another application layer.
 
-### Why This Lab Exists
+### 1. Why This Lab Exists
 
-Support engineers and DevOps engineers do not need to become full-time DBAs for this project, but they do need to reason about database symptoms. Slow tickets, failed logins, duplicate submissions, and partial writes often come from database behavior.
-
-### Architecture Before
+Customers report symptoms, not database mechanisms:
 
 ```text
-Flask support-ticket API -> PostgreSQL tables
+The ticket page takes ten seconds.
+Saving a ticket hangs.
+Everyone is receiving timeouts.
+My ticket disappeared.
+The application says the database is unavailable.
 ```
 
-The app can create users, tickets, messages, and events.
+Those symptoms may come from Flask application logic, Redis, connection-pool waiting, network latency, PostgreSQL query execution, lock contention, disk/storage latency, failed transactions, or database unavailability.
 
-### Architecture After
+The goal is to use evidence to prove the failed layer instead of automatically blaming PostgreSQL or adding an index.
+
+Use this investigation path:
 
 ```text
-Flask support-ticket API
-  |-- connection string and credentials
-  |-- transactions for multi-table writes
-  |-- query timing evidence
-  |-- indexes for common lookups
-  `-- safe database error handling
-        |
-        v
-PostgreSQL
+Customer symptom
+    ↓
+Confirm request reached Flask
+    ↓
+Confirm Flask attempted database work
+    ↓
+Measure pool wait time
+    ↓
+Measure query or transaction time
+    ↓
+Inspect locks, query plan, CPU, memory, and storage
+    ↓
+Determine database cause
+    ↓
+Mitigation, recovery, and prevention
 ```
 
-### Key Terms
+### 2. Architecture Through Lab 06
+
+```mermaid
+flowchart TD
+    User["User"]
+    Client["Browser or curl"]
+    NGINX["NGINX"]
+    Flask["Flask support-ticket API"]
+    Redis["Redis temporary state"]
+    Pool["Database connection boundary"]
+    PG["PostgreSQL primary"]
+    Users["users"]
+    Tickets["tickets"]
+    Messages["ticket_messages"]
+    Events["ticket_events"]
+    Indexes["indexes"]
+    TxLocks["transactions and locks"]
+    Backups["backups and WAL"]
+    Replica["replica and failover concepts"]
+
+    User --> Client
+    Client --> NGINX
+    NGINX --> Flask
+    Flask --> Redis
+    Flask --> Pool
+    Pool --> PG
+    PG --> Users
+    PG --> Tickets
+    PG --> Messages
+    PG --> Events
+    PG -.-> Indexes
+    PG -.-> TxLocks
+    PG -.-> Backups
+    PG -.-> Replica
+```
+
+The implemented local app has Flask, Redis, and PostgreSQL. The production concepts in dashed lines are studied here so the learner can reason about operations without building a multi-node database system on a laptop.
+
+### 3. Latency By Layer
+
+Latency must always be qualified.
+
+| Measurement | What it means |
+| --- | --- |
+| Browser request latency | Time from browser request to final response |
+| Proxy upstream latency | Time NGINX waits for Flask |
+| Flask application latency | Time Flask spends processing the request |
+| Connection-pool wait time | Time waiting for a free database connection |
+| Network latency | Travel time between application and database |
+| PostgreSQL query latency | Time PostgreSQL spends executing SQL |
+| Transaction duration | Time from transaction start through commit or rollback |
+
+Important distinctions:
+
+```text
+Eight-second request latency does not prove an eight-second SQL query.
+Low database CPU does not prove the database is healthy.
+A metric narrows the investigation but rarely proves root cause by itself.
+```
+
+### 4. Database Connections
+
+A database connection is an active communication channel between the application and PostgreSQL. Creating connections has CPU, memory, authentication, and network overhead. PostgreSQL has finite connection capacity, so a connection should be opened, used safely, and released.
+
+This app reads the connection string from runtime configuration:
+
+```python
+DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=request_tracing_lab")
+```
+
+The current helper is:
+
+```python
+def get_db_connection():
+    return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+```
+
+This means the current app opens a PostgreSQL connection when a route calls `get_db_connection()`. It does not currently use a real application-side connection pool. That is acceptable for the lab, but the operational concept matters because production services often use a pool to avoid creating a new database connection for every request.
+
+Inspect the current connection evidence:
+
+```bash
+psql request_tracing_lab -c "SELECT current_database(), current_user, inet_server_addr(), inet_server_port();"
+```
+
+### 5. Connection Pooling
+
+A pool maintains reusable open database connections. Flask borrows a connection, executes SQL, and returns it. Pooling reduces setup overhead and limits simultaneous database use, but a pool does not increase database capacity by itself.
+
+| Pool metric | Question it answers |
+| --- | --- |
+| Pool size | How many reusable connections are allowed? |
+| Active or checked-out | How many are currently being used? |
+| Idle | How many are immediately available? |
+| Waiting requests | How many requests cannot get a connection? |
+| Acquisition time | How long does a request wait for a connection? |
+| Timeouts | How often does waiting exceed the configured limit? |
+
+Connection exhaustion looks like:
+
+```text
+Pool size = 10
+10 connections are busy
+Additional requests wait
+Waiting exceeds timeout
+Application returns timeout or 503/500
+```
+
+Distinguish:
+
+```text
+database maximum connections
+application pool size
+active database connections
+requests waiting for the pool
+```
+
+Current-app exercise:
+
+```bash
+psql request_tracing_lab -c "SELECT count(*) AS active_connections
+FROM pg_stat_activity
+WHERE datname = 'request_tracing_lab';"
+```
+
+Conceptual exercise:
+
+```text
+If the app later uses a pool of 5 and six long ticket queries run at once,
+the sixth request waits. If it waits longer than the timeout, the customer
+may see a timeout even if PostgreSQL is still running.
+```
+
+### 6. Transactions
+
+Ticket creation is a multi-table write:
+
+```text
+Insert ticket
+Insert initial ticket message
+Insert audit event
+Commit
+```
+
+The app executes this inside a database connection context:
+
+```text
+with get_db_connection() as conn:
+    with conn.cursor() as cur:
+        INSERT INTO tickets ...
+        INSERT INTO ticket_messages ...
+        INSERT INTO ticket_events ...
+```
+
+Key terms:
 
 | Term | Meaning |
 | --- | --- |
-| Connection string | Runtime setting that tells Flask how to reach PostgreSQL |
-| Connection lifecycle | Open, use, commit or rollback, then close |
-| Connection pool | Reusable set of database connections |
-| Connection exhaustion | Too many clients trying to use the database at once |
-| Timeout | Limit on how long the app waits before failing |
-| Retry | A controlled second attempt after a transient failure |
-| Transaction | Work that commits fully or rolls back fully |
-| `EXPLAIN` | PostgreSQL command that shows how a query may run |
+| `BEGIN` | Start a transaction |
+| SQL operations | Work performed inside the transaction |
+| `COMMIT` | Make the work durable |
+| `ROLLBACK` | Undo uncommitted work |
+| Atomicity | All related changes happen together or none remain |
 
-### Must Implement Or Inspect
+Partial ticket creation is dangerous because a customer may see a ticket without a first message, or an operator may lose the audit event that explains how the ticket was created.
 
-1. Document the app's `DATABASE_URL`.
-2. Trace one support-ticket create request through a transaction.
-3. Time one read query and one write query.
-4. Compare a lookup that uses an index with one that cannot.
-5. Run `EXPLAIN` for a beginner-friendly ticket query.
-6. Demonstrate rollback with a controlled failed transaction.
-7. Simulate connection exhaustion conceptually or with a small local limit.
-
-### Healthy-Path Verification
-
-Capture:
+Required rollback question:
 
 ```text
-Successful connection:
-Successful ticket write:
-Successful ticket read:
-Query duration:
-Transaction committed:
-Index used or likely useful:
+Did the customer action partially save, fully save, or fully roll back?
 ```
 
-### Controlled Failures
+### 7. Locks And Blocking
 
-Test:
+Locks protect data from conflicting concurrent changes.
 
 ```text
-Wrong credentials:
-Wrong hostname or port:
-Database stopped:
-Slow query:
-Missing index comparison:
-Transaction rollback:
-Simulated connection exhaustion:
+Transaction A updates Ticket 1001 and does not commit.
+Transaction B tries to update Ticket 1001.
+Transaction B waits for the lock.
 ```
 
-### Evidence To Capture
+Useful terms:
+
+| Term | Meaning |
+| --- | --- |
+| Row lock | A lock on one row being changed |
+| Lock holder | The transaction that currently owns the lock |
+| Lock waiter | The transaction waiting for the lock |
+| Long-running transaction | A transaction that stays open longer than expected |
+| Blocking | One transaction makes another wait |
+| Deadlock | Two transactions wait on each other; PostgreSQL aborts one so the system can continue |
+
+Symptoms may include a save operation hanging, an update timing out, low CPU with high latency, or one ticket ID being affected while other tickets still work.
+
+Beginner-friendly inspection commands:
+
+```sql
+SELECT pid, state, wait_event_type, wait_event, query
+FROM pg_stat_activity
+WHERE datname = 'request_tracing_lab';
+```
+
+This shows active sessions and whether they are waiting.
+
+```sql
+SELECT pid, now() - xact_start AS transaction_age, state, query
+FROM pg_stat_activity
+WHERE xact_start IS NOT NULL
+ORDER BY transaction_age DESC;
+```
+
+This shows long-running transactions.
+
+```sql
+SELECT blocked_locks.pid AS waiting_pid,
+       blocking_locks.pid AS blocking_pid
+FROM pg_locks blocked_locks
+JOIN pg_locks blocking_locks
+  ON blocking_locks.locktype = blocked_locks.locktype
+ AND blocking_locks.database IS NOT DISTINCT FROM blocked_locks.database
+ AND blocking_locks.relation IS NOT DISTINCT FROM blocked_locks.relation
+ AND blocking_locks.page IS NOT DISTINCT FROM blocked_locks.page
+ AND blocking_locks.tuple IS NOT DISTINCT FROM blocked_locks.tuple
+ AND blocking_locks.transactionid IS NOT DISTINCT FROM blocked_locks.transactionid
+ AND blocking_locks.classid IS NOT DISTINCT FROM blocked_locks.classid
+ AND blocking_locks.objid IS NOT DISTINCT FROM blocked_locks.objid
+ AND blocking_locks.objsubid IS NOT DISTINCT FROM blocked_locks.objsubid
+ AND blocking_locks.pid != blocked_locks.pid
+WHERE NOT blocked_locks.granted
+  AND blocking_locks.granted;
+```
+
+This shows which session is waiting and which session is blocking it. Do not memorize it; know what question it answers.
+
+### 8. Slow-Query Investigation
+
+Use this sequence:
 
 ```text
-Connection string shape:
-Credential source:
-Healthy connection evidence:
-Write transaction evidence:
-Read query evidence:
-Query timing:
-EXPLAIN output:
-Rollback evidence:
-Failure symptom:
-What was ruled out:
-Overall summary:
+Customer symptom
+    |
+    v
+Reproduce and capture request ID
+    |
+    v
+Measure total request latency
+    |
+    v
+Confirm whether Flask waited on PostgreSQL
+    |
+    v
+Identify the exact SQL
+    |
+    v
+Measure query duration
+    |
+    v
+Inspect connections and locks
+    |
+    v
+Run EXPLAIN or EXPLAIN ANALYZE safely
+    |
+    v
+Review table size, query frequency, and query plan
+    |
+    v
+Choose the correct fix
+```
+
+Evidence sources:
+
+```text
+application logs with request IDs
+APM or trace spans, if available
+PostgreSQL logs
+slow-query logging
+pg_stat_activity
+pg_stat_statements, optionally/conceptually
+query timing
+EXPLAIN
+EXPLAIN ANALYZE
+```
+
+`EXPLAIN` shows PostgreSQL's planned execution path without executing the query.
+
+`EXPLAIN ANALYZE` executes the query and shows actual timing and row counts. Use it carefully, preferably with safe `SELECT` queries in a lab environment.
+
+### 9. Query Plans And Indexes
+
+Useful plan terms:
+
+| Plan term | Beginner meaning |
+| --- | --- |
+| Sequential Scan | PostgreSQL reads through the table |
+| Index Scan | PostgreSQL uses an index to find rows |
+| Bitmap Index Scan | PostgreSQL uses an index to build a set of matching row locations before fetching rows |
+| Estimated rows | PostgreSQL's prediction before running |
+| Estimated cost | PostgreSQL's relative planning cost, not dollars or milliseconds |
+| Actual rows/time | Measured result from `EXPLAIN ANALYZE` |
+
+Example lookup:
+
+```sql
+SELECT *
+FROM tickets
+WHERE created_by = 27
+ORDER BY created_at DESC;
+```
+
+Useful index shape:
+
+```sql
+CREATE INDEX idx_tickets_created_by_created_at
+ON tickets (created_by, created_at DESC);
+```
+
+Explanation:
+
+```text
+CREATE INDEX: create a lookup structure.
+idx_tickets_created_by_created_at: descriptive index name.
+ON tickets: attach it to the tickets table.
+created_by: supports filtering one user's tickets.
+created_at DESC: supports newest-first ordering.
+```
+
+Misconceptions to correct:
+
+```text
+A Sequential Scan does not automatically mean an index is missing.
+PostgreSQL may choose a Sequential Scan for a small table.
+PostgreSQL may avoid an index if most rows match.
+An index does not automatically fix a slow query.
+An existing index may still be unsuitable for the query shape.
+```
+
+An index is a reasonable candidate when:
+
+```text
+Large table
++
+frequently executed query
++
+selective filtering or sorting
++
+query plan shows expensive scanning or sorting
++
+measured customer impact
+```
+
+Index trade-offs:
+
+```text
+extra disk storage
+extra memory/cache pressure
+slower inserts
+slower updates
+slower deletes
+maintenance overhead
+too many indexes can hurt write-heavy workloads
+```
+
+Before-and-after exercise:
+
+```text
+1. Measure query.
+2. Inspect plan.
+3. Add appropriate index.
+4. Inspect new plan.
+5. Measure again.
+6. State whether performance actually improved.
+```
+
+### 10. CPU, Memory, Disk I/O, And Throughput
+
+| Area | What to ask | Common clues |
+| --- | --- | --- |
+| CPU | Is PostgreSQL actively consuming compute? | Expensive queries, too many concurrent queries, large scans, joins, sorts, aggregates, inefficient plans |
+| Memory | Is RAM helping cache work or being exhausted? | Cache misses, temp files, sorting/hashing spills, too many concurrent queries, swapping, OOM events |
+| Disk I/O | Is PostgreSQL waiting on storage? | High disk latency, high IOPS, slow reads/writes, checkpoints, storage queueing |
+| Throughput | How much work completes over time? | Queries/sec, transactions/sec, rows read/written, bytes read/written |
+
+Low CPU with high latency may indicate waiting rather than compute saturation.
+
+Memory is layered:
+
+```text
+PostgreSQL shared buffers/cache
+per-query working memory
+operating-system page cache
+Redis memory as a separate cache-layer responsibility
+```
+
+Latency is time one operation takes. Throughput is the number or volume of operations completed over time. High throughput is not automatically bad; compare it with baseline, capacity, and customer impact.
+
+### 11. Required Metrics Cheat Sheet
+
+| Metric | What it tells you | What it does not prove | Next evidence |
+| --- | --- | --- | --- |
+| CPU | Compute activity | Which query is responsible | Slow queries, query plan |
+| Memory | RAM usage and cache/workspace pressure | That memory is exhausted | Swap, cache hit, temp files |
+| Query latency | Time SQL took | Why it took that long | Plan, locks, I/O |
+| Active connections | Connected clients | That the pool is exhausted | Pool usage and waiting |
+| Pool utilization | Borrowed pool capacity | Database health by itself | Wait time, timeouts |
+| Lock waits | Transactions are blocking | Which application action caused it | Blocking session and request ID |
+| Disk IOPS | Number of storage operations | Whether operations are efficient | I/O latency and throughput |
+| Disk throughput | Amount of data moving | Whether users are impacted | Latency and baseline |
+| Slow-query count | Queries exceeded a threshold | Root cause | Exact query and plan |
+| Replication lag | Replica delay | Why replication is behind | Write load, network, replica health |
+
+### 12. Database Boundary Cheat Sheet
+
+Use this table only to decide whether the investigation should enter the database layer. Labs 07-10 own API design, authentication, authorization, webhooks, queues, workers, and real-time behavior.
+
+| Customer symptom | Before database call? | Waiting for connection? | Inside PostgreSQL? | First evidence |
+| --- | --- | --- | --- | --- |
+| Ticket list takes ten seconds | Possible if Flask never attempts SQL | Possible if pool wait is high | Slow query, scan, sort, lock, or I/O wait | Request ID, Flask timing, SQL timing, `EXPLAIN` |
+| Saving a ticket hangs | Possible if request never reaches DB code | Possible if no connection is available | Transaction wait, row lock, disk write latency, unavailable primary | Flask log, connection timing, `pg_stat_activity`, locks |
+| Everyone gets timeouts | Possible app/proxy saturation before database work | Possible pool exhaustion | PostgreSQL unavailable, overloaded, or storage-bound | NGINX status, Flask DB errors, connection count |
+| One ticket update hangs | Less likely if other DB-backed routes work | Possible but usually broader | Row lock or long transaction on that ticket | Lock inspection and active transaction query |
+| Ticket appears missing | Possible if app did not query the expected database path | Not likely | Transaction rolled back, read replica stale, wrong database target | SQL query on primary, request ID, connection config |
+| Database CPU is high | No, symptom is already DB-side | Possible if many queries are active | Expensive scans, joins, sorts, aggregates | CPU metric, slow queries, query plans |
+| Database CPU is low but request latency is high | Possible if delay happened before DB work | Possible pool wait | Locks, disk I/O wait, connection wait, network latency | Wait events, pool metrics, I/O latency |
+| Connection refused | Flask cannot open DB connection | No connection acquired | PostgreSQL down, wrong host, wrong port, firewall/network issue | Flask exception and direct connection test |
+| Cache failure increases database load | Redis failed before DB query | More DB requests may consume pool slots | PostgreSQL sees more reads after cache fallback | Redis error plus DB query volume |
+| Replica returns stale data | App chose a replica/read path | Not usually | Replication lag | Replica lag metric, compare primary and replica |
+
+### 13. Database Availability And Resilience
+
+Backups, replicas, and failover solve different problems.
+
+| Concept | What it helps with | What it does not replace |
+| --- | --- | --- |
+| Backup | Recover from deletion, corruption, or bad release | Live availability by itself |
+| WAL / transaction log | Point-in-time recovery and replaying changes | Query tuning or app retry logic |
+| Point-in-time recovery | Restore close to a chosen time | Avoiding all data loss without an RPO |
+| Retention | How long backups are kept | Proof that restore works |
+| Off-host encrypted backup | Survives local disk/instance loss | Regular restore testing |
+| Primary database | Handles writes | Protection from every failure |
+| Read replica | Read capacity and availability for read workloads | Durable backup or write scaling |
+| Synchronous replication | Stronger durability before commit returns | Lower latency or infinite scale |
+| Asynchronous replication | Lower write latency than sync replication | Zero lag |
+| Replication lag | Delay between primary and replica | Root cause by itself |
+| Multi-AZ placement | Survives some zone/instance failures | Every outage or app reconnect issue |
+| Automatic failover | Promotes/repoints to a healthy instance | No customer impact |
+| RPO | How much data loss is acceptable | How fast service returns |
+| RTO | How long recovery can take | How much data may be lost |
+
+Clarifications:
+
+```text
+Replicas provide availability and read capacity, not a replacement for backups.
+Backups protect against deletion and corruption.
+Multi-AZ does not eliminate every failure mode.
+Failover can cause temporary connection errors.
+The application must reconnect to the database safely after failover.
+Read replicas may return stale data because of replication lag.
+Sharding is conceptual only and not needed for this application.
+```
+
+### 14. Managed Database Perspective
+
+Managed PostgreSQL services such as AWS RDS or Aurora can handle or assist with:
+
+```text
+provisioning
+backups
+patching
+monitoring
+Multi-AZ replication
+failover
+storage management
+maintenance windows
+```
+
+Managed does not mean:
+
+```text
+no schema responsibility
+no query tuning
+no connection-pool planning
+no capacity management
+no monitoring
+no restore testing
+no application database-reconnect planning
+```
+
+This matters for Cloud Operations, DevOps, SRE, and customer-facing infrastructure roles because the service may be managed, but the application and operating model still need evidence, ownership, and recovery expectations.
+
+### 15. Controlled Exercises
+
+| Exercise | Level | Evidence |
+| --- | --- | --- |
+| Healthy connection and query | Required hands-on | `psql` connection query and ticket lookup |
+| Wrong database credentials | Required hands-on | Connection error before SQL runs |
+| Wrong database hostname or port | Required hands-on | Connection refused or timeout |
+| Database unavailable | Required hands-on | App returns safe dependency error |
+| Failed transaction and rollback | Required hands-on | Row visible before rollback, gone after rollback |
+| Lock wait using two database sessions | Optional hands-on | Waiting session in `pg_stat_activity` |
+| Slow query or simulated slow query | Required hands-on | `pg_sleep` timing or measured slow query |
+| `EXPLAIN` on a ticket lookup | Required hands-on | Query plan output |
+| Sequential Scan on a small table | Required hands-on | Plan shows `Seq Scan` and explanation says why small scans may be fine |
+| Add an index and compare the plan | Optional hands-on | Before/after plan and timing |
+| Connection exhaustion simulation | Conceptual or optional hands-on | Pool-size scenario or active connection count |
+| Backup and restore verification | Required hands-on for local backup file; optional hands-on for full restore | `pg_dump` file and restore-test notes |
+| Replica lag or failover scenario | Conceptual only | Written explanation of impact and evidence |
+
+Do not force complex HA infrastructure into the local laptop lab.
+
+### 16. Evidence Worksheet
+
+```text
+Customer symptom:
+Request ID:
+Total request latency:
+Proxy/upstream latency:
+Flask application latency:
+Connection acquisition time:
+Database query latency:
+SQL query:
+Query frequency:
+Table size:
+EXPLAIN result:
+EXPLAIN ANALYZE result, if safely used:
+Index Scan or Sequential Scan:
+Active connections:
+Pool usage:
+Waiting connections:
+Active transactions:
+Lock waits:
+CPU:
+Memory:
+Disk IOPS:
+Disk throughput:
+Replication lag:
+Application logs:
+Database logs:
+Hypotheses considered:
+Evidence that ruled causes out:
+Failed layer:
+Mitigation:
+Root cause:
+Prevention:
+Backup or recovery implication:
+Customer explanation:
+Engineering escalation:
 Retained takeaway:
 ```
 
-### Troubleshooting Questions
+### 17. Explanation Templates
+
+Use this shape:
 
 ```text
-Did the request fail before connecting, while querying, or while committing?
-Did the app save all related ticket rows or none of them?
-Could a retry create duplicate data?
-Which query is slow?
-Which index should support this lookup?
-Did the database have a query problem, connection problem, or transaction problem?
+symptom -> scope -> evidence -> hypothesis -> validation -> mitigation -> root cause -> prevention
 ```
 
-### Overall Summary
-
-```text
-PostgreSQL is the durable source of truth for support tickets. Flask should connect with explicit runtime configuration, use transactions for multi-table writes, avoid unlimited retries, and return safe errors when PostgreSQL is unavailable. Indexes help common reads, request IDs connect app behavior to database evidence, and query timing helps prove whether PostgreSQL is or is not the bottleneck.
-```
+| Prompt | Concise answer template |
+| --- | --- |
+| How would you investigate a slow database? | Start from the customer symptom and request ID, confirm Flask attempted database work, measure connection wait and SQL timing, inspect locks/connections, run `EXPLAIN` safely, then choose a fix based on evidence. |
+| What is a connection pool? | A reusable set of database connections. The app borrows one, runs SQL, and returns it. It reduces setup overhead and caps database concurrency. |
+| What happens when connections are exhausted? | Requests wait for a free connection. If waiting exceeds the timeout, users may see timeouts or safe 5xx responses even if PostgreSQL is still running. |
+| Why can latency be high while CPU is low? | The database or app may be waiting on locks, disk I/O, network, pool slots, or long transactions instead of using CPU. |
+| What causes locks? | Transactions that read or change data can hold locks so conflicting changes do not corrupt data. Long transactions make lock waits more visible. |
+| How do you determine whether an index is needed? | Confirm customer impact, find the exact query, check table size/frequency, inspect the plan, and add an index only if it supports the filter/sort pattern. |
+| What does `EXPLAIN` show? | The planned execution path, such as scan type, estimated rows, and cost. `EXPLAIN ANALYZE` also runs the query and reports actual timing. |
+| Why not index every column? | Indexes cost storage and maintenance and can slow writes. Too many indexes can hurt write-heavy workloads. |
+| Backup vs replica vs failover? | Backup restores data after loss/corruption. Replica helps read capacity or standby availability. Failover moves service to a healthy primary or standby. |
+| What are RPO and RTO? | RPO is acceptable data-loss window. RTO is acceptable recovery-time window. |
+| Why use RDS or Aurora? | Managed services reduce operational burden for provisioning, backups, patching, monitoring, Multi-AZ, failover, and storage, but the team still owns schema, queries, pooling, monitoring, restore testing, and database reconnect planning. |
+| How do you prove the database caused customer impact? | Show the request reached Flask, Flask waited on the database path, database evidence shows query/lock/connection/unavailability impact, and other layers were ruled out. |
 
 ### Completion Standard
 
 ```text
-The learner can explain why a ticket write must commit atomically, how to collect query and connection evidence, and how to prove whether PostgreSQL caused a request failure or latency symptom.
-```
-
-### Retained Takeaway
-
-```text
-Database operations are about protecting customer records and proving what happened when reads, writes, credentials, transactions, or latency fail.
+The learner can determine whether a database-backed customer symptom was caused by connectivity, pool exhaustion, transaction behavior, lock contention, query execution, indexing, storage pressure, or database availability.
 ```
 
 ## Lab 07: API Design And Authentication
