@@ -510,64 +510,77 @@ Mitigation, recovery, and prevention
 ### 2. Architecture Through Lab 06
 
 ```mermaid
-flowchart TD
-    User["User"]
-    Client["Browser or curl"]
-    NGINX["NGINX"]
-    Flask["Flask support-ticket API"]
-    Redis["Redis temporary state"]
-    Pool["Database connection boundary"]
-    PG["PostgreSQL primary"]
-    Users["users"]
-    Tickets["tickets"]
-    Messages["ticket_messages"]
-    Events["ticket_events"]
-    Indexes["indexes"]
-    TxLocks["transactions and locks"]
-    Backups["backups and WAL"]
-    Replica["replica and failover concepts"]
+flowchart LR
+    Start(("START<br/>Browser or curl<br/>sends HTTP request"))
+    NGINX["NGINX reverse proxy<br/>Port 8080<br/>adds/forwards X-Request-ID"]
+    Flask["Flask support-ticket API<br/>request tracing middleware<br/>session auth + authorization"]
+    Routes{"Route decision<br/>Which endpoint?"}
 
-    User --> Client
-    Client --> NGINX
-    NGINX --> Flask
-    Flask --> Redis
-    Flask --> Pool
-    Pool --> PG
-    PG --> Users
-    PG --> Tickets
-    PG --> Messages
-    PG --> Events
-    PG -.-> Indexes
-    PG -.-> TxLocks
-    PG -.-> Backups
-    PG -.-> Replica
+    Notes["Notes path<br/>GET /notes"]
+    Tickets["Support-ticket path<br/>register, login, create ticket,<br/>reply, admin note, list ticket"]
+    Errors["Safe error path<br/>401, 403, 409, 503<br/>with request_id"]
+
+    Redis{"Redis cache<br/>temporary notes:latest"}
+    Pool["Database connection boundary<br/>current app: psycopg.connect per operation"]
+    Postgres["PostgreSQL primary<br/>durable source of truth"]
+
+    Tables["Database tables<br/>users<br/>tickets<br/>ticket_messages<br/>ticket_events<br/>request_notes"]
+    Events["Audit evidence<br/>ticket_events.request_id"]
+
+    DbChecks["Lab 06 inspection<br/>connections and pool concept<br/>transactions and locks<br/>query timing and EXPLAIN<br/>backup, replica, failover concepts"]
+
+    Finish(("FINISH<br/>Client receives HTTP response<br/>status + body + X-Request-ID"))
+
+    Start -->|"1. HTTP request enters app"| NGINX
+    NGINX -->|"2. proxy_pass to Flask"| Flask
+    Flask -->|"3. choose route"| Routes
+
+    Routes -->|"4a. notes read"| Notes
+    Routes -->|"4b. support-ticket workflow"| Tickets
+    Routes -->|"4c. auth, validation, or DB failure"| Errors
+
+    Notes -->|"5a. check cache"| Redis
+    Redis -->|"cache hit returns temporary data"| Notes
+    Redis -->|"cache miss or unavailable"| Pool
+    Notes -->|"read/write durable notes"| Pool
+
+    Tickets -->|"5b. SQL transaction"| Pool
+    Pool -->|"database call"| Postgres
+    Postgres -.->|"stores rows in"| Tables
+    Tables -.->|"request_id proves change"| Events
+
+    Postgres -.->|"inspected by Lab 06"| DbChecks
+
+    Notes -->|"6a. JSON result"| Flask
+    Tickets -->|"6b. JSON result"| Flask
+    Errors -->|"6c. safe error JSON"| Flask
+    Flask -->|"7. HTTP response"| NGINX
+    NGINX -->|"8. response returns to client"| Finish
 ```
 
-The implemented local app has Flask, Redis, and PostgreSQL. The production concepts in dashed lines are studied here so the learner can reason about operations without building a multi-node database system on a laptop.
-
-### 3. Latency By Layer
-
-Latency must always be qualified.
-
-| Measurement | What it means |
-| --- | --- |
-| Browser request latency | Time from browser request to final response |
-| Proxy upstream latency | Time NGINX waits for Flask |
-| Flask application latency | Time Flask spends processing the request |
-| Connection-pool wait time | Time waiting for a free database connection |
-| Network latency | Travel time between application and database |
-| PostgreSQL query latency | Time PostgreSQL spends executing SQL |
-| Transaction duration | Time from transaction start through commit or rollback |
-
-Important distinctions:
+Follow the numbered solid arrows as the trace request steps. Dashed arrows show evidence or inspection paths, not separate user traffic.
 
 ```text
-Eight-second request latency does not prove an eight-second SQL query.
-Low database CPU does not prove the database is healthy.
-A metric narrows the investigation but rarely proves root cause by itself.
+1. Browser or curl sends an HTTP request to NGINX.
+2. NGINX accepts the request and proxies it to Flask.
+3. Flask chooses which route should handle the request.
+4. Flask follows one path:
+   4a. Notes read path for GET /notes.
+   4b. Support-ticket workflow for auth, tickets, replies, admin notes, or listing tickets.
+   4c. Safe error path for auth, validation, or database failure.
+5. Flask reaches the data layer:
+   5a. Notes can check Redis first, then fall back to PostgreSQL when cache misses or fails.
+   5b. Support-ticket actions use PostgreSQL transactions for durable writes.
+6. Flask builds the JSON result or safe error body.
+7. Flask returns the HTTP response to NGINX.
+8. NGINX returns the final response to the client with status, body, and X-Request-ID.
 ```
 
-### 4. Database Connections
+The request is synchronous because the client waits for Flask to finish the work before receiving the response. If PostgreSQL is slow during ticket creation, the client waits too.
+
+The implemented local app has Flask, Redis, and PostgreSQL. The production concepts in the inspection path are studied here so the learner can reason about operations without building a multi-node database system on a laptop.
+
+### 3. Database Connections
 
 A database connection is an active communication channel between the application and PostgreSQL. Creating connections has CPU, memory, authentication, and network overhead. PostgreSQL has finite connection capacity, so a connection should be opened, used safely, and released.
 
@@ -592,7 +605,7 @@ Inspect the current connection evidence:
 psql request_tracing_lab -c "SELECT current_database(), current_user, inet_server_addr(), inet_server_port();"
 ```
 
-### 5. Connection Pooling
+### 4. Connection Pooling
 
 A pool maintains reusable open database connections. Flask borrows a connection, executes SQL, and returns it. Pooling reduces setup overhead and limits simultaneous database use, but a pool does not increase database capacity by itself.
 
@@ -640,7 +653,7 @@ the sixth request waits. If it waits longer than the timeout, the customer
 may see a timeout even if PostgreSQL is still running.
 ```
 
-### 6. Transactions
+### 5. Transactions
 
 Ticket creation is a multi-table write:
 
@@ -679,7 +692,7 @@ Required rollback question:
 Did the customer action partially save, fully save, or fully roll back?
 ```
 
-### 7. Locks And Blocking
+### 6. Locks And Blocking
 
 Locks protect data from conflicting concurrent changes.
 
@@ -742,7 +755,7 @@ WHERE NOT blocked_locks.granted
 
 This shows which session is waiting and which session is blocking it. Do not memorize it; know what question it answers.
 
-### 8. Slow-Query Investigation
+### 7. Slow-Query Investigation
 
 Use this sequence:
 
@@ -795,7 +808,7 @@ EXPLAIN ANALYZE
 
 `EXPLAIN ANALYZE` executes the query and shows actual timing and row counts. Use it carefully, preferably with safe `SELECT` queries in a lab environment.
 
-### 9. Query Plans And Indexes
+### 8. Query Plans And Indexes
 
 Useful plan terms:
 
@@ -881,7 +894,7 @@ Before-and-after exercise:
 6. State whether performance actually improved.
 ```
 
-### 10. CPU, Memory, Disk I/O, And Throughput
+### 9. CPU, Memory, Disk I/O, And Throughput
 
 | Area | What to ask | Common clues |
 | --- | --- | --- |
@@ -903,7 +916,7 @@ Redis memory as a separate cache-layer responsibility
 
 Latency is time one operation takes. Throughput is the number or volume of operations completed over time. High throughput is not automatically bad; compare it with baseline, capacity, and customer impact.
 
-### 11. Required Metrics Cheat Sheet
+### 10. Required Metrics Cheat Sheet
 
 | Metric | What it tells you | What it does not prove | Next evidence |
 | --- | --- | --- | --- |
@@ -918,7 +931,7 @@ Latency is time one operation takes. Throughput is the number or volume of opera
 | Slow-query count | Queries exceeded a threshold | Root cause | Exact query and plan |
 | Replication lag | Replica delay | Why replication is behind | Write load, network, replica health |
 
-### 12. Database Boundary Cheat Sheet
+### 11. Database Boundary Cheat Sheet
 
 Use this table only to decide whether the investigation should enter the database layer. Labs 07-10 own API design, authentication, authorization, webhooks, queues, workers, and real-time behavior.
 
@@ -935,7 +948,7 @@ Use this table only to decide whether the investigation should enter the databas
 | Cache failure increases database load | Redis failed before DB query | More DB requests may consume pool slots | PostgreSQL sees more reads after cache fallback | Redis error plus DB query volume |
 | Replica returns stale data | App chose a replica/read path | Not usually | Replication lag | Replica lag metric, compare primary and replica |
 
-### 13. Database Availability And Resilience
+### 12. Database Availability And Resilience
 
 Backups, replicas, and failover solve different problems.
 
@@ -968,7 +981,7 @@ Read replicas may return stale data because of replication lag.
 Sharding is conceptual only and not needed for this application.
 ```
 
-### 14. Managed Database Perspective
+### 13. Managed Database Perspective
 
 Managed PostgreSQL services such as AWS RDS or Aurora can handle or assist with:
 
@@ -997,7 +1010,7 @@ no application database-reconnect planning
 
 This matters for Cloud Operations, DevOps, SRE, and customer-facing infrastructure roles because the service may be managed, but the application and operating model still need evidence, ownership, and recovery expectations.
 
-### 15. Controlled Exercises
+### 14. Controlled Exercises
 
 | Exercise | Level | Evidence |
 | --- | --- | --- |
@@ -1017,7 +1030,7 @@ This matters for Cloud Operations, DevOps, SRE, and customer-facing infrastructu
 
 Do not force complex HA infrastructure into the local laptop lab.
 
-### 16. Evidence Worksheet
+### 15. Evidence Worksheet
 
 ```text
 Customer symptom:
@@ -1057,7 +1070,7 @@ Engineering escalation:
 Retained takeaway:
 ```
 
-### 17. Explanation Templates
+### 16. Explanation Templates
 
 Use this shape:
 
