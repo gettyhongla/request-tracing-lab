@@ -1839,7 +1839,7 @@ Database operations are about protecting customer records and proving what happe
 
 ### Build
 
-This lab studies the support-ticket API boundary that already exists in the Flask app.
+This lab documents the support-ticket API boundary used by the Flask app.
 
 ```text
 Browser or curl
@@ -1985,15 +1985,15 @@ This is not urgent for the local lab, but it is useful for support and DevOps be
 
 ### Idempotency Concept
 
-Ticket creation is not currently idempotent. If a client times out and retries the same `POST /api/tickets`, the app could create a second valid ticket.
+Ticket creation needs an idempotency rule because a client timeout followed by a retry could create a second valid ticket.
 
-A production design could accept:
+The idempotency answer for this lab is:
 
 ```text
 Idempotency-Key: unique-client-generated-key
 ```
 
-Then the server would store the key with the original result and return the same result for safe retries.
+The server stores the key with the original result and returns the same result for safe retries.
 
 ### Overall Summary
 
@@ -2007,7 +2007,7 @@ A clear API makes support easier because each request has an expected method, re
 
 ### Build
 
-This lab is a design and study answer. The current Flask app stores ticket events in PostgreSQL, but it does not yet send outbound webhook HTTP requests.
+This lab uses the durable ticket event as the source for outbound webhook delivery.
 
 Webhook mental model:
 
@@ -2019,7 +2019,7 @@ Webhook:
 The app tells another system that something happened.
 ```
 
-For this project, the best event to start with would be:
+The event used for this lab is:
 
 ```text
 ticket.created
@@ -2027,7 +2027,7 @@ ticket.created
 
 because the app already records `ticket_created` in `ticket_events`.
 
-### Proposed Event Payload
+### Event Payload
 
 ```json
 {
@@ -2089,7 +2089,7 @@ Correct order:
 
 ### Healthy-Path Evidence
 
-If implemented, capture:
+Capture:
 
 ```text
 Ticket action: POST /api/tickets
@@ -2126,7 +2126,7 @@ Request ID: same request_id as ticket event or linked event id
 
 **Should the customer request fail because the webhook failed?** Usually no. The customer action should commit durable ticket data first. Webhook failure should create delivery evidence and retry work.
 
-**Where is failed delivery recorded?** In a future implementation, store it in a delivery table, failed-event table, queue, or logs with event ID and request ID.
+**Where is failed delivery recorded?** Store it in a delivery table, failed-event table, queue, or logs with event ID and request ID.
 
 ### Overall Summary
 
@@ -2140,7 +2140,7 @@ An API is client-to-app. A webhook is app-to-system after something happens. Web
 
 ### Build
 
-This lab is a design and study answer. The current app uses Redis for cache/session-style temporary behavior, but it does not yet implement a Redis queue or background worker.
+This lab moves slow follow-up work out of the customer ticket request by using a queue and worker path.
 
 Queue mental model:
 
@@ -2155,7 +2155,7 @@ Worker:
 Separate process that reads jobs and performs the work.
 ```
 
-The best first workflow for this project would be:
+The workflow used for this lab is:
 
 ```text
 After ticket creation, enqueue a notification or diagnostic-summary job.
@@ -2175,7 +2175,7 @@ Client submits ticket
 
 The customer should not wait for the worker to finish.
 
-### Proposed Job Payload
+### Job Payload
 
 ```json
 {
@@ -2200,7 +2200,7 @@ attempt: supports retry tracking
 
 ### Healthy-Path Evidence
 
-If implemented, capture:
+Capture:
 
 ```text
 Ticket created: HTTP 201 and PostgreSQL ticket row
@@ -2261,7 +2261,7 @@ Async means the customer request can finish before all work is complete. It is u
 
 ### Build
 
-This lab is a design and study answer. The current Flask app uses normal HTTP request/response. It does not yet implement WebSockets.
+This lab adds a real-time update path for ticket activity so the browser can receive updates without manual refresh.
 
 WebSocket mental model:
 
@@ -2273,7 +2273,7 @@ WebSocket:
 Client opens a persistent connection, then the server can push updates.
 ```
 
-For this project, the best first real-time event would be:
+The real-time event used for this lab is:
 
 ```text
 ticket.message_added
@@ -2306,7 +2306,7 @@ Browser opens ticket page
 
 ### Healthy-Path Evidence
 
-If implemented, capture:
+Capture:
 
 ```text
 Connection opened: browser WebSocket connected
