@@ -205,34 +205,41 @@ function addStudyStatusRows(rows) {
 
 function buildStartHere(sheet) {
   resetSheet(sheet, 'Start Here');
-  setTitle(sheet, 'Production Operations Deep Study Workbook', 'Connect customer-visible symptoms to evidence across browser, proxy, application, cache, connection pool, database, container, and Kubernetes layers.');
+  setTitle(sheet, 'Production Operations Deep Study Workbook', 'Operational troubleshooting framework: symptom -> layer -> evidence -> validation -> mitigation.');
 
   let row = 4;
   row = writeSection(sheet, row, 'Workbook Purpose', [
-    'This workbook helps connect customer-visible symptoms to evidence across browser, proxy, application, cache, connection pool, database, container, and Kubernetes layers.'
+    'Use this as a cheat sheet for putting the layers together. A customer symptom does not identify the failed layer by itself. Use evidence to prove where the request waited or failed.'
   ]);
-  row = writeSection(sheet, row, 'Core Investigation Framework', [
-    'Scope -> Reproduce -> Trace request -> Gather logs, metrics, and events -> Form hypotheses -> Validate -> Mitigate customer impact -> Identify root cause -> Prevent recurrence'
+  row = writeSection(sheet, row, 'Core Rule', [
+    'Never say "latency is high" without saying which latency.'
+  ]);
+  row = writeSection(sheet, row, 'Operational Framework', [
+    'Customer symptom -> affected layer -> evidence -> hypothesis -> validation -> mitigation -> root cause -> prevention'
   ]);
   row = writeSection(sheet, row, 'Layer Reminder', [
-    'Browser -> Proxy -> Flask -> Redis -> Connection Pool -> PostgreSQL -> Replica / Backup -> Containers / Kubernetes'
+    'Browser/client -> NGINX/proxy -> Flask application -> Redis -> Connection pool -> PostgreSQL -> Replica/HA -> Container/Kubernetes later'
   ]);
 
   const questions = [
-    ['Can I identify which layer owns each responsibility?', 'Not Started', ''],
-    ['Can I explain what latency means at each layer?', 'Not Started', ''],
-    ['Can I distinguish query latency from total request latency?', 'Not Started', ''],
-    ['Can I explain connection pooling?', 'Not Started', ''],
-    ['Can I identify pool exhaustion?', 'Not Started', ''],
-    ['Can I explain transactions and rollback?', 'Not Started', ''],
-    ['Can I explain locks and blocking?', 'Not Started', ''],
-    ['Can I investigate a slow query?', 'Not Started', ''],
-    ['Can I explain EXPLAIN and sequential scans?', 'Not Started', ''],
-    ['Can I explain when an index helps?', 'Not Started', ''],
-    ['Can I interpret CPU, memory, I/O, throughput, and replication lag?', 'Not Started', ''],
-    ['Can I distinguish PostgreSQL failures from Redis, Flask, and Kubernetes failures?', 'Not Started', '']
+    ['Did the request reach Flask?', 'Not Started', ''],
+    ['Did Flask attempt a database operation?', 'Not Started', ''],
+    ['Did it wait for a connection?', 'Not Started', ''],
+    ['Did PostgreSQL execute the query slowly?', 'Not Started', ''],
+    ['Was the query blocked by a lock?', 'Not Started', ''],
+    ['Was the database waiting on CPU, memory, or storage?', 'Not Started', ''],
+    ['Did the transaction commit or roll back?', 'Not Started', ''],
+    ['Was the data written to the correct database?', 'Not Started', ''],
+    ['Is the replica current or lagging?', 'Not Started', ''],
+    ['What evidence proves the failed layer?', 'Not Started', '']
   ];
-  writeTable(sheet, row, 1, ['Study Completion Question', 'Study Status', 'My Notes'], questions);
+  row = writeTable(sheet, row, 1, ['Lab 6 Completion Question', 'Study Status', 'My Notes'], questions);
+  row = writeSection(sheet, row, 'Postpone For Later', [
+    'Advanced query tuning, detailed PostgreSQL configuration, vacuum internals, table partitioning, sharding implementation, multi-node PostgreSQL administration, and advanced replication setup.'
+  ]);
+  writeSection(sheet, row, 'Retained Takeaway', [
+    'A customer symptom does not identify the failed layer. Separate total request latency into proxy, application, pool, cache, query, lock, network, and storage timing, then use logs and metrics to prove where the request waited or failed.'
+  ]);
   finishSheet(sheet, [420, 150, 420, 160, 160, 160, 160, 160]);
 }
 
