@@ -1407,9 +1407,19 @@ Captured result:
  request_tracing_lab | heavenlygetty |                  |
 ```
 
-Conclusion:
+Answered fields:
 
 ```text
+Database name:
+request_tracing_lab
+
+Database user:
+heavenlygetty
+
+Connection method or endpoint:
+Local Unix socket connection. No TCP host or port was shown because the command used `psql request_tracing_lab` without `host=` or `port=`.
+
+Conclusion:
 The local PostgreSQL database was reachable. The blank server address and port are expected because this local psql connection used a Unix socket instead of an explicit TCP host and port.
 ```
 
