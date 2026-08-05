@@ -493,6 +493,12 @@ Run a direct PostgreSQL connection check.
 psql request_tracing_lab -c "SELECT current_database(), current_user, inet_server_addr(), inet_server_port();"
 ```
 
+If `inet_server_addr()` and `inet_server_port()` are blank, verify whether the connection used a local Unix socket:
+
+```bash
+psql request_tracing_lab -c "\conninfo"
+```
+
 Capture:
 
 ```text
@@ -523,6 +529,8 @@ Query time:
 What customer workflow this supports:
 Conclusion:
 ```
+
+Map the output directly: count the result rows for `Rows returned`, use the `Time:` line for `Query time`, and use the `WHERE created_by = 1 ORDER BY created_at DESC` query shape to explain the customer workflow.
 
 ### Exercise 3: Inspect The Query Plan
 

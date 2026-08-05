@@ -1399,6 +1399,12 @@ Command:
 psql request_tracing_lab -c "SELECT current_database(), current_user, inet_server_addr(), inet_server_port();"
 ```
 
+Verification command:
+
+```bash
+psql request_tracing_lab -c "\conninfo"
+```
+
 Captured result:
 
 ```text
@@ -1417,7 +1423,10 @@ Database user:
 heavenlygetty
 
 Connection method or endpoint:
-Local Unix socket connection. No TCP host or port was shown because the command used `psql request_tracing_lab` without `host=` or `port=`.
+Local Unix socket connection.
+
+How this was verified:
+The SQL output showed blank `inet_server_addr` and `inet_server_port`, so PostgreSQL did not report a TCP server address or port for this session. The command also used `psql request_tracing_lab` without `host=` or `port=`, so local `psql` used its default local connection behavior. To confirm this directly, run `psql request_tracing_lab -c "\conninfo"` and look for a socket path such as `/tmp` or `/var/run/postgresql` instead of a TCP host and port.
 
 Conclusion:
 The local PostgreSQL database was reachable. The blank server address and port are expected because this local psql connection used a Unix socket instead of an explicit TCP host and port.
@@ -1447,9 +1456,19 @@ Captured result:
 Time: 2.678 ms
 ```
 
-Conclusion:
+Answered fields:
 
 ```text
+Rows returned:
+2 rows. The output shows ticket IDs 2 and 1.
+
+Query time:
+2.678 ms. This came from the `Time:` line printed by `\timing on`.
+
+What customer workflow this supports:
+Listing one customer's tickets in newest-first order. The evidence is the query filter `WHERE created_by = 1` and sort `ORDER BY created_at DESC`.
+
+Conclusion:
 PostgreSQL returned one customer's tickets quickly in the local lab. This supports the customer ticket-list workflow.
 ```
 
