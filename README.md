@@ -15,7 +15,7 @@ It is especially useful for:
 - Customer Engineering
 - DevOps
 - Site Reliability foundations
-- Interview preparation around request tracing and production reasoning
+- Production-readiness communication and evidence-based troubleshooting
 
 ## Philosophy
 

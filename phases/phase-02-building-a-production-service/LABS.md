@@ -77,7 +77,7 @@ Layer responsibilities:
 Expected logs:
 Expected metrics:
 Expected failure symptoms:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
@@ -139,7 +139,7 @@ NGINX access log:
 Flask log:
 Broken upstream symptom:
 Layer that failed:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
@@ -199,7 +199,7 @@ Read request:
 SQL evidence:
 Application log:
 Database failure symptom:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
@@ -294,7 +294,7 @@ Expiry evidence:
 Fallback behavior:
 Failure symptom:
 Cache vs queue explanation:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
@@ -429,11 +429,11 @@ Application log:
 Database failure symptom:
 Authorization failure symptom:
 Request ID in ticket_events:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 ```text
 Which table owns each kind of data?
@@ -447,7 +447,7 @@ Which SQL query proves the ticket exists?
 Which logs prove the request path?
 ```
 
-### Interview Explanation
+### Explanation Standard
 
 Use this shape:
 
@@ -861,7 +861,7 @@ Session auth, validation, ownership checks, PostgreSQL
 
 ### Healthy-Path Verification
 
-Capture with browser DevTools and `curl`:
+Capture with `curl`. If a browser UI exists for the same workflow, optionally compare the browser request and response against the terminal evidence.
 
 ```text
 Register request:
@@ -897,26 +897,35 @@ Request body:
 Response body:
 Status code:
 Request ID:
-Browser DevTools evidence:
 curl evidence:
 Flask log:
 PostgreSQL evidence:
 Ownership decision:
-Interview explanation:
 Retained takeaway:
 ```
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 ```text
-Was the user unauthenticated or unauthorized?
-Did the API reject the request before touching the database?
-Did the API return the right status code for support triage?
-Can the same client request create duplicate tickets?
-Which evidence proves object ownership was enforced?
+Use these prompts while investigating. They are not separate answer fields unless the evidence makes them relevant.
+
+Unauthenticated or unauthorized:
+Is the request missing login state, or is the logged-in user blocked from this specific object or route?
+
+Validation before database write:
+Did the API reject bad input before creating or changing database rows?
+
+Status code fit:
+Does the status code match the failure class clearly enough for support triage?
+
+Duplicate side effects:
+Could the same client retry create duplicate tickets, messages, or events?
+
+Ownership evidence:
+Which route response, Flask log, or PostgreSQL row proves object ownership was enforced?
 ```
 
-### Interview Explanation
+### Explanation Standard
 
 ```text
 The support-ticket API uses nouns for resources, sessions for the browser workflow, and explicit ownership checks before returning ticket data. Authentication proves who the user is; authorization proves whether that user can access the ticket. Status codes and request IDs make failures easier to triage.
@@ -1042,11 +1051,11 @@ Delivery status:
 Retry behavior:
 Duplicate handling:
 Failure symptom:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 ```text
 Was the ticket saved before webhook delivery failed?
@@ -1057,7 +1066,7 @@ Should the customer request fail because the webhook failed?
 Where is the failed delivery recorded?
 ```
 
-### Interview Explanation
+### Explanation Standard
 
 ```text
 Webhook delivery allows the support-ticket app to notify another system after a durable ticket event is saved. The receiver must verify signatures, handle retries, and process duplicate events safely because webhooks are commonly delivered at least once.
@@ -1181,11 +1190,11 @@ Worker log:
 Retry evidence:
 Failed job evidence:
 Duplicate-processing prevention:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 ```text
 Was the ticket saved even if the worker failed?
@@ -1196,7 +1205,7 @@ Can the same job produce duplicate side effects?
 How would you avoid duplicate email or duplicate notifications?
 ```
 
-### Interview Explanation
+### Explanation Standard
 
 ```text
 The ticket request should save durable data first and return quickly. Background workers handle slower follow-up work from a queue. Queues improve responsiveness, but they introduce backlog, retries, failed jobs, and duplicate-processing risks.
@@ -1323,11 +1332,11 @@ Disconnect behavior:
 Reconnect behavior:
 Proxy timeout note:
 Scaling note:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 ```text
 Is the user connected?
@@ -1338,7 +1347,7 @@ Would another app replica know about this update?
 Should this feature use polling, SSE, or WebSockets?
 ```
 
-### Interview Explanation
+### Explanation Standard
 
 ```text
 WebSockets keep a connection open so the server can push ticket updates to the browser. They are different from webhooks, which are server-to-server callbacks. WebSockets need authentication, authorization, reconnect handling, proxy timeouts, and a shared pub/sub design when the app scales beyond one replica.
@@ -1456,11 +1465,11 @@ Why?
 Dependency checked:
 Redis readiness decision:
 Status codes:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 ```text
 Is the process alive?
@@ -1471,7 +1480,7 @@ Should Redis outage make the whole ticket API unavailable?
 Should worker outage block ticket creation?
 ```
 
-### Interview Explanation
+### Explanation Standard
 
 ```text
 /health should be cheap and prove the process is alive. /ready should prove whether this instance can safely accept traffic for core operations. PostgreSQL is critical for ticket creation because it owns durable data. Redis, webhook delivery, or workers may cause degraded behavior without requiring the whole API to go offline.
@@ -1600,7 +1609,7 @@ Latency:
 Error rate:
 Mitigation:
 RCA conclusion:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
@@ -1622,7 +1631,7 @@ Webhook delivery failures:
 Active WebSocket connections:
 ```
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 ```text
 Where did the request enter?
@@ -1638,7 +1647,7 @@ What did you rule out?
 What is the first mitigation?
 ```
 
-### Interview Explanation
+### Explanation Standard
 
 ```text
 Request IDs connect client evidence to proxy and application logs. Metrics show patterns such as rate, errors, latency, saturation, queue depth, and cache behavior. Traces describe parent-child timing across HTTP, database, async jobs, and webhook delivery. Good observability supports moving from symptom to evidence to mitigation without guessing.
@@ -1767,11 +1776,11 @@ Non-root user:
 Health check:
 Logs:
 Failure symptom:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 ```text
 Did the image build?
@@ -1782,7 +1791,7 @@ Are secrets injected at runtime instead of baked into the image?
 What data would disappear if the container were deleted?
 ```
 
-### Interview Explanation
+### Explanation Standard
 
 ```text
 A Docker image packages the Flask API and dependencies. A container runs that image with runtime configuration. The image should not contain secrets, should run as a non-root user, should log to stdout/stderr, and should expose health behavior. Full multi-service orchestration is saved for Phase 3.
@@ -1808,7 +1817,7 @@ Review whether the Phase 2 support-ticket application is ready to move into cont
 
 This lab pulls the Phase 2 learning together: support-ticket behavior, database durability, Redis temporary state, API boundaries, webhooks, queues, real-time updates, health/readiness, observability, basic load testing, and failure evidence.
 
-It maps directly to interview prompts like:
+It maps directly to production-readiness prompts like:
 
 ```text
 Management wants this app in production next week. What do you need before saying yes?
@@ -1937,7 +1946,7 @@ Mitigation:
 Retained takeaway:
 ```
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 ```text
 Can users register, log in, create tickets, list tickets, and receive support replies?
@@ -1962,7 +1971,7 @@ Ready for a production-like environment.
 Not ready because these blockers remain:
 ```
 
-### Interview Explanation
+### Explanation Standard
 
 ```text
 Do not call the support-ticket app ready just because the happy path works. Verify core workflows, authorization, database durability, backup and restore expectations, health/readiness behavior, observability, async delivery, real-time update behavior, and a rollback plan. Then use focused load tests and injected failures to prove where the service breaks and what evidence supports mitigation.
@@ -2227,7 +2236,7 @@ Retained takeaway:
 
 ## Production Reviews
 
-Production reviews are interview-style architecture and troubleshooting exercises.
+Production reviews are architecture and troubleshooting exercises.
 
 They are generic, NDA-safe scenarios that practice the judgment behind production engineering: request paths, dependencies, evidence, launch blockers, mitigation, rollback, and communication.
 

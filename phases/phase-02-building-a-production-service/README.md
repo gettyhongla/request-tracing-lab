@@ -4,7 +4,7 @@ Phase 2 builds and explains the support-ticket application and its production de
 
 This phase is intentionally hands-on. You should manually build the pieces, break them, collect evidence, and explain what each layer does. Start with the core three-tier request path, then evolve the app into a public-facing support-ticket system.
 
-The goal is to build the mental model deeply enough to answer interview questions like:
+The goal is to build the mental model deeply enough to answer production questions like:
 
 ```text
 How does the request reach the app?

@@ -981,7 +981,7 @@ request_finished request_id=097509d9-d8af-4728-a36e-e20604cccc46 status=200
 
 **Cache vs queue explanation:** In this lab, Redis is a cache inside the synchronous request path. It stores a temporary copy of data that PostgreSQL already owns. A queue is different: it stores work for a worker to process later outside the request/response path.
 
-**Interview explanation:** Redis is fast temporary state. It can improve repeated reads and support sessions, but it should not be treated as durable storage for this lab. PostgreSQL remains the source of truth. If Redis is empty, Flask rebuilds the cache from PostgreSQL. If Redis is unavailable, the endpoint should degrade gracefully when PostgreSQL can still serve the data.
+**Explanation standard:** Redis is fast temporary state. It can improve repeated reads and support sessions, but it should not be treated as durable storage for this lab. PostgreSQL remains the source of truth. If Redis is empty, Flask rebuilds the cache from PostgreSQL. If Redis is unavailable, the endpoint should degrade gracefully when PostgreSQL can still serve the data.
 
 **Retained takeaway:** Cache failure should degrade the experience instead of destroying the request when the durable database can still answer.
 
@@ -1347,7 +1347,7 @@ error: ticket access denied
 
 This proves customers can only access tickets they own.
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 **Which table owns each kind of data?** `users` owns identities, `tickets` owns support issues, `ticket_messages` owns conversation history, and `ticket_events` owns audit evidence.
 
@@ -2165,7 +2165,7 @@ Request ID: same request_id as ticket event or linked event id
 | Old timestamp replay | Receiver rejects old event | Replay protection worked |
 | Network refused | Delivery fails but ticket remains saved | Webhook is not source of truth |
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 **Was the ticket saved before webhook delivery failed?** It should be. PostgreSQL owns the ticket, and webhook delivery should not erase the committed ticket.
 
@@ -2275,7 +2275,7 @@ Request ID or event ID: links async work to original request
 | Failed job | Job moves to failed/dead-letter state after limit | Operators have evidence to inspect |
 | Poison message | Same bad job fails repeatedly | Need retry limit and dead-letter behavior |
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 **Was the ticket saved even if the worker failed?** It should be. PostgreSQL ticket data should commit before async work.
 
@@ -2395,7 +2395,7 @@ Replica 1 must receive it and emit to Client A.
 
 That is why production WebSockets often need Redis pub/sub, a message broker, sticky sessions, or a managed real-time service.
 
-### Troubleshooting Questions
+### Troubleshooting Checklist
 
 **Is the user connected?** Check active WebSocket connections and server connection logs.
 

@@ -287,7 +287,7 @@ Rollback or roll-forward decision:
 Root cause:
 Prevention or hardening change:
 Runbook update:
-Interview explanation:
+Explanation standard:
 Retained takeaway:
 ```
 
