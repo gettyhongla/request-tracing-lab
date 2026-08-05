@@ -1888,22 +1888,310 @@ Database operations are about protecting customer records and proving where data
 
 ## Lab 07: API Design And Authentication
 
-### Build
+### Exercise Summary
 
-This lab documents the support-ticket API boundary used by the Flask app.
+This lab validates the support-ticket API boundary through NGINX, Flask, session authentication, authorization checks, and PostgreSQL evidence.
 
 ```text
-Browser or curl
-  -> NGINX
-  -> Flask REST API
-  -> session authentication
-  -> authorization / ownership check
-  -> PostgreSQL
+curl -> NGINX :8080 -> Flask REST API -> session auth / authorization -> PostgreSQL
 ```
 
-The implemented API uses session cookies for the support-ticket workflow. A successful register or login stores user identity in the Flask session, and later ticket routes use that session to decide who the user is.
+Evidence status:
 
-### API Resources
+```text
+In progress. Replace `Not captured yet` with the actual command output as each step is completed.
+```
+
+### Step 1: Register A Customer Session
+
+I did this:
+
+```text
+Created a new customer account through the public API and stored the session cookie for later authenticated requests.
+```
+
+I ran:
+
+```bash
+curl -i -c /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-register-customer" \
+  -d '{"username":"lab07_customer","email":"lab07_customer@example.com","password":"cloudpass"}' \
+  http://127.0.0.1:8080/api/auth/register
+```
+
+I captured:
+
+```text
+Status code:
+Not captured yet.
+
+Set-Cookie header:
+Not captured yet.
+
+Response request_id:
+Not captured yet.
+
+PostgreSQL user row:
+Not captured yet.
+```
+
+Result:
+
+```text
+Not captured yet.
+```
+
+### Step 2: Create A Ticket As The Customer
+
+I did this:
+
+```text
+Used the customer session cookie to create a support ticket through NGINX.
+```
+
+I ran:
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-create-ticket" \
+  -d '{"title":"Cannot trace request","description":"Need help reading request logs.","category":"technical_question","priority":"medium"}' \
+  http://127.0.0.1:8080/api/tickets
+```
+
+I captured:
+
+```text
+Status code:
+Not captured yet.
+
+Response body:
+Not captured yet.
+
+Ticket ID or ticket number:
+Not captured yet.
+
+Request ID:
+Not captured yet.
+```
+
+I verified in PostgreSQL:
+
+```bash
+psql request_tracing_lab -c "SELECT id, ticket_number, created_by, status, priority FROM tickets ORDER BY id DESC LIMIT 1;"
+psql request_tracing_lab -c "SELECT id, ticket_id, author_id, message_type FROM ticket_messages ORDER BY id DESC LIMIT 5;"
+psql request_tracing_lab -c "SELECT id, ticket_id, action, request_id FROM ticket_events ORDER BY id DESC LIMIT 5;"
+```
+
+Result:
+
+```text
+Not captured yet.
+```
+
+### Step 3: List Tickets With A Valid Session
+
+I did this:
+
+```text
+Used the same customer session cookie to confirm the API returns that customer's ticket list.
+```
+
+I ran:
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  -H "X-Request-ID: lab07-list-customer-tickets" \
+  http://127.0.0.1:8080/api/tickets
+```
+
+I captured:
+
+```text
+Status code:
+Not captured yet.
+
+Ticket count or ticket number returned:
+Not captured yet.
+
+Request ID:
+Not captured yet.
+```
+
+Result:
+
+```text
+Not captured yet.
+```
+
+### Step 4: Prove Missing Session Fails
+
+I did this:
+
+```text
+Called a protected ticket route without sending the session cookie.
+```
+
+I ran:
+
+```bash
+curl -i \
+  -H "X-Request-ID: lab07-missing-session" \
+  http://127.0.0.1:8080/api/tickets
+```
+
+I captured:
+
+```text
+Status code:
+Not captured yet.
+
+Response body:
+Not captured yet.
+
+Failed layer:
+Not captured yet.
+```
+
+Result:
+
+```text
+Not captured yet.
+```
+
+### Step 5: Prove Authorization Is Separate From Authentication
+
+I did this:
+
+```text
+Used a second authenticated customer session to attempt access to the first customer's ticket.
+```
+
+I ran:
+
+```bash
+curl -i -b /tmp/rtl-other.cookie \
+  -H "X-Request-ID: lab07-cross-customer-ticket-read" \
+  http://127.0.0.1:8080/api/tickets/<ticket_id>
+```
+
+I captured:
+
+```text
+Authenticated user:
+Not captured yet.
+
+Ticket owner:
+Not captured yet.
+
+Status code:
+Not captured yet.
+
+Response body:
+Not captured yet.
+
+Ownership decision:
+Not captured yet.
+```
+
+Result:
+
+```text
+Not captured yet.
+```
+
+### Step 6: Prove Admin Role Changes Access
+
+I did this:
+
+```text
+Used the `getty` admin account to list tickets and update ticket status.
+```
+
+I ran:
+
+```bash
+curl -i -b /tmp/rtl-admin.cookie \
+  -H "X-Request-ID: lab07-admin-list-tickets" \
+  http://127.0.0.1:8080/api/admin/tickets
+
+curl -i -b /tmp/rtl-admin.cookie \
+  -X PATCH \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-admin-status-change" \
+  -d '{"status":"resolved"}' \
+  http://127.0.0.1:8080/api/admin/tickets/<ticket_id>
+```
+
+I captured:
+
+```text
+Admin role evidence:
+Not captured yet.
+
+Admin list status code:
+Not captured yet.
+
+Status update code:
+Not captured yet.
+
+Database event:
+Not captured yet.
+```
+
+I verified in PostgreSQL:
+
+```bash
+psql request_tracing_lab -c "SELECT id, ticket_id, action, old_value, new_value, actor_id, request_id FROM ticket_events WHERE ticket_id = <ticket_id> ORDER BY id;"
+```
+
+Result:
+
+```text
+Not captured yet.
+```
+
+### Step 7: Run API Failure Checks
+
+I did this:
+
+```text
+Tested API validation, missing session behavior, customer/admin authorization, duplicate account handling, and duplicate ticket submission risk.
+```
+
+I captured:
+
+```text
+Missing JSON body:
+Not captured yet.
+
+Wrong content type:
+Not captured yet.
+
+Missing session:
+Not captured yet.
+
+Customer reads another customer's ticket:
+Not captured yet.
+
+Customer calls admin route:
+Not captured yet.
+
+Duplicate account registration:
+Not captured yet.
+
+Duplicate ticket submission scenario:
+Not captured yet.
+```
+
+Result:
+
+```text
+Not captured yet.
+```
+
+### API Boundary Notes
 
 | Resource | Method | Route | Purpose | Auth Needed |
 | --- | --- | --- | --- | --- |
@@ -1920,272 +2208,328 @@ The implemented API uses session cookies for the support-ticket workflow. A succ
 | Admin messages | `POST` | `/api/admin/tickets/<ticket_id>/messages` | Admin support reply | Admin |
 | Admin notes | `POST` | `/api/admin/tickets/<ticket_id>/internal-notes` | Admin-only internal note | Admin |
 
-### Authentication And Authorization
-
-Authentication answers:
-
-```text
-Who is this user?
-```
-
-Authorization answers:
-
-```text
-Is this user allowed to access this ticket or route?
-```
-
-In this app:
-
-```text
-Session cookie proves login state.
-Customer routes require a logged-in user.
-Customer ticket reads are limited to tickets created by that user.
-Admin routes require role = admin.
-Internal notes are visible to admins, not regular customers.
-```
-
-The important lesson is that login alone is not enough. A logged-in customer still should not read another customer's ticket or call admin routes.
-
-### Healthy-Path Evidence
-
-Register request:
-
-```bash
-curl -i -c /tmp/rtl-customer.cookie \
-  -H "Content-Type: application/json" \
-  -d '{"username":"customer1","email":"customer1@example.com","password":"customerpass"}' \
-  http://127.0.0.1:8080/api/auth/register
-```
-
-Expected evidence:
-
-```text
-HTTP 201
-Set-Cookie: session=...
-JSON response includes user id, username, email, role, and request_id
-PostgreSQL users row exists
-```
-
-Create ticket request:
-
-```bash
-curl -i -b /tmp/rtl-customer.cookie \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Login issue","description":"Customer cannot log in","category":"access","priority":"medium"}' \
-  http://127.0.0.1:8080/api/tickets
-```
-
-Expected evidence:
-
-```text
-HTTP 201
-Response includes ticket and request_id
-PostgreSQL tickets row exists
-PostgreSQL ticket_messages row exists
-PostgreSQL ticket_events row exists with request_id evidence
-```
-
-Admin route evidence:
-
-```bash
-curl -i -b /tmp/rtl-admin.cookie \
-  http://127.0.0.1:8080/api/admin/tickets
-```
-
-Expected evidence:
-
-```text
-Admin session -> HTTP 200
-Customer session -> HTTP 403
-No session -> HTTP 401
-```
-
-### Controlled Failures
-
-| Failure | Expected Result | What It Proves |
-| --- | --- | --- |
-| Missing JSON body | `400 invalid_input` | API validates required body fields before writing |
-| Wrong password | `401 invalid_credentials` | Authentication failed |
-| No session on protected route | `401 unauthenticated` | Login is required |
-| Customer calls admin route | `403 unauthorized` | Authorization is separate from authentication |
-| Customer reads another customer's ticket | `403 unauthorized` or `404 missing_ticket` depending path | Ownership is enforced |
-| Duplicate account registration | `409 duplicate_account` | Unique database rules protect identity |
-| Bad category or priority | `400 invalid_input` | API validates allowed values |
-
-### Pagination, Filtering, Sorting, And Versioning
-
-The current ticket list returns all rows for the user ordered by newest first:
-
-```sql
-SELECT *
-FROM tickets
-WHERE created_by = %s
-ORDER BY created_at DESC;
-```
-
-For production, the API should eventually add:
-
-```text
-pagination: limit and cursor/page
-filtering: status, priority, category
-sorting: created_at, updated_at, priority
-versioning: /api/v1/... when the contract needs long-term compatibility
-```
-
-This is not urgent for the local lab, but it is useful for support and DevOps because large unpaginated reads can become a latency problem.
-
-### Idempotency Concept
-
-Ticket creation needs an idempotency rule because a client timeout followed by a retry could create a second valid ticket.
-
-The idempotency answer for this lab is:
-
-```text
-Idempotency-Key: unique-client-generated-key
-```
-
-The server stores the key with the original result and returns the same result for safe retries.
-
-### Overall Summary
-
-The support-ticket API uses clear resource routes, session authentication, role-based admin checks, ownership checks, request IDs, and status codes that make support triage easier.
-
 ### Retained Takeaway
 
-A clear API makes support easier because each request has an expected method, request body, status code, owner, and evidence trail.
+```text
+A clear API makes support easier because each request has an expected method, request body, status code, owner, and evidence trail. Authentication proves who the user is; authorization proves what that user can access.
+```
 
 ## Lab 08: Webhooks And Asynchronous Delivery
 
-### Build
+### Exercise Summary
 
-This lab uses the durable ticket event as the source for outbound webhook delivery.
+This lab uses a durable `ticket_events` database row as the source for a webhook-shaped outbound event.
 
-Webhook mental model:
-
-```text
-API request:
-Client asks the app for something.
-
-Webhook:
-The app tells another system that something happened.
-```
-
-The event used for this lab is:
+Evidence status:
 
 ```text
-ticket.created
+In progress. Replace `Not captured yet` with the actual command output as each step is completed.
 ```
 
-because the app already records `ticket_created` in `ticket_events`.
+### Step 1: Choose A Durable Ticket Event
 
-### Event Payload
+I did this:
+
+```text
+Inspected the existing audit actions in `ticket_events` and chose one durable database event to represent as an outbound webhook event.
+```
+
+I ran:
+
+```bash
+psql request_tracing_lab -c "SELECT DISTINCT action FROM ticket_events ORDER BY action;"
+psql request_tracing_lab -c "SELECT id, ticket_id, action, old_value, new_value, actor_id, request_id, created_at FROM ticket_events ORDER BY created_at DESC LIMIT 5;"
+```
+
+I captured:
+
+```text
+Database action names:
+Not captured yet.
+
+Selected database event row:
+Not captured yet.
+
+Chosen outbound event type:
+Not captured yet.
+
+Ticket ID:
+Not captured yet.
+
+Request ID:
+Not captured yet.
+```
+
+Result:
+
+```text
+Not captured yet.
+```
+
+### Step 2: Start A Local Webhook Receiver
+
+I did this:
+
+```text
+Started a local HTTP receiver on port 9000 to act like the external system receiving the webhook.
+```
+
+I ran:
+
+```bash
+venv/bin/python - <<'PY'
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import hashlib
+import hmac
+import os
+
+SECRET = os.environ.get("WEBHOOK_SECRET", "lab08-local-secret").encode("utf-8")
+SEEN_EVENT_IDS = set()
+
+class Handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        length = int(self.headers.get("Content-Length", "0"))
+        body = self.rfile.read(length)
+        event_id = self.headers.get("X-Webhook-ID")
+        provided_signature = self.headers.get("X-Webhook-Signature", "")
+        expected_signature = "sha256=" + hmac.new(SECRET, body, hashlib.sha256).hexdigest()
+
+        print("event:", self.headers.get("X-Webhook-Event"))
+        print("event_id:", event_id)
+        print("signature:", provided_signature)
+        print("body:", body.decode("utf-8"))
+
+        if not hmac.compare_digest(provided_signature, expected_signature):
+            self.send_response(401)
+            self.end_headers()
+            self.wfile.write(b"bad signature")
+            return
+
+        if event_id in SEEN_EVENT_IDS:
+            self.send_response(409)
+            self.end_headers()
+            self.wfile.write(b"duplicate event")
+            return
+
+        SEEN_EVENT_IDS.add(event_id)
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"ok")
+
+HTTPServer(("127.0.0.1", 9000), Handler).serve_forever()
+PY
+```
+
+I captured:
+
+```text
+Receiver URL:
+Not captured yet.
+
+Receiver behavior:
+Not captured yet.
+
+Receiver log:
+Not captured yet.
+```
+
+Result:
+
+```text
+Not captured yet.
+```
+
+### Step 3: Build The Webhook Payload
+
+I did this:
+
+```text
+Built a webhook JSON payload from the selected database event.
+```
+
+I ran:
+
+```bash
+EVENT_ID="evt-<ticket_id>-$(date +%s)"
+EVENT_TYPE="ticket.created"
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+```
+
+Payload shape:
 
 ```json
 {
-  "event_id": "evt_20260803_001",
+  "event_id": "evt-<ticket_id>-<timestamp>",
   "event_type": "ticket.created",
-  "created_at": "2026-08-03T12:00:00Z",
+  "created_at": "<timestamp>",
   "request_id": "request-id-from-flask",
   "ticket": {
-    "id": 1,
-    "ticket_number": "TCK-20260803-ABC123",
-    "title": "Login issue",
-    "priority": "medium",
-    "status": "open"
+    "id": 1
+  },
+  "source": {
+    "database_action": "ticket_created"
   }
 }
 ```
 
-Important fields:
+I captured:
 
 ```text
-event_id: lets receiver detect duplicates
-event_type: tells receiver what happened
-created_at: supports replay protection and timeline
-request_id: connects webhook delivery to the original customer request
-ticket id/number: identifies the business object
+Payload file:
+Not captured yet.
+
+Event ID:
+Not captured yet.
+
+Event type:
+Not captured yet.
+
+Database action:
+Not captured yet.
+
+Request ID:
+Not captured yet.
 ```
 
-### Signature Concept
-
-A webhook should include a signature header so the receiver can verify the event came from this app.
+Result:
 
 ```text
-X-Webhook-Signature: hmac-sha256(payload, shared_secret)
-X-Webhook-Timestamp: event timestamp
+Not captured yet.
 ```
 
-The receiver should reject:
+### Step 4: Add A Shared-Secret Signature
+
+I did this:
 
 ```text
-missing signature
-wrong signature
-old timestamp
-duplicate event_id already processed
+Generated an HMAC SHA-256 signature for the webhook payload using a local shared secret.
 ```
 
-### Delivery Rule
+I ran:
 
-The ticket should be saved before webhook delivery matters.
+```bash
+WEBHOOK_SECRET="lab08-local-secret"
+SIGNATURE="<generated-hmac-sha256-signature>"
+```
 
-Correct order:
+I captured:
 
 ```text
-1. Customer creates ticket.
-2. Flask writes ticket, first message, and ticket event to PostgreSQL.
-3. Transaction commits.
-4. Webhook delivery is attempted or queued.
-5. Customer should not lose the ticket because the webhook receiver is down.
+Signature algorithm:
+HMAC SHA-256.
+
+Signature header value:
+Not captured yet.
+
+Shared secret location:
+Local environment variable for this lab.
+
+What the signature proves:
+The sender knew the shared secret used to sign the payload.
+
+What the signature does not prove:
+It does not prove delivery succeeded, the receiver processed the event, or the event was not a duplicate.
 ```
 
-### Healthy-Path Evidence
-
-Capture:
+Result:
 
 ```text
-Ticket action: POST /api/tickets
-Event type: ticket.created
-Event ID: unique event id
-Payload: JSON body
-Signature header: X-Webhook-Signature
-Receiver log: request received
-Receiver response: 2xx
-Delivery status: delivered
-Request ID: same request_id as ticket event or linked event id
+Not captured yet.
 ```
 
-### Controlled Failures
+### Step 5: Send The Webhook
 
-| Failure | Expected Behavior | Operational Meaning |
-| --- | --- | --- |
-| Receiver returns 500 | Delivery fails and should be retried later | External system failed |
-| Receiver times out | Delivery attempt records timeout | Network or receiver latency |
-| Wrong shared secret | Receiver rejects request | Security protection worked |
-| Duplicate delivery | Receiver ignores already-seen `event_id` | At-least-once delivery is safe |
-| Old timestamp replay | Receiver rejects old event | Replay protection worked |
-| Network refused | Delivery fails but ticket remains saved | Webhook is not source of truth |
+I did this:
 
-### Troubleshooting Checklist
+```text
+Sent the signed webhook payload to the local receiver.
+```
 
-**Was the ticket saved before webhook delivery failed?** It should be. PostgreSQL owns the ticket, and webhook delivery should not erase the committed ticket.
+I ran:
 
-**Did the receiver receive the request?** Check receiver logs, HTTP status, timestamp, and event ID.
+```bash
+curl -i -X POST http://127.0.0.1:9000/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Webhook-Event: ${EVENT_TYPE}" \
+  -H "X-Webhook-ID: ${EVENT_ID}" \
+  -H "X-Webhook-Timestamp: ${TIMESTAMP}" \
+  -H "X-Webhook-Signature: sha256=${SIGNATURE}" \
+  --data-binary @/tmp/lab08-ticket-event.json
+```
 
-**Was the signature valid?** Compare the signature header against the payload and shared secret.
+I captured:
 
-**Was this a new event or duplicate delivery?** Check `event_id`.
+```text
+Webhook URL:
+Not captured yet.
 
-**Should the customer request fail because the webhook failed?** Usually no. The customer action should commit durable ticket data first. Webhook failure should create delivery evidence and retry work.
+HTTP status:
+Not captured yet.
 
-**Where is failed delivery recorded?** Store it in a delivery table, failed-event table, queue, or logs with event ID and request ID.
+Receiver response:
+Not captured yet.
 
-### Overall Summary
+Receiver log:
+Not captured yet.
 
-Webhooks are outbound event delivery. They are useful for notifying other systems, but they introduce signatures, retries, duplicates, replay protection, and delivery evidence.
+Delivery status:
+Not captured yet.
+
+Event ID:
+Not captured yet.
+
+Request ID:
+Not captured yet.
+```
+
+Result:
+
+```text
+Not captured yet.
+```
+
+### Step 6: Test Delivery Failure Modes
+
+I did this:
+
+```text
+Tested receiver-unavailable, duplicate-delivery, and bad-signature behavior.
+```
+
+I captured:
+
+```text
+Unavailable receiver symptom:
+Not captured yet.
+
+Duplicate delivery evidence:
+Not captured yet.
+
+Bad signature evidence:
+Not captured yet.
+
+Retry decision:
+Not captured yet.
+
+Duplicate-handling decision:
+Not captured yet.
+
+Customer impact:
+Not captured yet.
+```
+
+Result:
+
+```text
+Not captured yet.
+```
 
 ### Retained Takeaway
 
+```text
 An API is client-to-app. A webhook is app-to-system after something happens. Webhook failure should be visible, retryable, and separate from the durable ticket write.
+```
+
 
 ## Lab 09: Workers And Queues
 
