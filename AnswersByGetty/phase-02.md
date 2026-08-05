@@ -12,6 +12,10 @@ This document records completed Phase 2 evidence, commands, conclusions, and ret
 | [Lab 04](#lab-04-redis-cache-and-session-support) | Redis cache and session support |
 | [Lab 05](#lab-05-support-ticket-data-model) | Support-ticket data model |
 | [Lab 06](#lab-06-database-operations-performance-and-resilience) | Database operations, performance, and resilience |
+| [Lab 07](#lab-07-api-design-and-authentication) | API design and authentication |
+| [Lab 08](#lab-08-webhooks-and-asynchronous-delivery) | Webhooks and asynchronous delivery |
+| [Lab 09](#lab-09-workers-and-queues) | Workers and queues |
+| [Lab 10](#lab-10-websockets-and-real-time-updates) | WebSockets and real-time updates |
 
 ## Lab 01: Three-Tier Architecture
 
