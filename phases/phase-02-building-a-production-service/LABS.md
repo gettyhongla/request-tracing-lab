@@ -1003,14 +1003,47 @@ The application sends an event to another system when something happens.
 
 ### Must Implement Or Inspect
 
-1. Pick one event: `ticket.created` or `ticket.status_changed`.
-2. Define a simple event payload.
-3. Start a local webhook receiver.
-4. Send an event after the ticket change is saved.
-5. Include event ID, event type, timestamp, ticket ID, and request ID.
-6. Add a shared-secret signature concept.
-7. Store or log delivery status.
-8. Define retry behavior and when to stop retrying.
+1. Inspect the existing ticket audit actions in PostgreSQL.
+2. Pick one outbound webhook event: `ticket.created` or `ticket.status_changed`.
+3. Define a simple event payload.
+4. Start a local webhook receiver.
+5. Send an event after the ticket change is saved.
+6. Include event ID, event type, timestamp, ticket ID, and request ID.
+7. Add a shared-secret signature concept.
+8. Store or log delivery status.
+9. Define retry behavior and when to stop retrying.
+
+### Inspect Existing Ticket Events
+
+The database stores internal audit actions in `ticket_events.action`. A webhook payload can expose those actions as public event types such as `ticket.created`.
+
+Describe the table:
+
+```bash
+psql request_tracing_lab -c "\d ticket_events"
+```
+
+List the action names currently recorded:
+
+```bash
+psql request_tracing_lab -c "SELECT DISTINCT action FROM ticket_events ORDER BY action;"
+```
+
+Inspect recent ticket events:
+
+```bash
+psql request_tracing_lab -c "SELECT id, ticket_id, action, old_value, new_value, actor_id, request_id, created_at FROM ticket_events ORDER BY created_at DESC LIMIT 10;"
+```
+
+Mapping example:
+
+```text
+Database action:
+ticket_created
+
+Outbound webhook event_type:
+ticket.created
+```
 
 ### Healthy-Path Verification
 
@@ -1018,6 +1051,8 @@ Capture:
 
 ```text
 Ticket action:
+Database action:
+Outbound event type:
 Webhook payload:
 Receiver log:
 Delivery status:
