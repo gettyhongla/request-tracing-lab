@@ -859,24 +859,287 @@ Session auth, validation, ownership checks, PostgreSQL
 | 503 | Dependency unavailable |
 | 504 | Timeout waiting for upstream work |
 
-### Healthy-Path Verification
+### Exercise Setup
 
-Capture with `curl`. If a browser UI exists for the same workflow, optionally compare the browser request and response against the terminal evidence.
+Run the app through the Phase 2 path:
+
+```text
+curl -> NGINX :8080 -> Flask -> PostgreSQL
+```
+
+Start dependencies if they are not already running:
+
+```bash
+brew services start postgresql@18
+brew services start redis
+brew services start nginx
+```
+
+Start Flask in another terminal:
+
+```bash
+venv/bin/python app.py
+```
+
+Use unique usernames so repeated lab runs do not collide with earlier data:
+
+```bash
+LAB_RUN=$(date +%Y%m%d%H%M%S)
+CUSTOMER="lab07_customer_${LAB_RUN}"
+OTHER_CUSTOMER="lab07_other_${LAB_RUN}"
+```
+
+### Exercise 1: Register A Customer Session
+
+Register a customer and store the session cookie:
+
+```bash
+curl -i -c /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-register-customer" \
+  -d "{\"username\":\"${CUSTOMER}\",\"email\":\"${CUSTOMER}@example.com\",\"password\":\"cloudpass\"}" \
+  http://127.0.0.1:8080/api/auth/register
+```
+
+Capture:
 
 ```text
 Register request:
-Login request:
 Session cookie evidence:
-Create ticket request:
-List ticket response:
-Admin list response:
-Request ID:
-PostgreSQL records:
+Status code:
+Response request_id:
+Set-Cookie header:
+PostgreSQL user row:
 ```
 
-### Controlled Failures
+Verify the user row:
 
-Test:
+```bash
+psql request_tracing_lab -c "SELECT id, username, email, role, created_at FROM users WHERE username = '${CUSTOMER}';"
+```
+
+### Exercise 2: Create A Ticket As The Customer
+
+Create a ticket through NGINX:
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-create-ticket" \
+  -d '{"title":"Cannot trace request","description":"Need help reading request logs.","category":"technical_question","priority":"medium"}' \
+  http://127.0.0.1:8080/api/tickets
+```
+
+Capture:
+
+```text
+Create ticket request:
+Status code:
+Response body:
+Request ID:
+Ticket ID or ticket number:
+```
+
+Save the latest ticket ID for the next exercises:
+
+```bash
+TICKET_ID=$(psql -At request_tracing_lab -c "SELECT t.id FROM tickets t JOIN users u ON u.id = t.created_by WHERE u.username = '${CUSTOMER}' ORDER BY t.id DESC LIMIT 1;")
+echo "$TICKET_ID"
+```
+
+Verify the durable database records:
+
+```bash
+psql request_tracing_lab -c "SELECT id, ticket_number, created_by, status, priority FROM tickets WHERE id = ${TICKET_ID};"
+psql request_tracing_lab -c "SELECT id, ticket_id, author_id, message_type FROM ticket_messages WHERE ticket_id = ${TICKET_ID};"
+psql request_tracing_lab -c "SELECT id, ticket_id, action, request_id FROM ticket_events WHERE ticket_id = ${TICKET_ID};"
+```
+
+### Exercise 3: List Tickets With A Valid Session
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  -H "X-Request-ID: lab07-list-customer-tickets" \
+  http://127.0.0.1:8080/api/tickets
+```
+
+Capture:
+
+```text
+API route:
+HTTP method:
+Status code:
+Session cookie used:
+Ticket count or ticket number returned:
+Request ID:
+```
+
+### Exercise 4: Prove Missing Session Fails Before Ownership Logic
+
+Call a protected route without the cookie:
+
+```bash
+curl -i \
+  -H "X-Request-ID: lab07-missing-session" \
+  http://127.0.0.1:8080/api/tickets
+```
+
+Capture:
+
+```text
+Status code:
+Response body:
+Failed layer:
+What this rules out:
+```
+
+### Exercise 5: Prove Authorization Is Separate From Authentication
+
+Register a second customer:
+
+```bash
+curl -i -c /tmp/rtl-other.cookie \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-register-other-customer" \
+  -d "{\"username\":\"${OTHER_CUSTOMER}\",\"email\":\"${OTHER_CUSTOMER}@example.com\",\"password\":\"cloudpass\"}" \
+  http://127.0.0.1:8080/api/auth/register
+```
+
+Use the second customer's valid session to read the first customer's ticket:
+
+```bash
+curl -i -b /tmp/rtl-other.cookie \
+  -H "X-Request-ID: lab07-cross-customer-ticket-read" \
+  http://127.0.0.1:8080/api/tickets/${TICKET_ID}
+```
+
+Capture:
+
+```text
+Authenticated user:
+Ticket owner:
+Status code:
+Response body:
+Ownership decision:
+Evidence source:
+```
+
+### Exercise 6: Prove Admin Role Changes Access
+
+Create or log in as `getty`. In this app, username `getty` receives the `admin` role at registration.
+
+```bash
+curl -i -c /tmp/rtl-admin.cookie \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-register-admin" \
+  -d '{"username":"getty","email":"getty@example.com","password":"cloudpass"}' \
+  http://127.0.0.1:8080/api/auth/register
+```
+
+If registration returns `409 duplicate_account`, log in instead:
+
+```bash
+curl -i -c /tmp/rtl-admin.cookie \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-login-admin" \
+  -d '{"username":"getty","password":"cloudpass"}' \
+  http://127.0.0.1:8080/api/auth/login
+```
+
+Call the admin list route:
+
+```bash
+curl -i -b /tmp/rtl-admin.cookie \
+  -H "X-Request-ID: lab07-admin-list-tickets" \
+  http://127.0.0.1:8080/api/admin/tickets
+```
+
+Update ticket status as admin:
+
+```bash
+curl -i -b /tmp/rtl-admin.cookie \
+  -X PATCH \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-admin-status-change" \
+  -d '{"status":"resolved"}' \
+  http://127.0.0.1:8080/api/admin/tickets/${TICKET_ID}
+```
+
+Capture:
+
+```text
+Admin username:
+Admin role evidence:
+Admin list status code:
+Status update code:
+Changed field:
+Database event:
+```
+
+Verify the status-change event:
+
+```bash
+psql request_tracing_lab -c "SELECT id, ticket_id, action, old_value, new_value, actor_id, request_id FROM ticket_events WHERE ticket_id = ${TICKET_ID} ORDER BY id;"
+```
+
+### Exercise 7: Run API Failure Checks
+
+Missing JSON body:
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  -X POST \
+  -H "X-Request-ID: lab07-missing-json-body" \
+  http://127.0.0.1:8080/api/tickets
+```
+
+Wrong content type:
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  -H "Content-Type: text/plain" \
+  -H "X-Request-ID: lab07-wrong-content-type" \
+  -d 'not json' \
+  http://127.0.0.1:8080/api/tickets
+```
+
+Customer calls admin route:
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  -H "X-Request-ID: lab07-customer-admin-route" \
+  http://127.0.0.1:8080/api/admin/tickets
+```
+
+Duplicate account registration:
+
+```bash
+curl -i -c /tmp/rtl-duplicate.cookie \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-duplicate-account" \
+  -d "{\"username\":\"${CUSTOMER}\",\"email\":\"${CUSTOMER}@example.com\",\"password\":\"cloudpass\"}" \
+  http://127.0.0.1:8080/api/auth/register
+```
+
+Duplicate ticket submission scenario:
+
+```bash
+curl -i -b /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: lab07-duplicate-ticket-demo" \
+  -H "X-Request-ID: lab07-duplicate-ticket-1" \
+  -d '{"title":"Duplicate submission demo","description":"Same client request retried.","category":"technical_question","priority":"low"}' \
+  http://127.0.0.1:8080/api/tickets
+
+curl -i -b /tmp/rtl-customer.cookie \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: lab07-duplicate-ticket-demo" \
+  -H "X-Request-ID: lab07-duplicate-ticket-2" \
+  -d '{"title":"Duplicate submission demo","description":"Same client request retried.","category":"technical_question","priority":"low"}' \
+  http://127.0.0.1:8080/api/tickets
+```
+
+Capture:
 
 ```text
 Missing JSON body:
@@ -887,6 +1150,8 @@ Customer calls admin route:
 Duplicate account registration:
 Duplicate ticket submission scenario:
 ```
+
+The current app accepts the `Idempotency-Key` header as a client header but does not enforce idempotency yet. Use this check to document the risk and the design expectation.
 
 ### Evidence To Capture
 
@@ -1045,6 +1310,261 @@ Outbound webhook event_type:
 ticket.created
 ```
 
+### Exercise 1: Choose A Durable Ticket Event
+
+If you completed Lab 07, reuse the latest ticket event. Otherwise create one ticket first.
+
+Find the latest ticket event:
+
+```bash
+psql request_tracing_lab -c "SELECT id, ticket_id, action, old_value, new_value, actor_id, request_id, created_at FROM ticket_events ORDER BY created_at DESC LIMIT 5;"
+```
+
+Set variables from the latest event:
+
+```bash
+TICKET_ID=$(psql -At request_tracing_lab -c "SELECT ticket_id FROM ticket_events ORDER BY created_at DESC LIMIT 1;")
+DB_ACTION=$(psql -At request_tracing_lab -c "SELECT action FROM ticket_events ORDER BY created_at DESC LIMIT 1;")
+REQUEST_ID=$(psql -At request_tracing_lab -c "SELECT request_id FROM ticket_events ORDER BY created_at DESC LIMIT 1;")
+echo "ticket_id=${TICKET_ID} action=${DB_ACTION} request_id=${REQUEST_ID}"
+```
+
+Choose the outbound webhook event type:
+
+```text
+If DB_ACTION=ticket_created, use event_type=ticket.created.
+If DB_ACTION=status_changed, use event_type=ticket.status_changed.
+If DB_ACTION=message_added, use event_type=ticket.message_added.
+```
+
+Capture:
+
+```text
+Database event row:
+Database action:
+Chosen outbound event type:
+Ticket ID:
+Request ID:
+```
+
+### Exercise 2: Start A Local Webhook Receiver
+
+Run this in a separate terminal. It starts a simple local receiver on port `9000` and prints each POST body and selected headers.
+
+```bash
+venv/bin/python - <<'PY'
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import hashlib
+import hmac
+import os
+
+SECRET = os.environ.get("WEBHOOK_SECRET", "lab08-local-secret").encode("utf-8")
+SEEN_EVENT_IDS = set()
+
+class Handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        length = int(self.headers.get("Content-Length", "0"))
+        body = self.rfile.read(length)
+        event_id = self.headers.get("X-Webhook-ID")
+        provided_signature = self.headers.get("X-Webhook-Signature", "")
+        expected_signature = "sha256=" + hmac.new(
+            SECRET,
+            body,
+            hashlib.sha256
+        ).hexdigest()
+
+        print("\n--- webhook received ---")
+        print("path:", self.path)
+        print("event:", self.headers.get("X-Webhook-Event"))
+        print("event_id:", event_id)
+        print("timestamp:", self.headers.get("X-Webhook-Timestamp"))
+        print("signature:", provided_signature)
+        print("body:", body.decode("utf-8"))
+
+        if not hmac.compare_digest(provided_signature, expected_signature):
+            print("decision: rejected bad signature")
+            self.send_response(401)
+            self.end_headers()
+            self.wfile.write(b"bad signature")
+            return
+
+        if event_id in SEEN_EVENT_IDS:
+            print("decision: duplicate event")
+            self.send_response(409)
+            self.end_headers()
+            self.wfile.write(b"duplicate event")
+            return
+
+        SEEN_EVENT_IDS.add(event_id)
+        print("decision: accepted")
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"ok")
+
+HTTPServer(("127.0.0.1", 9000), Handler).serve_forever()
+PY
+```
+
+Capture:
+
+```text
+Receiver URL:
+Receiver port:
+Receiver log evidence:
+```
+
+### Exercise 3: Build A Webhook Payload From Database Evidence
+
+Use the database event as the source and create a webhook-shaped JSON payload.
+
+```bash
+EVENT_ID="evt-${TICKET_ID}-$(date +%s)"
+case "${DB_ACTION}" in
+  ticket_created)
+    EVENT_TYPE="ticket.created"
+    ;;
+  status_changed)
+    EVENT_TYPE="ticket.status_changed"
+    ;;
+  message_added)
+    EVENT_TYPE="ticket.message_added"
+    ;;
+  *)
+    EVENT_TYPE="ticket.${DB_ACTION}"
+    ;;
+esac
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+cat > /tmp/lab08-ticket-event.json <<JSON
+{
+  "event_id": "${EVENT_ID}",
+  "event_type": "${EVENT_TYPE}",
+  "created_at": "${TIMESTAMP}",
+  "request_id": "${REQUEST_ID}",
+  "ticket": {
+    "id": ${TICKET_ID}
+  },
+  "source": {
+    "database_action": "${DB_ACTION}"
+  }
+}
+JSON
+
+cat /tmp/lab08-ticket-event.json
+```
+
+Capture:
+
+```text
+Payload file:
+Event ID:
+Event type:
+Database action:
+Request ID:
+Ticket ID:
+```
+
+### Exercise 4: Add A Shared-Secret Signature
+
+Generate an HMAC signature for the payload. This proves the webhook came from a sender that knows the shared secret.
+
+```bash
+WEBHOOK_SECRET="lab08-local-secret"
+SIGNATURE=$(WEBHOOK_SECRET="${WEBHOOK_SECRET}" venv/bin/python - <<'PY'
+import hashlib
+import hmac
+import os
+
+secret = os.environ["WEBHOOK_SECRET"].encode("utf-8")
+with open("/tmp/lab08-ticket-event.json", "rb") as payload:
+    body = payload.read()
+print(hmac.new(secret, body, hashlib.sha256).hexdigest())
+PY
+)
+echo "sha256=${SIGNATURE}"
+```
+
+Capture:
+
+```text
+Signature algorithm:
+Signature header value:
+Shared secret location:
+What the signature proves:
+What the signature does not prove:
+```
+
+### Exercise 5: Send The Webhook
+
+Send the payload to the local receiver:
+
+```bash
+curl -i -X POST http://127.0.0.1:9000/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Webhook-Event: ${EVENT_TYPE}" \
+  -H "X-Webhook-ID: ${EVENT_ID}" \
+  -H "X-Webhook-Timestamp: ${TIMESTAMP}" \
+  -H "X-Webhook-Signature: sha256=${SIGNATURE}" \
+  --data-binary @/tmp/lab08-ticket-event.json
+```
+
+Capture:
+
+```text
+Webhook URL:
+HTTP status:
+Receiver response:
+Receiver log:
+Delivery status:
+Event ID:
+Request ID:
+```
+
+### Exercise 6: Test Delivery Failure Modes
+
+Wrong port / receiver unavailable:
+
+```bash
+curl -i --max-time 3 -X POST http://127.0.0.1:9999/webhook \
+  -H "Content-Type: application/json" \
+  --data-binary @/tmp/lab08-ticket-event.json
+```
+
+Duplicate delivery:
+
+```bash
+curl -i -X POST http://127.0.0.1:9000/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Webhook-Event: ${EVENT_TYPE}" \
+  -H "X-Webhook-ID: ${EVENT_ID}" \
+  -H "X-Webhook-Timestamp: ${TIMESTAMP}" \
+  -H "X-Webhook-Signature: sha256=${SIGNATURE}" \
+  --data-binary @/tmp/lab08-ticket-event.json
+```
+
+Bad signature:
+
+```bash
+curl -i -X POST http://127.0.0.1:9000/webhook \
+  -H "Content-Type: application/json" \
+  -H "X-Webhook-Event: ${EVENT_TYPE}" \
+  -H "X-Webhook-ID: ${EVENT_ID}-bad-signature" \
+  -H "X-Webhook-Timestamp: ${TIMESTAMP}" \
+  -H "X-Webhook-Signature: sha256=bad-signature" \
+  --data-binary @/tmp/lab08-ticket-event.json
+```
+
+Capture:
+
+```text
+Unavailable receiver symptom:
+Duplicate delivery evidence:
+Bad signature evidence:
+Retry decision:
+Duplicate-handling decision:
+Customer impact:
+```
+
 ### Healthy-Path Verification
 
 Capture:
@@ -1065,12 +1585,17 @@ Request ID:
 Test:
 
 ```text
-Receiver returns 500:
-Receiver times out:
 Wrong shared secret:
 Duplicate delivery:
-Old timestamp replay:
 Network connection refused:
+```
+
+Future hardening checks:
+
+```text
+Receiver returns 500:
+Receiver times out:
+Old timestamp replay:
 ```
 
 ### Evidence To Capture
