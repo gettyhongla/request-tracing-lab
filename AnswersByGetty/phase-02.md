@@ -1499,10 +1499,26 @@ Index Scan using idx_tickets_created_by_created_at on tickets
 Execution Time: 0.170 ms
 ```
 
-Conclusion:
+Answered fields:
 
 ```text
-The customer-ticket lookup used the index designed for finding one customer's tickets newest first.
+Plan type:
+Index Scan. The first line of the plan starts with `Index Scan`.
+
+Index used, if any:
+idx_tickets_created_by_created_at. The plan says `using idx_tickets_created_by_created_at on tickets`.
+
+Actual timing, if measured:
+Execution Time: 0.170 ms. The actual row-read timing was 0.059..0.063 ms for 2 rows.
+
+Conclusion:
+The customer-ticket lookup used the intended index for `created_by = 1` and newest-first ordering.
+```
+
+Clarity note:
+
+```text
+The plan line tells what PostgreSQL decided to do. `Index Scan` is the access method, and `idx_tickets_created_by_created_at` is the specific index PostgreSQL used.
 ```
 
 ### Exercise 4: Compare Supported Lookup And Unsupported Search
@@ -1540,10 +1556,26 @@ Seq Scan on tickets
   Filter: (title ~~* '%trace%'::text)
 ```
 
-Conclusion:
+Answered fields:
 
 ```text
-The status-and-priority lookup had a supporting index. The wildcard title search scanned the table because the current schema does not include an index suited to that pattern. On a tiny local table this is acceptable; at production size it would need evidence before choosing a search/index strategy.
+Supported lookup plan:
+Index Scan using idx_tickets_status_priority. The plan shows PostgreSQL can use the status/priority index for `status = 'open' AND priority = 'medium'`.
+
+Unsupported search plan:
+Seq Scan on tickets. The title search scans the table and applies a filter because the current schema does not have an index suited to `ILIKE '%trace%'`.
+
+Why the difference matters:
+An indexed lookup can jump to likely matching rows. A sequential scan reads through the table and filters rows. On a tiny lab table that is fine; on a large production table it could become expensive.
+
+Conclusion:
+The admin triage query has a supporting index, while the wildcard title search does not. The title search would need more evidence before changing indexing or search design.
+```
+
+Clarity note:
+
+```text
+`Seq Scan` is not automatically bad. It means PostgreSQL chose to read through the table. Whether that is a problem depends on table size, frequency, timing, and customer impact.
 ```
 
 ### Exercise 5: Simulate Database Latency
@@ -1560,10 +1592,23 @@ Captured result:
 Time: 1004.019 ms (00:01.004)
 ```
 
-Conclusion:
+Answered fields:
 
 ```text
-Database-side waiting appears as query latency. This proves the delay occurred inside PostgreSQL for this controlled query, but it does not prove the cause of any real customer incident without request timing, SQL timing, lock, connection, and resource evidence.
+Measured time:
+1004.019 ms, or about 1.004 seconds. This came from the `Time:` line.
+
+Layer where the delay happened:
+PostgreSQL. The SQL command intentionally ran `SELECT pg_sleep(1)` inside the database.
+
+What this does and does not prove:
+It proves database-side waiting appears as query latency. It does not prove that any real customer issue is caused by PostgreSQL without request timing, SQL timing, lock evidence, connection evidence, and resource metrics.
+```
+
+Clarity note:
+
+```text
+The `pg_sleep(1)` function is artificial. It is useful because it creates a known database delay, making it easier to recognize database-side latency in evidence.
 ```
 
 ### Exercise 6: Prove Rollback Behavior
@@ -1616,10 +1661,23 @@ ROLLBACK
 (0 rows)
 ```
 
-Conclusion:
+Answered fields:
 
 ```text
-The row existed inside the open transaction and disappeared after rollback. This proves uncommitted work did not become durable.
+Row visible before rollback:
+Yes. The first SELECT returned one row: id=4, ticket_number=TCK-ROLLBACK-LAB, title=Rollback lab ticket.
+
+Row visible after rollback:
+No. The second SELECT returned `(0 rows)`.
+
+What this proves about partial writes:
+The inserted test ticket did not become durable after `ROLLBACK`. PostgreSQL removed the uncommitted work, which protects against partial writes remaining after a failed transaction.
+```
+
+Clarity note:
+
+```text
+`INSERT 0 1` means one row was inserted inside the transaction. `(0 rows)` after rollback means the later query found no durable row with that ticket number.
 ```
 
 ### Exercise 7: Prove Constraint Protection
@@ -1656,10 +1714,26 @@ ERROR: new row for relation "tickets" violates check constraint "tickets_categor
 DETAIL: Failing row contains (..., not_a_category, low, open, ...).
 ```
 
-Conclusion:
+Answered fields:
 
 ```text
-PostgreSQL rejected invalid ticket data at the database layer. The failed rule was the ticket category check constraint.
+Database error:
+ERROR: new row for relation "tickets" violates check constraint "tickets_category_check".
+
+Constraint name:
+tickets_category_check.
+
+What invalid data was rejected:
+The category value `not_a_category` was rejected.
+
+Conclusion:
+PostgreSQL protected the table from invalid ticket category data even though the insert command reached the database.
+```
+
+Clarity note:
+
+```text
+The important evidence is the named constraint. It tells you this was not a network, connection, or syntax failure; PostgreSQL rejected the row because it violated a data rule.
 ```
 
 ### Exercise 8: Break The Database Connection
@@ -1687,10 +1761,26 @@ OperationalError
 connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused
 ```
 
-Conclusion:
+Answered fields:
 
 ```text
-The failure happened before SQL execution. This rules out query logic, indexes, locks, and transaction behavior for this test.
+Error type:
+OperationalError.
+
+First error line:
+connection failed: connection to server at "127.0.0.1", port 5999 failed: Connection refused.
+
+Failed layer:
+Database connection path. The client attempted to connect to PostgreSQL on the wrong port before any SQL ran.
+
+What this rules out:
+This rules out query logic, indexes, locks, transaction behavior, and bad table data for this test because the connection failed before PostgreSQL accepted SQL work.
+```
+
+Clarity note:
+
+```text
+`Connection refused` means nothing accepted the TCP connection on that host/port. That is different from a SQL error returned after a successful database connection.
 ```
 
 ### Exercise 9: Inspect Connections And Pooling Risk
@@ -1711,16 +1801,23 @@ Captured result:
                   2
 ```
 
-Pool-risk note:
+Answered fields:
 
 ```text
-The current local app does not use an application-side connection pool. If a future app pool allowed 5 connections and 6 long database requests arrived, the sixth request would wait for a free connection. If waiting exceeded the timeout, the customer could see a timeout or safe 5xx response even while PostgreSQL was still running.
+Active connection count:
+2. The output value under `active_connections` is `2`.
+
+Pool-risk explanation:
+The current local app does not use an application-side connection pool. If a future app pool allowed 5 connections and 6 long database requests arrived, the sixth request would wait for a free connection.
+
+Customer symptom if waiting times out:
+The customer could see a slow request, timeout, or safe 5xx response even if PostgreSQL itself was still running.
 ```
 
-Conclusion:
+Clarity note:
 
 ```text
-Connection count is a starting signal. It does not prove pool exhaustion by itself; pool wait time and timeouts would be needed.
+A connection count is only a starting signal. Pool exhaustion requires pool-specific evidence such as checked-out connections, wait time, and timeout count.
 ```
 
 ### Exercise 10: Capture Backup And Recovery Evidence
@@ -1749,10 +1846,32 @@ First lines of the dump:
 -- Dumped by pg_dump version 18.4 (Homebrew)
 ```
 
-Recovery note:
+Answered fields:
 
 ```text
-Support tickets are customer records, so production should define low data-loss tolerance, restore testing, backup retention, and a reconnect/failover plan. A local schema-only dump proves backup tooling exists, but not full restore readiness.
+pg_dump version:
+PostgreSQL 18.4 (Homebrew). This came from the `pg_dump --version` output.
+
+Backup file path:
+/private/tmp/request_tracing_lab_schema_lab06.sql.
+
+Backup file size:
+15051 bytes.
+
+First lines of dump:
+The dump starts with PostgreSQL database dump metadata and records both the database version and pg_dump version as 18.4.
+
+RPO/RTO note for support-ticket data:
+Support tickets are customer records, so production should define low data-loss tolerance and a recovery-time target for restoring ticket creation and ticket history.
+
+Failover/reconnect note:
+A local schema-only dump proves backup tooling exists, but it does not prove full restore readiness or application reconnect behavior during failover. Production would still need restore testing, backup retention, and a failover/reconnect plan.
+```
+
+Clarity note:
+
+```text
+A backup file is evidence that a dump was created. It is not evidence that recovery works until a restore test proves the backup can be used.
 ```
 
 ### Lab Conclusion
