@@ -2,35 +2,43 @@
 
 Runbooks turn repeated troubleshooting into a consistent operating process.
 
-They should not be command dumps. Each runbook should help the learner identify the failed path, collect evidence, make decisions, remediate safely, validate recovery, and decide whether monitoring, documentation, validation, or automation would reduce recurrence.
+Use them after identifying whether the failure is in the management path, traffic path, dependency path, or release path.
+
+```text
+Management path: Deployment -> ReplicaSet -> Pod
+Traffic path: Client -> Ingress -> Service -> EndpointSlice -> Ready Pod -> Container -> Application -> Dependency
+```
 
 ## Available Runbooks
 
 | Runbook | Primary Path |
 | --- | --- |
 | [Pod not created](kubernetes-pod-not-created.md) | Deployment -> ReplicaSet -> Pod |
-| [Pod not ready](kubernetes-pod-not-ready.md) | Service -> EndpointSlice -> Ready Pod |
-| [Service has no endpoints](kubernetes-service-no-endpoints.md) | Service -> EndpointSlice |
-| [Ingress 502](ingress-502.md) | Client -> Ingress -> Service -> EndpointSlice -> Pod |
+| [Pod Pending](pod-pending.md) | Scheduler -> node capacity -> volume/config constraints |
+| [Pod Running but NotReady](kubernetes-pod-not-ready.md) | Pod -> readiness probe -> Service endpoint eligibility |
+| [CrashLoopBackOff](crashloopbackoff.md) | Container process -> logs -> command/config/runtime dependency |
+| [ImagePullBackOff](imagepullbackoff.md) | Pod spec -> image reference -> node image availability/pull permission |
+| [Service has no endpoints](kubernetes-service-no-endpoints.md) | Service selector -> EndpointSlice -> Ready Pod |
+| [Ingress 502/503](ingress-502.md) | Client -> Ingress -> Service -> EndpointSlice -> Pod |
+| [Redis/dependency connectivity failure](dependency-connectivity-failure.md) | Application -> dependency DNS/port/config |
 | [Bad Helm release](bad-helm-release.md) | Helm values -> rendered manifest -> Kubernetes object -> runtime behavior |
 | [Rollback deployment](rollback-deployment.md) | rollout history -> revision selection -> validation |
 
-## Escalation Standard
+## Evidence Standard
 
-Include:
+Capture:
 
 ```text
-Observed impact:
-Environment:
-Relevant timestamps:
-Reproduction steps:
-Expected behavior:
-Actual behavior:
-Request IDs if available:
-Logs/events:
-Relevant configuration:
-Failed boundary:
-What has been ruled out:
-Current hypothesis:
-Exact help needed:
+Observed symptom:
+Expected path:
+Known-good boundaries:
+First unknown boundary:
+Command or inspection used:
+Evidence:
+Root cause or strongest hypothesis:
+Fix or mitigation:
+Validation:
+Prevention or automation note:
 ```
+
+Do not let a runbook become a command dump. Each command should explain which boundary it tests.

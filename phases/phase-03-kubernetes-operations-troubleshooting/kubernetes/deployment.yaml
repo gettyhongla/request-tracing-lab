@@ -22,13 +22,10 @@ spec:
           ports:
             - name: http
               containerPort: 5001
+          envFrom:
+            - configMapRef:
+                name: request-tracing-lab-config
           env:
-            - name: FLASK_RUN_HOST
-              value: "0.0.0.0"
-            - name: FLASK_RUN_PORT
-              value: "5001"
-            - name: FLASK_DEBUG
-              value: "false"
             - name: FLASK_SECRET_KEY
               valueFrom:
                 secretKeyRef:
@@ -39,6 +36,11 @@ spec:
                 secretKeyRef:
                   name: request-tracing-lab-secrets
                   key: JWT_SECRET
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: request-tracing-lab-secrets
+                  key: DATABASE_URL
           readinessProbe:
             httpGet:
               path: /health

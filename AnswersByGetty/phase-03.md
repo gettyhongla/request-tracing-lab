@@ -1,113 +1,76 @@
-# Phase 3 Answers
+# Phase 3 Answers: Containerized Systems And Kubernetes Troubleshooting
 
-This document records completed Phase 3 container and Kubernetes evidence, conclusions, and retained takeaways.
+This document records completed Phase 3 evidence, conclusions, and retained takeaways.
+
+The canonical lab instructions live in [Phase 3 LABS.md](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md). This answer file intentionally follows the same lab numbers and titles.
 
 ## Recorded Labs
 
 | Lab | Topic | Status |
 | --- | --- | --- |
-| [Lab 01](#lab-01-containerize-the-system) | Containerize the system | Recorded |
-| [Lab 02](#lab-02-configuration-and-secrets) | Configuration and secrets | Recorded |
-| [Lab 03](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-03-observability) | Observability | Not yet recorded |
-| [Lab 04](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-04-alerting-and-supportability) | Alerting and supportability | Not yet recorded |
-| [Lab 05](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-05-deployment-verification) | Deployment verification | Not yet recorded |
-| [Lab 06](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-06-rollback-and-release-safety) | Rollback and release safety | Not yet recorded |
-| [Lab 07](#lab-07-kubernetes-migration) | Kubernetes migration | Recorded out of order |
-| [Lab 08](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-08-production-incident) | Production incident | Not yet recorded |
+| [Lab 01](#lab-01-images-dockerfiles--buildruntime-boundaries) | Images, Dockerfiles & Build/Runtime Boundaries | Recorded |
+| [Lab 02](#lab-02-runtime-configuration-ports-processes--filesystem) | Runtime Configuration, Ports, Processes & Filesystem | Recorded |
+| [Lab 03](#lab-03-docker-networking-dns--container-health) | Docker Networking, DNS & Container Health | Not yet captured |
+| [Lab 04](#lab-04-docker-compose-full-stack-operations) | Docker Compose Full-Stack Operations | Manual validation required |
+| [Lab 05](#lab-05-kubernetes-workloads--traffic-path-troubleshooting) | Kubernetes Workloads & Traffic-Path Troubleshooting | Recorded |
+| [Lab 06](#lab-06-readiness-dependencies-dns-config--resource-failures) | Readiness, Dependencies, DNS, Config & Resource Failures | Partially recorded |
+| [Lab 07](#lab-07-rollouts-releases-rollback--persistent-state) | Rollouts, Releases, Rollback & Persistent State | Not yet captured |
+| [Lab 08](#lab-08-helm-complex-incident-runbook--diagnostic-automation) | Helm, Complex Incident, Runbook & Diagnostic Automation | Not yet captured |
 
-## Study Gaps To Return To
+## Lab 01: Images, Dockerfiles & Build/Runtime Boundaries
 
-```text
-Lab 03: preserve request IDs, logs, metrics, and traces inside containers.
-Lab 04: define alerts, triage steps, and support escalation evidence.
-Lab 05: prove deployments before and after traffic reaches the service.
-Lab 06: practice rollback versus roll-forward decisions.
-Lab 08: investigate one realistic production incident and write an RCA.
-```
+### Must Implement Or Inspect
 
-## Lab 01: Containerize The System
+#### 1. Inspect the Dockerfile
 
-### Goal
-
-Package the Flask app into a Docker image, run it as a container, and prove that the containerized app still handles requests correctly.
-
-### Request Flow
+File inspected:
 
 ```text
-curl on laptop
-  |
-  v
-127.0.0.1:5001 on host
-  |
-  v
-Docker port mapping
-  |
-  v
-5001 inside container
-  |
-  v
-Flask app
-  |
-  v
-/health
-  |
-  v
-JSON response with X-Request-ID
+Dockerfile
 ```
 
-### Step 1: Create the Dockerfile
-
-Created:
-
-```text
-request-tracing-lab/
-|-- Dockerfile
-```
-
-The `Dockerfile` is the image blueprint. It shows how the app becomes a runnable container image.
-
-It covers:
+What it contains:
 
 ```text
 Python base image
-Working directory
+/app working directory
 requirements.txt dependency install
 app.py copy
-container-friendly environment variables
-non-root runtime user
-port 5001
-/health health check
+container-friendly FLASK_RUN_* defaults
+non-root app user
+port 5001 exposure
+/health Docker health check
 python app.py startup command
 ```
 
-### Step 2: Create the .dockerignore
+#### 2. Inspect .dockerignore
 
-Created:
+File inspected:
 
 ```text
-request-tracing-lab/
-|-- .dockerignore
+.dockerignore
 ```
 
-The `.dockerignore` prevents local-only files from being copied into the Docker build context.
+What it excludes:
 
-Ignored files:
-
-```gitignore
+```text
 venv/
 .venv/
 __pycache__/
-**/__pycache__/
-*.py[cod]
 .git/
-.DS_Store
 .env
 *.pem
 *.key
 cookies.txt
 ```
 
-### Step 3: Build the Image
+Evidence:
+
+```text
+Local virtual environments, Python caches, Git history, environment files, certificates, keys, and cookie files are excluded from the Docker build context.
+```
+
+#### 3. Build the application image
 
 Command:
 
@@ -115,13 +78,7 @@ Command:
 docker build -t request-tracing-lab:local .
 ```
 
-Build result:
-
-```text
-Successful
-```
-
-Build evidence:
+Observed build result:
 
 ```text
 [+] Building 2.2s (11/11) FINISHED
@@ -136,52 +93,30 @@ CACHED [6/6] COPY app.py .
 naming to docker.io/library/request-tracing-lab:local
 ```
 
-Any warnings:
-
-```text
-No blocking warnings captured in this build output.
-```
-
 What this proves:
 
 ```text
-Docker found the Dockerfile and .dockerignore, used the current directory as the build context, installed the app dependencies, copied app.py, and created the local image request-tracing-lab:local.
+Docker found the build definition and build context, installed dependencies, copied the application, and created the local image tag request-tracing-lab:local.
 ```
 
-### Step 4: Inspect the Image
+#### 4. Explain build-time work
+
+```text
+Build time installed Python dependencies, copied source files, created the non-root user, recorded image metadata, and produced the reusable image.
+```
+
+#### 5. Explain runtime configuration
+
+```text
+FLASK_RUN_HOST, FLASK_RUN_PORT, FLASK_DEBUG, FLASK_SECRET_KEY, JWT_SECRET, DATABASE_URL, and REDIS_URL are runtime settings. They should be supplied when the container starts, not baked into the image.
+```
+
+#### 6. Run the container
 
 Command:
 
 ```bash
-docker images request-tracing-lab
-```
-
-Output:
-
-```text
-IMAGE                       ID             DISK USAGE   CONTENT SIZE   EXTRA
-request-tracing-lab:local   a2792a8e07b4   249MB        54.4MB         U
-```
-
-What this proves:
-
-```text
-The image exists locally with the expected name and tag.
-```
-
-### Step 5: Run the Container
-
-Command:
-
-```bash
-docker run --rm \
-  -p 5001:5001 \
-  -e FLASK_RUN_HOST=0.0.0.0 \
-  -e FLASK_RUN_PORT=5001 \
-  -e FLASK_DEBUG=false \
-  -e FLASK_SECRET_KEY=local-session-secret \
-  -e JWT_SECRET=local-jwt-secret \
-  request-tracing-lab:local
+docker run --rm   -p 5001:5001   -e FLASK_RUN_HOST=0.0.0.0   -e FLASK_RUN_PORT=5001   -e FLASK_DEBUG=false   -e FLASK_SECRET_KEY=local-session-secret   -e JWT_SECRET=local-jwt-secret   request-tracing-lab:local
 ```
 
 Port mapping:
@@ -190,13 +125,67 @@ Port mapping:
 host port 5001 -> container port 5001
 ```
 
-Why port `5001`:
+Reason for port 5001:
 
 ```text
-Port 5000 was already used by macOS, so the container test used 5001.
+Port 5000 was already used locally, so the container test used 5001.
 ```
 
-### Step 6: Test the Container
+#### 7. Confirm logs go to stdout/stderr
+
+Observed behavior:
+
+```text
+Flask startup and request logs appeared in the terminal running the container. This means Docker can collect the application logs without writing application log files inside the container.
+```
+
+#### 8. Confirm non-root execution
+
+Dockerfile evidence:
+
+```text
+RUN addgroup --system app && adduser --system --ingroup app app
+USER app
+```
+
+What this proves:
+
+```text
+The image is configured to run the application process as the non-root app user.
+```
+
+#### 9. Inspect image tags
+
+Command:
+
+```bash
+docker images request-tracing-lab
+```
+
+Observed output:
+
+```text
+IMAGE                       ID             DISK USAGE   CONTENT SIZE   EXTRA
+request-tracing-lab:local   a2792a8e07b4   249MB        54.4MB         U
+```
+
+Conclusion:
+
+```text
+The image exists locally with the expected repository and tag. The tag is a human-readable pointer; the image ID identifies the built image content locally.
+```
+
+#### 10. Classify one failure boundary
+
+Example classification:
+
+```text
+If docker build fails before an image exists, the failure is build-time.
+If the image exists but docker run exits immediately, the failure is container-start.
+If the container stays running but /health returns an application error, the failure is application-runtime.
+```
+
+### Healthy-Path Verification
 
 Command:
 
@@ -204,7 +193,7 @@ Command:
 curl -i http://127.0.0.1:5001/health
 ```
 
-Response headers:
+Observed response:
 
 ```http
 HTTP/1.1 200 OK
@@ -216,7 +205,7 @@ X-Request-ID: d1dc6a86-e309-4000-8a86-9d7ddd0b5441
 Connection: close
 ```
 
-Response body:
+Observed body:
 
 ```json
 {
@@ -225,229 +214,34 @@ Response body:
 }
 ```
 
-What this proves:
+Conclusion:
 
 ```text
-The request reached the Flask app running inside the container. The app returned a successful JSON response and included X-Request-ID, so request tracing still works after packaging.
+The request reached Flask inside the container and returned a successful JSON response with X-Request-ID preserved.
 ```
 
-### Evidence Summary
+### Controlled Failures
 
 ```text
-Dockerfile created:
-Yes
-
-.dockerignore created:
-Yes
-
-Build command:
-docker build -t request-tracing-lab:local .
-
-Image name and tag:
-request-tracing-lab:local
-
-Image inspection command:
-docker images request-tracing-lab
-
-Image ID:
-a2792a8e07b4
-
-Disk usage:
-249MB
-
-Content size:
-54.4MB
-
-Run command:
-docker run --rm -p 5001:5001 ... request-tracing-lab:local
-
-Host port:
-5001
-
-Container port:
-5001
-
-curl command:
-curl -i http://127.0.0.1:5001/health
-
-Response status:
-HTTP/1.1 200 OK
-
-X-Request-ID:
-d1dc6a86-e309-4000-8a86-9d7ddd0b5441
+Not yet captured.
 ```
 
-### Troubleshooting Prompts
-
-What happens if the app binds to `127.0.0.1` inside the container?
+### Retained Takeaway
 
 ```text
-The app may only listen on the container's loopback interface.
-
-Result:
-The Flask process can answer requests from inside the container, but traffic forwarded from Docker or Kubernetes may not reach it.
-
-Fix:
-Bind the app to 0.0.0.0 inside the container.
+An image packages the application. A container runs one process from that image with runtime configuration.
 ```
 
-What happens if the host port is mapped incorrectly?
+## Lab 02: Runtime Configuration, Ports, Processes & Filesystem
 
-```text
-The container may be running correctly, but the laptop request goes to the wrong host port.
+### Must Implement Or Inspect
 
-Example:
-If the container is started with -p 5002:5001, then this will fail:
-curl http://127.0.0.1:5001/health
-
-The correct test would be:
-curl http://127.0.0.1:5002/health
-```
-
-How do you inspect container logs?
-
-```bash
-docker ps
-docker logs <container-id-or-name>
-```
-
-For this lab, the app writes logs to stdout/stderr, so `docker logs` should show the same Flask request logs that appeared when running `python app.py` locally.
-
-How do you verify the container is listening on the expected port?
-
-```bash
-docker ps
-docker port <container-id-or-name>
-curl -i http://127.0.0.1:5001/health
-```
-
-What to prove:
-
-```text
-docker ps shows the port mapping.
-docker port shows host port -> container port.
-curl proves the mapped port reaches the Flask /health route.
-```
-
-How would you keep secrets out of the image?
-
-```text
-Do not hard-code secrets in app.py.
-Do not put secrets in the Dockerfile.
-Do not copy .env, keys, certificates, or cookies into the image.
-Use runtime environment variables for local testing.
-Use Kubernetes Secrets or a secret manager in Kubernetes-style environments.
-```
-
-### Key Takeaways
-
-```text
-Build context:
-The dot in docker build -t request-tracing-lab:local . tells Docker to use the current directory as the build context.
-
-Dockerfile:
-The Dockerfile must exist in the build context unless another file is specified with -f.
-
-.dockerignore:
-.dockerignore keeps local-only files, caches, Git history, secrets, and generated files out of the build context.
-
-Port mapping:
--p 5001:5001 maps laptop port 5001 to container port 5001.
-
-Runtime config:
-The container image is reusable because host, port, debug mode, and secrets are supplied at runtime with environment variables.
-
-Tracing:
-The same /health endpoint and X-Request-ID behavior worked after packaging, proving the request-tracing behavior survived the move into a container.
-```
-
-## Lab 02: Configuration And Secrets
-
-### Goal
-
-Confirm the Flask app can run locally with container-style runtime settings before building a Docker image.
-
-This phase proves:
-
-```text
-The app starts successfully.
-The app can read environment variables.
-The app can listen on 0.0.0.0.
-The health endpoint still works.
-Logs still print to the terminal.
-X-Request-ID still appears in responses and logs.
-```
-
-### Why This Phase Matters
-
-Before building an image, the app should already behave the way it needs to behave inside a container.
-
-Container runtime behavior means:
-
-```text
-The app starts from a runtime command.
-Settings come from environment variables.
-Secrets are injected at runtime.
-The app listens on an address reachable inside its network environment.
-Logs go to stdout/stderr.
-```
-
-If this fails locally, Docker and Kubernetes will add more layers to troubleshoot.
-
-### Request Flow
-
-```text
-curl on laptop
-  |
-  v
-127.0.0.1:5001
-  |
-  v
-Flask process listening on 0.0.0.0:5001
-  |
-  v
-/health
-  |
-  v
-JSON response with X-Request-ID
-```
-
-### Step 1: Run With Local Defaults
+#### 1. Run with container-style environment variables
 
 Command:
 
 ```bash
-python app.py
-```
-
-Test:
-
-```bash
-curl -i http://127.0.0.1:5000/health
-```
-
-Expected result:
-
-```text
-HTTP status is 200.
-Response body says the app is healthy.
-Response headers include X-Request-ID.
-Flask logs show request_started and request_finished.
-```
-
-### Step 2: Run With Container-Style Runtime Settings
-
-Port `5000` was already in use on this machine, so the app was started on port `5001`.
-
-Command:
-
-```bash
-FLASK_RUN_HOST=0.0.0.0 \
-FLASK_RUN_PORT=5001 \
-FLASK_DEBUG=false \
-FLASK_SECRET_KEY=local-session-secret \
-JWT_SECRET=local-jwt-secret \
-python3 app.py
+FLASK_RUN_HOST=0.0.0.0 FLASK_RUN_PORT=5001 FLASK_DEBUG=false FLASK_SECRET_KEY=local-session-secret JWT_SECRET=local-jwt-secret python3 app.py
 ```
 
 Startup evidence:
@@ -463,10 +257,10 @@ Running on http://10.0.0.11:5001
 What this proves:
 
 ```text
-The app accepted runtime configuration from environment variables and listened on 0.0.0.0 instead of only 127.0.0.1.
+The app accepted runtime configuration from environment variables and listened on 0.0.0.0.
 ```
 
-### Step 3: Test The Health Endpoint
+#### 2. Confirm listener and host port
 
 Command:
 
@@ -474,7 +268,7 @@ Command:
 curl -i http://127.0.0.1:5001/health
 ```
 
-Response headers:
+Observed response:
 
 ```http
 HTTP/1.1 200 OK
@@ -486,7 +280,7 @@ X-Request-ID: e4d2e8f2-bb24-4890-a09c-a3f3b521e909
 Connection: close
 ```
 
-Response body:
+Observed body:
 
 ```json
 {
@@ -495,7 +289,9 @@ Response body:
 }
 ```
 
-Matching Flask logs:
+#### 3. Correlate request ID with logs
+
+Observed Flask logs:
 
 ```text
 2026-07-24 01:39:37,201 INFO request_started request_id=e4d2e8f2-bb24-4890-a09c-a3f3b521e909 method=GET path=/health remote_ip=127.0.0.1 user_agent=curl/8.7.1
@@ -505,10 +301,10 @@ Matching Flask logs:
 What this proves:
 
 ```text
-The Flask app responded successfully with runtime env vars, returned X-Request-ID, and logged the same request ID with method, path, and status.
+The same request ID appeared in the response and server logs, so tracing still works with runtime configuration.
 ```
 
-### Step 4: Troubleshoot Port 5000
+#### 4. Investigate a port conflict
 
 Original symptom:
 
@@ -531,77 +327,115 @@ ControlCe was listening on *:commplex-main, which maps to port 5000.
 Conclusion:
 
 ```text
-The startup failure was not caused by Flask code. Port 5000 was already owned by a macOS system process, so `FLASK_RUN_PORT=5001` was used.
+The startup failure was not caused by Flask code. The expected local port was already owned by another process, so FLASK_RUN_PORT=5001 was used.
 ```
 
-Why this matters:
+### Controlled Failures
 
 ```text
-Port conflicts are common operations problems. In Docker or Kubernetes, a similar symptom can come from the wrong container port, wrong service targetPort, or another process already listening on the expected port.
+Wrong host binding: Not yet captured.
+Wrong host port: Not yet captured.
+Missing secret: Not yet captured.
+Filesystem write behavior: Not yet captured.
 ```
 
-### Runtime Settings
+### Retained Takeaway
 
 ```text
-FLASK_RUN_HOST: Controls which network address Flask listens on.
-FLASK_RUN_PORT: Controls which port Flask listens on.
-FLASK_DEBUG: Controls debug behavior. Use false outside local development.
-FLASK_SECRET_KEY: Signs Flask session cookies. Use a real secret in production.
-JWT_SECRET: Signs JWTs. Use a real secret in production.
+Inside a container, localhost means the container. Bind the app to 0.0.0.0 and make ports, secrets, and writable state explicit at runtime.
 ```
 
-### Key Takeaways
+## Lab 03: Docker Networking, DNS & Container Health
+
+### Must Implement Or Inspect
 
 ```text
-Network namespace:
-A container has its own network environment. Its localhost is not the same thing as the laptop's localhost.
-
-Loopback:
-127.0.0.1 means "this same network environment." On a laptop, it means the laptop. Inside a container, it means the container.
-
-Binding:
-Binding to 0.0.0.0 does not create a network namespace. It tells the app to listen on all available interfaces inside the current network environment.
-
-Container traffic:
-Traffic from outside the container needs the app to listen on an address reachable from the container network interface.
-
-Runtime config:
-Environment variables let the same code run in different environments without editing source code.
-
-Reusability:
-The image should contain the app, not environment-specific settings or secrets.
-
-Debug mode:
-FLASK_DEBUG=false is safer outside local development because detailed errors should go to logs and monitoring, not directly to users.
-
-Port troubleshooting:
-When the app cannot start, check whether the expected port is already in use before assuming the application code is broken.
+Not yet captured.
 ```
 
-## Lab 07: Kubernetes Migration
+### Manual Validation Required
 
-### Goal
+Run the documented lab from [LABS.md](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-03-docker-networking-dns--container-health) and capture:
 
-Move from a local container to Kubernetes objects that can run, expose, inspect, and troubleshoot the Flask application.
+```text
+Docker network name:
+Container names:
+DNS lookup from one container to another:
+Internal curl result:
+Host curl result:
+Health status:
+Failure injected:
+Evidence:
+Conclusion:
+```
 
-### Safety Check
+### Retained Takeaway
 
-Before applying manifests, confirm the intended target:
+```text
+Container DNS and health are local runtime evidence. They prove whether containers can find and reach each other before Kubernetes is involved.
+```
+
+## Lab 04: Docker Compose Full-Stack Operations
+
+### Must Implement Or Inspect
+
+The Phase 3 Compose stack now exists at:
+
+```text
+phases/phase-03-kubernetes-operations-troubleshooting/docker-compose.yml
+```
+
+It defines:
+
+```text
+nginx -> api -> postgres
+              -> redis
+```
+
+Supporting files:
+
+```text
+phases/phase-03-kubernetes-operations-troubleshooting/docker/nginx.conf
+phases/phase-03-kubernetes-operations-troubleshooting/docker/init/002_request_notes.sql
+phases/phase-02-tracing-service-boundaries/sql/001_support_tickets.sql
+```
+
+### Manual Validation Required
+
+Run:
 
 ```bash
-kubectl config current-context
-kubectl get nodes
+cd phases/phase-03-kubernetes-operations-troubleshooting
+docker compose up --build
 ```
 
-For local validation, use a local cluster such as Docker Desktop Kubernetes, kind, or minikube.
+Then capture:
 
-Local cluster setup:
-
-```bash
-minikube start
+```text
+Compose services:
+NGINX logs:
+API logs:
+PostgreSQL health:
+Redis health:
+/health through NGINX:
+/notes or support-ticket route through NGINX:
+One dependency failure:
+Recovery validation:
 ```
 
-Current local cluster evidence:
+### Retained Takeaway
+
+```text
+Compose makes the full local service boundary visible before Kubernetes adds Deployments, Services, EndpointSlices, and probes.
+```
+
+## Lab 05: Kubernetes Workloads & Traffic-Path Troubleshooting
+
+### Must Implement Or Inspect
+
+#### 1. Confirm target cluster
+
+Commands:
 
 ```bash
 kubectl config current-context
@@ -609,67 +443,25 @@ minikube status
 kubectl get nodes
 ```
 
-Result:
+Observed evidence:
 
 ```text
 current-context: minikube
 node: minikube Ready
 ```
 
-### Request Flow
+Conclusion:
 
 ```text
-curl or browser
-  |
-  v
-Ingress, if available
-  |
-  v
-Service: request-tracing-lab:80
-  |
-  v
-EndpointSlice / Pod IPs
-  |
-  v
-Pod replica
-  |
-  v
-Container port 5001
-  |
-  v
-Flask /health
-  |
-  v
-JSON response with X-Request-ID
+The intended local Kubernetes target was minikube.
 ```
 
-### Step 1: Create Kubernetes Manifests
-
-Created:
-
-```text
-phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/
-|-- namespace.yaml
-|-- secret.example.yaml
-|-- deployment.yaml
-|-- service.yaml
-|-- ingress.yaml
-|-- hpa.yaml
-|-- networkpolicy.yaml
-```
-
-### Step 2: Check the Manifests Before Applying
+#### 2. Validate manifests before applying
 
 Command:
 
 ```bash
 kubectl apply --dry-run=client -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/
-```
-
-Purpose:
-
-```text
-Validate the YAML shape locally before creating objects in a cluster.
 ```
 
 Local YAML parse check:
@@ -678,7 +470,7 @@ Local YAML parse check:
 ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f); puts "OK #{f}" }' phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/*.yaml
 ```
 
-Result:
+Observed output:
 
 ```text
 OK phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/deployment.yaml
@@ -690,39 +482,7 @@ OK phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/secret.examp
 OK phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/service.yaml
 ```
 
-What this proves:
-
-```text
-The YAML files are syntactically readable.
-```
-
-Before deploying, load the local image into the minikube node:
-
-```bash
-minikube image load request-tracing-lab:local
-```
-
-Meaning:
-
-```text
-Copy the local Docker image into minikube so Kubernetes can run it.
-```
-
-Why this is needed:
-
-```text
-The image request-tracing-lab:local exists in Docker on the laptop.
-Minikube runs its own Kubernetes node.
-That node needs access to the image before it can start Pods from it.
-```
-
-Then run the dry-run validation again:
-
-```bash
-kubectl apply --dry-run=client -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/
-```
-
-Result:
+Observed dry-run result:
 
 ```text
 deployment.apps/request-tracing-lab created (dry run)
@@ -734,16 +494,23 @@ secret/request-tracing-lab-secrets created (dry run)
 service/request-tracing-lab created (dry run)
 ```
 
+#### 3. Load local image into minikube
+
+Command:
+
+```bash
+minikube image load request-tracing-lab:local
+```
+
 What this proves:
 
 ```text
-The Kubernetes API accepted the manifest shapes in dry-run mode.
-No Kubernetes resources were created yet.
+The local image is made available to the minikube node so Kubernetes can start Pods from it.
 ```
 
-### Step 3: Apply to the Intended Cluster
+#### 4. Apply Kubernetes objects
 
-Apply the manifests in a clear order so the namespace and secret exist before the app resources that depend on them:
+Commands:
 
 ```bash
 kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/namespace.yaml
@@ -755,7 +522,7 @@ kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernete
 kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/networkpolicy.yaml
 ```
 
-Apply result:
+Observed result:
 
 ```text
 deployment.apps/request-tracing-lab created
@@ -765,55 +532,16 @@ ingress.networking.k8s.io/request-tracing-lab created
 networkpolicy.networking.k8s.io/request-tracing-lab-ingress unchanged
 ```
 
-### How The Kubernetes Objects Fit Together
-
-```text
-Namespace:
-Holds the lab resources in a separate workspace named request-tracing-lab.
-
-Secret:
-Stores FLASK_SECRET_KEY and JWT_SECRET so they are provided at runtime, not baked into the image.
-
-Deployment:
-Declares that Kubernetes should run 2 replicas of the Flask app container.
-
-Pod:
-The actual running unit created by the Deployment. Each Pod contains the Flask container.
-
-Readiness probe:
-Calls /health to decide whether a Pod is ready to receive traffic.
-
-Liveness probe:
-Calls /health to decide whether Kubernetes should restart the container.
-
-Service:
-Gives the Pods one stable internal name and IP. It sends Service port 80 to container port 5001.
-
-EndpointSlice / Endpoints:
-Shows which ready Pod IPs are currently behind the Service.
-
-Ingress:
-Optional external HTTP routing layer. It sends host/path traffic to the Service.
-
-HPA:
-Watches CPU metrics and can scale the Deployment from 2 to 5 replicas.
-```
-
-### Step 4: Inspect the Deployment
+#### 5. Inspect management path
 
 Commands:
 
 ```bash
 kubectl get all -n request-tracing-lab
 kubectl get pods -n request-tracing-lab -o wide
-kubectl get svc -n request-tracing-lab
-kubectl get endpoints -n request-tracing-lab
-kubectl get hpa -n request-tracing-lab
-kubectl get ingress -n request-tracing-lab
-kubectl get events -n request-tracing-lab --sort-by=.lastTimestamp
 ```
 
-Deployment evidence:
+Observed evidence:
 
 ```text
 pod/request-tracing-lab-5f4994cbbb-2fhq9   1/1   Running   0   21s
@@ -822,6 +550,22 @@ pod/request-tracing-lab-5f4994cbbb-xltrj   1/1   Running   0   21s
 deployment.apps/request-tracing-lab   2/2   2   2   21s
 
 replicaset.apps/request-tracing-lab-5f4994cbbb   2   2   2   21s
+```
+
+Conclusion:
+
+```text
+The Deployment created a ReplicaSet, and the ReplicaSet maintained two running Pods.
+```
+
+#### 6. Inspect traffic path
+
+Commands:
+
+```bash
+kubectl get svc -n request-tracing-lab
+kubectl get endpoints -n request-tracing-lab
+kubectl get ingress -n request-tracing-lab
 ```
 
 Service evidence:
@@ -836,51 +580,27 @@ Endpoint evidence:
 request-tracing-lab   10.244.0.3:5001,10.244.0.4:5001
 ```
 
-HPA evidence:
+Conclusion:
 
 ```text
-horizontalpodautoscaler.autoscaling/request-tracing-lab
-REFERENCE: Deployment/request-tracing-lab
-TARGETS: cpu: <unknown>/70%
-MINPODS: 2
-MAXPODS: 5
-REPLICAS: 2
+The Service exists and has ready Pod endpoints on container port 5001.
 ```
 
-What this proves:
+#### 7. Test through Service port-forward
 
-```text
-The Deployment created 2 running Pods.
-The ReplicaSet is maintaining the requested replica count.
-The Service exists and has ready Pod endpoints.
-The Service routes traffic to container port 5001.
-The HPA exists, but CPU metrics are not available yet.
-```
-
-### Step 5: Test the Service With Port Forwarding
-
-Use this if Ingress is not available:
+Command:
 
 ```bash
 kubectl port-forward -n request-tracing-lab svc/request-tracing-lab 8080:80
 ```
 
-In another terminal:
+Request:
 
 ```bash
 curl -i http://127.0.0.1:8080/health
 ```
 
-Expected result:
-
-```text
-HTTP/1.1 200 OK
-X-Request-ID is present
-Response body reports status healthy
-Matching Flask request log appears in kubectl logs
-```
-
-Successful curl evidence:
+Observed response:
 
 ```http
 HTTP/1.1 200 OK
@@ -892,7 +612,7 @@ X-Request-ID: ee760dae-047d-438e-87bc-bc68436b4f8a
 Connection: close
 ```
 
-Response body:
+Observed body:
 
 ```json
 {
@@ -901,13 +621,21 @@ Response body:
 }
 ```
 
+Conclusion:
+
+```text
+Traffic reached the Flask app through the Kubernetes Service.
+```
+
+### Troubleshooting Evidence
+
 Log command:
 
 ```bash
 kubectl logs -n request-tracing-lab deploy/request-tracing-lab
 ```
 
-Observed log evidence:
+Observed Kubernetes probe log:
 
 ```text
 request_started request_id=ded40706-aaa2-45db-9b65-d4253aa51f38 method=GET path=/health remote_ip=10.244.0.1 user_agent=kube-probe/1.35
@@ -917,117 +645,153 @@ request_finished request_id=ded40706-aaa2-45db-9b65-d4253aa51f38 status=200
 What this proves:
 
 ```text
-Kubernetes readiness/liveness probes are reaching /health successfully.
-The user_agent kube-probe/1.35 identifies Kubernetes health-check traffic, not browser or curl user traffic.
+Kubernetes readiness/liveness probes are reaching /health successfully. The kube-probe user agent identifies health-check traffic, not browser or curl traffic.
 ```
 
-To find a specific curl request ID:
+### Retained Takeaway
+
+```text
+Kubernetes has two different paths to inspect: management creates Pods; traffic reaches only ready Pods through Service and EndpointSlice routing.
+```
+
+## Lab 06: Readiness, Dependencies, DNS, Config & Resource Failures
+
+### Must Implement Or Inspect
+
+Configuration now exists in:
+
+```text
+phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/configmap.yaml
+phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/secret.example.yaml
+phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/deployment.yaml
+```
+
+The Deployment references:
+
+```text
+envFrom ConfigMap: request-tracing-lab-config
+Secret: request-tracing-lab-secrets
+DATABASE_URL from Secret because the local example includes database credentials
+Readiness probe: /health on named port http
+Liveness probe: /health on named port http
+Requests: cpu 100m, memory 128Mi
+Limits: cpu 500m, memory 256Mi
+```
+
+Recorded readiness evidence from Lab 05:
+
+```text
+request_started request_id=ded40706-aaa2-45db-9b65-d4253aa51f38 method=GET path=/health remote_ip=10.244.0.1 user_agent=kube-probe/1.35
+request_finished request_id=ded40706-aaa2-45db-9b65-d4253aa51f38 status=200
+```
+
+What this proves:
+
+```text
+At the time captured, Kubernetes probes could reach /health and the application returned 200.
+```
+
+### Remaining Manual Validation
+
+Capture these failure modes by following Lab 06 in [LABS.md](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-06-readiness-dependencies-dns-config--resource-failures):
+
+```text
+Bad readiness path:
+Bad ConfigMap or Secret reference:
+Bad REDIS_URL or DATABASE_URL:
+DNS lookup failure from inside the Pod:
+Resource request causing Pending:
+Recovery validation:
+```
+
+### Retained Takeaway
+
+```text
+A running Pod is not automatically useful. Readiness, runtime configuration, DNS, resources, and dependencies decide whether it can serve real traffic.
+```
+
+## Lab 07: Rollouts, Releases, Rollback & Persistent State
+
+### Must Implement Or Inspect
+
+```text
+Not yet captured.
+```
+
+### Manual Validation Required
+
+Run the documented rollout lab and capture:
+
+```text
+Initial image or config:
+Rollout command:
+rollout status:
+ReplicaSet before and after:
+Failure injected:
+Rollback command:
+Post-rollback validation:
+PostgreSQL persistence check:
+What changed safely:
+What should not be rolled back casually:
+```
+
+### Retained Takeaway
+
+```text
+Rollbacks can recover stateless app behavior quickly, but persistent data and schema changes need separate evidence and care.
+```
+
+## Lab 08: Helm, Complex Incident, Runbook & Diagnostic Automation
+
+### Must Implement Or Inspect
+
+Phase 3 now includes:
+
+```text
+phases/phase-03-kubernetes-operations-troubleshooting/helm/request-tracing-lab/
+phases/phase-03-kubernetes-operations-troubleshooting/scripts/diagnose-service-routing.sh
+phases/phase-03-kubernetes-operations-troubleshooting/runbooks/
+```
+
+Diagnostic helper purpose:
+
+```text
+Collect Service selector, matching Pods, readiness, EndpointSlices, Service ports, targetPort, container ports, and recent events. It does not generate a root-cause conclusion.
+```
+
+### Manual Validation Required
+
+Run:
 
 ```bash
-kubectl logs -n request-tracing-lab deploy/request-tracing-lab | grep ee760dae-047d-438e-87bc-bc68436b4f8a
+phases/phase-03-kubernetes-operations-troubleshooting/scripts/diagnose-service-routing.sh request-tracing-lab request-tracing-lab
 ```
 
-If the Deployment log command does not show it, inspect each Pod:
+If Helm is installed, run:
 
 ```bash
-kubectl get pods -n request-tracing-lab
-kubectl logs -n request-tracing-lab pod/<pod-name> | grep ee760dae-047d-438e-87bc-bc68436b4f8a
+helm lint phases/phase-03-kubernetes-operations-troubleshooting/helm/request-tracing-lab
+helm template request-tracing-lab phases/phase-03-kubernetes-operations-troubleshooting/helm/request-tracing-lab
 ```
 
-Why:
+Capture:
 
 ```text
-The Service can send different requests to different Pod replicas.
-The request ID separates the curl request from Kubernetes probe traffic.
+Runbook used:
+Symptom:
+Expected request path:
+Known-good boundaries:
+First failed boundary:
+Diagnostic helper output:
+Helm rendered evidence:
+Root cause:
+Fix or mitigation:
+Validation:
+Prevention note:
 ```
 
-### Record
+### Retained Takeaway
 
 ```text
-Namespace:
-request-tracing-lab
-
-Deployment name:
-request-tracing-lab
-
-Replica count:
-2 desired, 2 current, 2 ready
-
-Pod status:
-Two Pods Running and Ready:
-request-tracing-lab-5f4994cbbb-2fhq9
-request-tracing-lab-5f4994cbbb-xltrj
-
-Service name:
-request-tracing-lab
-
-Service selector:
-app.kubernetes.io/name=request-tracing-lab
-
-Endpoints present:
-Yes:
-10.244.0.3:5001
-10.244.0.4:5001
-
-Ingress host:
-request-tracing-lab.local
-
-Readiness probe:
-/health on named port http
-
-Liveness probe:
-/health on named port http
-
-Request ID test:
-curl returned X-Request-ID ee760dae-047d-438e-87bc-bc68436b4f8a
-
-Matching app log:
-Kubernetes probe logs were confirmed with user_agent=kube-probe/1.35 and status=200.
-Specific curl request ID can be found with kubectl logs and grep across the Deployment or individual Pods.
-```
-
-### Key Takeaways
-
-```text
-Context safety:
-Always confirm kubectl config current-context before applying manifests. The intended lab target was minikube, not EKS.
-
-Local image loading:
-minikube image load request-tracing-lab:local copies the local Docker image into the minikube node so Kubernetes can start Pods from it.
-
-Apply order:
-Namespaces should exist before namespaced resources such as Deployments, Services, HPAs, Ingresses, and NetworkPolicies.
-
-Deployment:
-Creates and maintains the desired number of Pods.
-
-Pod:
-Runs the containerized Flask app.
-
-Service:
-Gives the Pods a stable internal address and routes port 80 to container port 5001.
-
-EndpointSlice / Endpoints:
-Shows whether the Service has ready Pods behind it. No endpoints means Service traffic has nowhere useful to go.
-
-Readiness probe:
-Controls whether a Pod should receive traffic.
-
-Liveness probe:
-Controls whether Kubernetes should restart a stuck or unhealthy container.
-
-Secret:
-Provides runtime values such as FLASK_SECRET_KEY and JWT_SECRET without baking them into the image.
-
-Ingress:
-Routes external HTTP traffic to the Service when an ingress controller exists.
-
-HPA:
-Defines scaling intent from 2 to 5 replicas. cpu: <unknown>/70% means metrics are not available yet, not that the app failed.
-
-Operational evidence:
-Use Pods, Deployments, Services, Endpoints, Events, HPA, curl, and logs together. One command rarely tells the whole story.
-
-Production framing:
-For an app moving toward production, confirm image availability, runtime config, secrets, probes, resource requests/limits, scaling behavior, service routing, logs, and clear rollback/deployment ownership with the developer.
+A useful troubleshooting tool gathers boundary evidence quickly, but the operator still owns the reasoning and final conclusion.
 ```

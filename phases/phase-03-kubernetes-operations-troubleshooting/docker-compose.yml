@@ -1,0 +1,77 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - request-tracing
+
+  api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: request-tracing-lab:phase3-compose
+    environment:
+      FLASK_RUN_HOST: 0.0.0.0
+      FLASK_RUN_PORT: "5001"
+      FLASK_DEBUG: "false"
+      FLASK_SECRET_KEY: local-compose-session-secret
+      JWT_SECRET: local-compose-jwt-secret
+      DATABASE_URL: postgresql://request_lab:request_lab@postgres:5432/request_tracing_lab
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "5001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"FLASK_RUN_PORT\", \"5001\")}/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - request-tracing
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: request_tracing_lab
+      POSTGRES_USER: request_lab
+      POSTGRES_PASSWORD: request_lab
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../phase-02-tracing-service-boundaries/sql/001_support_tickets.sql:/docker-entrypoint-initdb.d/001_support_tickets.sql:ro
+      - ./docker/init/002_request_notes.sql:/docker-entrypoint-initdb.d/002_request_notes.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U request_lab -d request_tracing_lab"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - request-tracing
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - request-tracing
+
+volumes:
+  postgres-data:
+
+networks:
+  request-tracing:
+    driver: bridge

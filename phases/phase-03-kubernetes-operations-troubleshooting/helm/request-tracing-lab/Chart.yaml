@@ -1,0 +1,6 @@
+apiVersion: v2
+name: request-tracing-lab
+description: Local Helm chart for Phase 3 Kubernetes troubleshooting labs.
+type: application
+version: 0.1.0
+appVersion: "local"

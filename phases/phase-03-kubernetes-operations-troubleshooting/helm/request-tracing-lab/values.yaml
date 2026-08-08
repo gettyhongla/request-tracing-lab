@@ -1,0 +1,51 @@
+replicaCount: 2
+
+image:
+  repository: request-tracing-lab
+  tag: local
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: http
+
+ingress:
+  enabled: true
+  className: nginx
+  host: request-tracing-lab.local
+  path: /
+
+config:
+  FLASK_RUN_HOST: "0.0.0.0"
+  FLASK_RUN_PORT: "5001"
+  FLASK_DEBUG: "false"
+  REDIS_URL: "redis://redis:6379/0"
+
+secrets:
+  create: true
+  FLASK_SECRET_KEY: replace-me-local-session-secret
+  JWT_SECRET: replace-me-local-jwt-secret
+  DATABASE_URL: postgresql://request_lab:request_lab@postgres:5432/request_tracing_lab
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+probes:
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  liveness:
+    path: /health
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 2
+    failureThreshold: 3
