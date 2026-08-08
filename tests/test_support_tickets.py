@@ -21,7 +21,7 @@ def client(monkeypatch):
     app_module.app.config.update(TESTING=True, SECRET_KEY="test-secret")
 
     migration = Path(
-        "phases/phase-02-building-a-production-service/sql/001_support_tickets.sql"
+        "phases/phase-02-tracing-service-boundaries/sql/001_support_tickets.sql"
     ).read_text()
     with psycopg.connect(TEST_DATABASE_URL) as conn:
         with conn.cursor() as cur:

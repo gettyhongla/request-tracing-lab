@@ -19,7 +19,7 @@ Use them after completing the container packaging lab.
 ## Apply
 
 ```bash
-kubectl apply -f phases/phase-03-operating-a-production-service/kubernetes/
+kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/
 ```
 
 ## Inspect

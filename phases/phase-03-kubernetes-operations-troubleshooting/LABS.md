@@ -1,4 +1,4 @@
-# Phase 3 Labs
+# Phase 3 Labs: Kubernetes Operations And Evidence-First Troubleshooting
 
 ## Table Of Contents
 
@@ -10,6 +10,9 @@
 6. [Lab 06: Rollback And Release Safety](#lab-06-rollback-and-release-safety)
 7. [Lab 07: Kubernetes Migration](#lab-07-kubernetes-migration)
 8. [Lab 08: Production Incident](#lab-08-production-incident)
+- [Kubernetes Challenge Labs](challenges/README.md)
+- [Troubleshooting Worksheet](worksheets/kubernetes-troubleshooting.md)
+- [Traffic And Management Paths](architecture/kubernetes-paths.md)
 
 ## Lab 01: Containerize The System
 

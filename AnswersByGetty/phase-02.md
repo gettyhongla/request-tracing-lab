@@ -1043,7 +1043,7 @@ Redis can support temporary cache, sessions, or queues later, but support ticket
 The migration file is:
 
 ```text
-phases/phase-02-building-a-production-service/sql/001_support_tickets.sql
+phases/phase-02-tracing-service-boundaries/sql/001_support_tickets.sql
 ```
 
 It creates:
@@ -1095,7 +1095,7 @@ Indexes are not cache. An index is a database lookup structure that helps Postgr
 **Schema applied:**
 
 ```bash
-psql request_tracing_lab -f phases/phase-02-building-a-production-service/sql/001_support_tickets.sql
+psql request_tracing_lab -f phases/phase-02-tracing-service-boundaries/sql/001_support_tickets.sql
 ```
 
 **Tables verified:**
@@ -1383,7 +1383,7 @@ This lab used the existing support-ticket architecture from Labs 01-05 and inspe
 
 Reference model:
 
-[Phase 2 Labs 01-06 Request Path And Database Model](../phases/phase-02-building-a-production-service/assets/lab-06-current-architecture.md)
+[Phase 2 Labs 01-06 Request Path And Database Model](../phases/phase-02-tracing-service-boundaries/assets/lab-06-current-architecture.md)
 
 Request path under test:
 
@@ -1899,7 +1899,7 @@ curl -> NGINX :8080 -> Flask REST API -> session auth / authorization -> Postgre
 Evidence status:
 
 ```text
-In progress. Replace `Not captured yet` with the actual command output as each step is completed.
+Steps 1-4 are captured. Steps 5-7 still need hands-on evidence.
 ```
 
 ### Step 1: Register A Customer Session
@@ -1924,22 +1924,22 @@ I captured:
 
 ```text
 Status code:
-Not captured yet.
+201 Created.
 
 Set-Cookie header:
-Not captured yet.
+`Set-Cookie: session=...; HttpOnly; Path=/`
 
 Response request_id:
-Not captured yet.
+07fdf1e4b464d8bd2bce4e46e67c0ace.
 
 PostgreSQL user row:
-Not captured yet.
+The API response created user id 6 with username `lab07_customer`, email `lab07_customer@example.com`, role `customer`, and `is_active=true`.
 ```
 
 Result:
 
 ```text
-Not captured yet.
+The request reached NGINX, was proxied to Flask, created the customer user, and returned a server-managed session cookie.
 ```
 
 ### Step 2: Create A Ticket As The Customer
@@ -1964,16 +1964,16 @@ I captured:
 
 ```text
 Status code:
-Not captured yet.
+201 Created.
 
 Response body:
-Not captured yet.
+The response returned ticket id 6, ticket number TCK-22248145, created_by 6, category technical_question, priority medium, and status open.
 
 Ticket ID or ticket number:
-Not captured yet.
+id=6, ticket_number=TCK-22248145.
 
 Request ID:
-Not captured yet.
+5e5e6097c45b68a15433284a15f63994.
 ```
 
 I verified in PostgreSQL:
@@ -1987,7 +1987,20 @@ psql request_tracing_lab -c "SELECT id, ticket_id, action, request_id FROM ticke
 Result:
 
 ```text
-Not captured yet.
+The API created the ticket, the first customer message, and the ticket audit event. The `ticket_events.request_id` matched the ticket creation response request ID.
+```
+
+Database evidence:
+
+```text
+tickets:
+id=6, ticket_number=TCK-22248145, created_by=6, status=open, priority=medium
+
+ticket_messages:
+id=9, ticket_id=6, author_id=6, message_type=customer_reply
+
+ticket_events:
+id=9, ticket_id=6, action=ticket_created, request_id=5e5e6097c45b68a15433284a15f63994
 ```
 
 ### Step 3: List Tickets With A Valid Session
@@ -2010,19 +2023,19 @@ I captured:
 
 ```text
 Status code:
-Not captured yet.
+200 OK.
 
 Ticket count or ticket number returned:
-Not captured yet.
+The response returned one ticket: TCK-22248145.
 
 Request ID:
-Not captured yet.
+24d79b63643ee0dbf14579418d18e666.
 ```
 
 Result:
 
 ```text
-Not captured yet.
+The same customer session cookie authorized the ticket list request, and the API returned only that customer's ticket.
 ```
 
 ### Step 4: Prove Missing Session Fails
@@ -2045,19 +2058,19 @@ I captured:
 
 ```text
 Status code:
-Not captured yet.
+401 Unauthorized.
 
 Response body:
-Not captured yet.
+`authentication required` with category `unauthenticated`.
 
 Failed layer:
-Not captured yet.
+Application authentication/session boundary.
 ```
 
 Result:
 
 ```text
-Not captured yet.
+The request reached NGINX and Flask, but Flask rejected it because no valid session cookie was present. This rules out proxy routing and application availability for this failure.
 ```
 
 ### Step 5: Prove Authorization Is Separate From Authentication
@@ -2223,7 +2236,7 @@ This lab uses a durable `ticket_events` database row as the source for a webhook
 Evidence status:
 
 ```text
-In progress. Replace `Not captured yet` with the actual command output as each step is completed.
+Step 1 is captured from PostgreSQL. Later webhook delivery steps still need hands-on evidence.
 ```
 
 ### Step 1: Choose A Durable Ticket Event
@@ -2245,25 +2258,26 @@ I captured:
 
 ```text
 Database action names:
-Not captured yet.
+message_added
+ticket_created
 
 Selected database event row:
-Not captured yet.
+Latest captured row: id=9, ticket_id=6, action=ticket_created, actor_id=6, request_id=5e5e6097c45b68a15433284a15f63994, created_at=2026-08-05 03:08:45.955718-04.
 
 Chosen outbound event type:
-Not captured yet.
+ticket.created.
 
 Ticket ID:
-Not captured yet.
+6.
 
 Request ID:
-Not captured yet.
+5e5e6097c45b68a15433284a15f63994.
 ```
 
 Result:
 
 ```text
-Not captured yet.
+The app records durable audit actions in `ticket_events.action`, not `event_type`. The internal `ticket_created` action can be represented externally as webhook event type `ticket.created`.
 ```
 
 ### Step 2: Start A Local Webhook Receiver

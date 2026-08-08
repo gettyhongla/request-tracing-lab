@@ -1,4 +1,4 @@
-# Phase 2 Labs
+# Phase 2 Labs: Tracing Service Boundaries
 
 ## Table Of Contents
 
@@ -18,6 +18,9 @@
 14. [Lab 14: Production-Readiness Review](#lab-14-production-readiness-review)
 - [Lab 05 Setup Reference](#lab-05-setup-reference)
 - [Production Review Scenarios](#production-review-scenarios)
+- [Challenge Scenarios](challenges/README.md)
+- [Evidence-First Worksheet](worksheets/evidence-first-troubleshooting.md)
+- [Service Boundary Diagrams](architecture/service-boundaries.md)
 
 ## Lab 01: Three-Tier Architecture
 
@@ -2558,7 +2561,7 @@ Use this reference when you are ready to run the support-ticket data model local
 Apply the migration:
 
 ```bash
-psql request_tracing_lab -f phases/phase-02-building-a-production-service/sql/001_support_tickets.sql
+psql request_tracing_lab -f phases/phase-02-tracing-service-boundaries/sql/001_support_tickets.sql
 ```
 
 Inspect the schema:

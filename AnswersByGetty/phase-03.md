@@ -8,12 +8,12 @@ This document records completed Phase 3 container and Kubernetes evidence, concl
 | --- | --- | --- |
 | [Lab 01](#lab-01-containerize-the-system) | Containerize the system | Recorded |
 | [Lab 02](#lab-02-configuration-and-secrets) | Configuration and secrets | Recorded |
-| [Lab 03](../phases/phase-03-operating-a-production-service/LABS.md#lab-03-observability) | Observability | Not yet recorded |
-| [Lab 04](../phases/phase-03-operating-a-production-service/LABS.md#lab-04-alerting-and-supportability) | Alerting and supportability | Not yet recorded |
-| [Lab 05](../phases/phase-03-operating-a-production-service/LABS.md#lab-05-deployment-verification) | Deployment verification | Not yet recorded |
-| [Lab 06](../phases/phase-03-operating-a-production-service/LABS.md#lab-06-rollback-and-release-safety) | Rollback and release safety | Not yet recorded |
+| [Lab 03](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-03-observability) | Observability | Not yet recorded |
+| [Lab 04](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-04-alerting-and-supportability) | Alerting and supportability | Not yet recorded |
+| [Lab 05](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-05-deployment-verification) | Deployment verification | Not yet recorded |
+| [Lab 06](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-06-rollback-and-release-safety) | Rollback and release safety | Not yet recorded |
 | [Lab 07](#lab-07-kubernetes-migration) | Kubernetes migration | Recorded out of order |
-| [Lab 08](../phases/phase-03-operating-a-production-service/LABS.md#lab-08-production-incident) | Production incident | Not yet recorded |
+| [Lab 08](../phases/phase-03-kubernetes-operations-troubleshooting/LABS.md#lab-08-production-incident) | Production incident | Not yet recorded |
 
 ## Study Gaps To Return To
 
@@ -648,7 +648,7 @@ JSON response with X-Request-ID
 Created:
 
 ```text
-phases/phase-03-operating-a-production-service/kubernetes/
+phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/
 |-- namespace.yaml
 |-- secret.example.yaml
 |-- deployment.yaml
@@ -663,7 +663,7 @@ phases/phase-03-operating-a-production-service/kubernetes/
 Command:
 
 ```bash
-kubectl apply --dry-run=client -f phases/phase-03-operating-a-production-service/kubernetes/
+kubectl apply --dry-run=client -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/
 ```
 
 Purpose:
@@ -675,19 +675,19 @@ Validate the YAML shape locally before creating objects in a cluster.
 Local YAML parse check:
 
 ```bash
-ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f); puts "OK #{f}" }' phases/phase-03-operating-a-production-service/kubernetes/*.yaml
+ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f); puts "OK #{f}" }' phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/*.yaml
 ```
 
 Result:
 
 ```text
-OK phases/phase-03-operating-a-production-service/kubernetes/deployment.yaml
-OK phases/phase-03-operating-a-production-service/kubernetes/hpa.yaml
-OK phases/phase-03-operating-a-production-service/kubernetes/ingress.yaml
-OK phases/phase-03-operating-a-production-service/kubernetes/namespace.yaml
-OK phases/phase-03-operating-a-production-service/kubernetes/networkpolicy.yaml
-OK phases/phase-03-operating-a-production-service/kubernetes/secret.example.yaml
-OK phases/phase-03-operating-a-production-service/kubernetes/service.yaml
+OK phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/deployment.yaml
+OK phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/hpa.yaml
+OK phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/ingress.yaml
+OK phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/namespace.yaml
+OK phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/networkpolicy.yaml
+OK phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/secret.example.yaml
+OK phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/service.yaml
 ```
 
 What this proves:
@@ -719,7 +719,7 @@ That node needs access to the image before it can start Pods from it.
 Then run the dry-run validation again:
 
 ```bash
-kubectl apply --dry-run=client -f phases/phase-03-operating-a-production-service/kubernetes/
+kubectl apply --dry-run=client -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/
 ```
 
 Result:
@@ -746,13 +746,13 @@ No Kubernetes resources were created yet.
 Apply the manifests in a clear order so the namespace and secret exist before the app resources that depend on them:
 
 ```bash
-kubectl apply -f phases/phase-03-operating-a-production-service/kubernetes/namespace.yaml
-kubectl apply -f phases/phase-03-operating-a-production-service/kubernetes/secret.example.yaml
-kubectl apply -f phases/phase-03-operating-a-production-service/kubernetes/deployment.yaml
-kubectl apply -f phases/phase-03-operating-a-production-service/kubernetes/service.yaml
-kubectl apply -f phases/phase-03-operating-a-production-service/kubernetes/hpa.yaml
-kubectl apply -f phases/phase-03-operating-a-production-service/kubernetes/ingress.yaml
-kubectl apply -f phases/phase-03-operating-a-production-service/kubernetes/networkpolicy.yaml
+kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/namespace.yaml
+kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/secret.example.yaml
+kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/deployment.yaml
+kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/service.yaml
+kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/hpa.yaml
+kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/ingress.yaml
+kubectl apply -f phases/phase-03-kubernetes-operations-troubleshooting/kubernetes/networkpolicy.yaml
 ```
 
 Apply result:

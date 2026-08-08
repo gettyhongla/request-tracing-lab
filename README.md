@@ -52,15 +52,17 @@ Flask support-ticket API
   `-- WebSocket/SSE/polling path for live ticket updates
 ```
 
-Phase 3 packages and operates this application with Docker Compose, Kubernetes, Helm, rollout safety, and incident-response workflows.
+Phase 2 studies the boundaries in this path: client to proxy, proxy to upstream, API to Redis, API to PostgreSQL, and API to optional async/outbound components.
+
+Phase 3 packages and operates the same request path with Docker, Kubernetes, Helm, rollout safety, runbooks, and evidence-first troubleshooting.
 
 ## Phases
 
 | Phase | Start Here | Labs | Answers |
 | --- | --- | --- | --- |
 | Phase 1: Understand and trace a request | [README](phases/phase-01-understanding-a-request/README.md) | [LABS](phases/phase-01-understanding-a-request/LABS.md) | [phase-01.md](AnswersByGetty/phase-01.md) |
-| Phase 2: Build the support-ticket application | [README](phases/phase-02-building-a-production-service/README.md) | [LABS](phases/phase-02-building-a-production-service/LABS.md) | [phase-02.md](AnswersByGetty/phase-02.md) |
-| Phase 3: Operate and recover the application | [README](phases/phase-03-operating-a-production-service/README.md) | [LABS](phases/phase-03-operating-a-production-service/LABS.md) | [phase-03.md](AnswersByGetty/phase-03.md) |
+| Phase 2: Tracing service boundaries | [README](phases/phase-02-tracing-service-boundaries/README.md) | [LABS](phases/phase-02-tracing-service-boundaries/LABS.md) | [phase-02.md](AnswersByGetty/phase-02.md) |
+| Phase 3: Kubernetes operations and troubleshooting | [README](phases/phase-03-kubernetes-operations-troubleshooting/README.md) | [LABS](phases/phase-03-kubernetes-operations-troubleshooting/LABS.md) | [phase-03.md](AnswersByGetty/phase-03.md) |
 
 ## Repository Structure
 
@@ -74,18 +76,24 @@ request-tracing-lab/
 |   |-- phase-01-understanding-a-request/
 |   |   |-- README.md
 |   |   `-- LABS.md
-|   |-- phase-02-building-a-production-service/
+|   |-- phase-02-tracing-service-boundaries/
 |   |   |-- README.md
 |   |   |-- LABS.md
 |   |   |-- sql/
 |   |   |-- configs/
+|   |   |-- architecture/
+|   |   |-- challenges/
+|   |   |-- worksheets/
 |   |   `-- assets/
-|   `-- phase-03-operating-a-production-service/
+|   `-- phase-03-kubernetes-operations-troubleshooting/
 |       |-- README.md
 |       |-- LABS.md
 |       |-- docker/
 |       |-- kubernetes/
 |       |-- helm/
+|       |-- architecture/
+|       |-- challenges/
+|       |-- worksheets/
 |       `-- runbooks/
 |-- AnswersByGetty/
 |   |-- phase-01.md

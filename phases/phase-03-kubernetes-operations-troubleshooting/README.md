@@ -1,4 +1,4 @@
-# Phase 3: Operating a Containerized Production Service
+# Phase 3: Kubernetes Operations And Evidence-First Troubleshooting
 
 Phase 3 packages, deploys, operates, observes, updates, and recovers the support-ticket application built in Phase 2.
 
@@ -15,7 +15,7 @@ Phase 3:
 Package that same service into containers, run the complete stack locally with Docker Compose, move it into Kubernetes, template it with Helm, and operate it as a production-style workload.
 ```
 
-The application remains the practice environment. The main subject of this phase is the container platform and the operational behavior around it.
+The application remains the practice environment. The main subject of this phase is containerized and Kubernetes-based operations: traffic paths, management paths, failure isolation, rollout safety, runbooks, and evidence-first troubleshooting.
 
 ## Phase Goal
 
@@ -135,6 +135,14 @@ Deployment -> ReplicaSet -> Pods
 
 A Service does not route traffic to a Deployment. The Deployment manages Pods; the Service selects ready Pod endpoints.
 
+Architecture-first references:
+
+- [Docker request path](architecture/docker-request-path.md)
+- [Kubernetes traffic vs management paths](architecture/kubernetes-paths.md)
+- [Kubernetes dependency path](architecture/dependency-path.md)
+- [Evidence-first troubleshooting worksheet](worksheets/kubernetes-troubleshooting.md)
+- [Kubernetes challenge labs](challenges/README.md)
+
 ## Scope
 
 Phase 3 should go deeply into the mechanics and operational consequences of:
@@ -249,7 +257,7 @@ Do not treat a successful `docker compose up` or `kubectl apply` as completion. 
 Reusable lab instructions belong under:
 
 ```text
-phases/phase-03-operating-a-production-service/
+phases/phase-03-kubernetes-operations-troubleshooting/
 ```
 
 Completed commands, screenshots, logs, diagrams, conclusions, rollout notes, and RCA evidence belong under:
