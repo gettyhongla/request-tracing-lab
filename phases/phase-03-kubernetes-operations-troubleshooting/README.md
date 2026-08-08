@@ -33,7 +33,17 @@ Phase 3 does not replace those concepts. It places the same system inside contai
 
 The application behavior is familiar. The new learning problem is understanding what Docker and Kubernetes add between these boundaries and what evidence those layers expose when something fails.
 
-### Phase 2
+```mermaid
+flowchart LR
+    Phase2["Phase 2 service architecture"] --> Docker["Docker/container architecture"]
+    Docker --> Kubernetes["Kubernetes architecture"]
+```
+
+## Show What Docker Changed
+
+The logical application relationships are mostly the same. Docker introduces new runtime and networking boundaries around those components.
+
+### End Of Phase 2
 
 ```text
 Client
@@ -41,57 +51,150 @@ Client
 NGINX
   ↓
 Application
-  ↓
-Dependencies
+  ├── Redis
+  └── PostgreSQL
 ```
 
-### Docker
+### Phase 3 Docker Stage
 
 ```text
 Client
   ↓
-Host port
+host/published port
   ↓
 NGINX container
   ↓
-Docker network / DNS
+Docker network
   ↓
 Application container
-  ↓
-Dependency containers
+  ├── Redis container
+  └── PostgreSQL container
 ```
 
-### Kubernetes
+Containerization did not create a different application architecture. It changed how the components are packaged, addressed, started, networked, configured, and observed.
+
+## Docker Container Architecture
+
+This is the Docker Compose architecture implemented in [docker-compose.yml](docker-compose.yml) and [docker/nginx.conf](docker/nginx.conf).
+
+```mermaid
+flowchart LR
+    Client["Browser / curl"]
+    Host["Host published port<br/>127.0.0.1:8080"]
+    Network["Docker bridge network<br/>request-tracing"]
+    NGINX["nginx container<br/>nginx:1.27-alpine<br/>container port 80"]
+    API["api container<br/>request-tracing-lab:phase3-compose<br/>container port 5001"]
+    Redis["redis container<br/>redis:7-alpine<br/>redis:6379"]
+    DB["postgres container<br/>postgres:16-alpine<br/>postgres:5432"]
+    Volume["postgres-data volume"]
+
+    Client -->|"HTTP"| Host
+    Host -->|"published port 8080:80"| NGINX
+    NGINX -->|"Docker DNS api + HTTP :5001"| API
+    API -->|"REDIS_URL redis://redis:6379/0"| Redis
+    API -->|"DATABASE_URL postgres:5432"| DB
+    DB -->|"persistent database files"| Volume
+    NGINX -.-> Network
+    API -.-> Network
+    Redis -.-> Network
+    DB -.-> Network
+```
+
+### Client → Host / Published Port
+
+The client reaches the Compose stack through the host-facing published port. In this repo, Compose publishes host port `8080` to the NGINX container's port `80`:
+
+```yaml
+ports:
+  - "8080:80"
+```
+
+A browser or curl request to `http://127.0.0.1:8080` enters Docker through that published port.
+
+### Host → NGINX Container
+
+The host does not talk directly to the Flask container in the Compose stack. The host-facing entry point is the NGINX container. Docker forwards traffic from host port `8080` to container port `80`, where NGINX listens.
+
+### NGINX → API Container
+
+NGINX reaches the application through Docker bridge networking and Docker DNS. The NGINX config points to the Compose service name `api` on port `5001`:
+
+```nginx
+upstream request_tracing_api {
+    server api:5001;
+}
+```
+
+Inside the NGINX container, `localhost` would mean the NGINX container itself, not the Flask API container. The correct internal address is the Docker service name `api`.
+
+### API → Redis / PostgreSQL
+
+The API container reaches dependencies through Docker DNS service names:
 
 ```text
-Client
-  ↓
-Ingress
-  ↓
-Service
-  ↓
-EndpointSlice
-  ↓
-Ready Pod
-  ↓
-Container
-  ↓
-Application
-  ↓
-Dependency
+REDIS_URL=redis://redis:6379/0
+DATABASE_URL=postgresql://request_lab:request_lab@postgres:5432/request_tracing_lab
 ```
 
-Kubernetes also adds a separate management path:
+`redis` resolves to the Redis container on the Docker network. `postgres` resolves to the PostgreSQL container. PostgreSQL data is stored in the `postgres-data` volume so durable database files are not tied only to the ephemeral container filesystem.
 
-```text
-Deployment
-  ↓
-ReplicaSet
-  ↓
-Pod
+## New Failure Boundaries Added By Containers
+
+Containers add new questions around the Phase 2 system:
+
+- Did the image build correctly?
+- Did the container start?
+- Is the application process still running?
+- Is the correct port exposed?
+- Is the correct host port published?
+- Is the application listening on `0.0.0.0` rather than only localhost?
+- Are the containers on the same Docker network?
+- Does Docker DNS resolve the expected service name?
+- Is NGINX pointing to the correct container hostname and port?
+- Can the API container reach Redis?
+- Can the API container reach PostgreSQL?
+- Is required configuration present?
+- Is a volume mounted correctly?
+- Is persistent data stored outside the ephemeral container filesystem?
+
+These are new boundaries added around the Phase 2 system. A request can now fail because the application is broken, or because the container image, process, port, network, DNS name, dependency URL, or volume wiring is wrong.
+
+## Kubernetes Architecture
+
+Kubernetes keeps the containerized application idea, then adds cluster objects that manage workload creation and traffic routing.
+
+### Kubernetes Traffic Path
+
+This is the traffic path represented by the manifests in [kubernetes/](kubernetes/). The Service is named `request-tracing-lab`, listens on port `80`, and targets the application container's named `http` port, which maps to container port `5001`.
+
+```mermaid
+flowchart LR
+    Client["Client"]
+    Ingress["Ingress<br/>host request-tracing-lab.local"]
+    Service["Service<br/>request-tracing-lab:80"]
+    EndpointSlice["EndpointSlice<br/>ready Pod addresses"]
+    Pod["Ready Pod<br/>app label selected by Service"]
+    App["Application container<br/>request-tracing-lab:local<br/>container port 5001"]
+    Dependencies["Dependencies<br/>Redis / PostgreSQL"]
+
+    Client -->|"HTTP host/path"| Ingress
+    Ingress -->|"backend service request-tracing-lab:80"| Service
+    Service -->|"selector app.kubernetes.io/name=request-tracing-lab"| EndpointSlice
+    EndpointSlice -->|"ready endpoint"| Pod
+    Pod -->|"container port http / 5001"| App
+    App -->|"REDIS_URL / DATABASE_URL"| Dependencies
 ```
 
-A Service does not route traffic to a Deployment. A Deployment creates ReplicaSets, ReplicaSets create Pods, and a Service selects Ready Pod endpoints.
+A Kubernetes Service routes to Ready Pod endpoints, not to the Deployment object directly. If there are no ready endpoints, the Service has nowhere useful to send traffic.
+
+### Kubernetes Management Path
+
+```mermaid
+flowchart LR
+    Deployment["Deployment<br/>request-tracing-lab"] --> ReplicaSet["ReplicaSet"] --> Pod["Pod replicas"]
+```
+
+The management path answers whether Kubernetes created the workload. The traffic path answers whether a request can reach a healthy workload.
 
 # Phase 3 Index
 
@@ -211,6 +314,12 @@ Validation
   ↓
 Prevention / runbook / automation
 ```
+
+## Architecture Visualization Standard
+
+Prefer Mermaid for instructional diagrams, request paths, troubleshooting flows, component relationships, and architecture evolution because these diagrams remain version-controlled, editable, and synchronized with the implementation.
+
+Use PNG architecture diagrams only when a visual requires detail that Mermaid cannot communicate cleanly, such as complex cloud topology or provider-specific infrastructure diagrams. Do not maintain duplicate Mermaid and PNG versions of the same diagram unless there is a clear learning reason, because duplicate diagrams can drift out of sync.
 
 ## Phase 3 Scope
 
