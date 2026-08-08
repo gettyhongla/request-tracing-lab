@@ -1,182 +1,173 @@
 # Phase 2: Tracing Service Boundaries
 
-Phase 2 teaches architecture comprehension and request tracing across service boundaries.
+Phase 2 teaches how requests move across service boundaries and how to prove where behavior changes when something fails.
 
-The application is the lab environment. The goal is not to build a feature-rich product; the goal is to understand how a request moves through a proxy, application, Redis, PostgreSQL, and optional async/outbound boundaries, then prove where behavior changed when something fails.
-
-The goal is to build the mental model deeply enough to answer operational questions like:
+The application is the lab environment. The point is not to build every possible production feature. The point is to understand the path:
 
 ```text
-How does the request reach the app?
-Why is NGINX placed in front?
-Where does durable data live?
-How does one support ticket become database records?
-What is the difference between authentication and authorization?
-What is the difference between an API, webhook, queue, worker, and WebSocket?
-What is the difference between health and readiness?
-Where does Redis fit, and what should not be stored there?
-How do request IDs, logs, metrics, and latency measurements help an RCA?
-How can CPU, memory, and replica needs be justified from evidence?
-What evidence would prove the database is or is not the bottleneck?
-What is the difference between cache, queue, worker, async, and real-time?
+client -> proxy -> API -> dependency
 ```
 
-Use this phase loop repeatedly:
+## Where You Are
 
 ```text
-Understand -> Visualize -> Predict -> Observe -> Trace -> Diagnose -> Fix -> Validate -> Improve
+Phase 1:
+Client -> Flask
+
+Phase 2 begins:
+Client -> NGINX -> Flask
+
+Phase 2 gradually adds:
+Client -> NGINX -> Flask -> PostgreSQL
+
+Then:
+                         -> Redis
+Client -> NGINX -> Flask
+                         -> PostgreSQL
 ```
 
-## Target Architecture
+The project began with a simple presentation/application/data mental model. As additional boundaries are introduced, that model becomes less useful. From Phase 2 onward, the lab focuses on explicit request paths, service ownership, and evidence at each boundary.
 
-Start with the core request path from Labs 01-04:
+## Phase 2 End-State Architecture
+
+This is the Phase 2 end-state architecture. Not every component exists at the beginning of the phase. Each lab adds or explores one boundary.
+
+```mermaid
+flowchart LR
+    Client["Browser / curl"]
+    NGINX["NGINX Reverse Proxy"]
+    API["Flask Ticket API"]
+    Redis["Redis\nTemporary State"]
+    DB["PostgreSQL\nDurable State"]
+
+    Client -->|"HTTP :8080"| NGINX
+    NGINX -->|"HTTP :5000"| API
+    API -->|"TCP :6379"| Redis
+    API -->|"local socket or TCP :5432"| DB
+```
+
+## How The Architecture Evolves
+
+| Step | Boundary Added | What It Teaches |
+| --- | --- | --- |
+| Lab 01 | Architecture before implementation | Draw the expected path before troubleshooting it |
+| Lab 02 | Client -> NGINX -> Flask | Reverse proxying, upstreams, forwarded headers, 502/504 symptoms |
+| Lab 03 | Flask -> PostgreSQL | Durable storage, basic reads/writes, dependency errors |
+| Lab 04 | Flask -> Redis | Temporary state, cache hit/miss, expiry, fallback, connection failure |
+| Lab 05 | Ticket workflow | Ownership, authorization, database evidence, request IDs |
+| Lab 06 | Database dependency lens | Connection, latency, transactions, backup evidence at a practical level |
+| Lab 07 | API boundary | Methods, status codes, validation, session auth, authorization |
+| Labs 08-10 | Optional boundaries | Webhooks, queues/workers, and real-time communication as architecture comparisons |
+| Labs 11-14 | Review and readiness | Health basics, evidence correlation, light load checks, escalation quality |
+
+## What You Will Learn
+
+By the end of the core path, you should be able to:
 
 ```text
-Browser or curl
-      |
-      v
-NGINX reverse proxy
-      |
-      v
-Flask API
-      |
-      v
-PostgreSQL
+Trace a request through NGINX, Flask, Redis, and PostgreSQL.
+Explain why each component exists.
+Identify which component initiates and accepts each connection.
+Name the protocol and port at each boundary.
+Use client output, NGINX logs, Flask logs, Redis evidence, PostgreSQL evidence, and request IDs.
+Distinguish symptoms from failed boundaries.
+Form a hypothesis from evidence instead of guessing.
+Explain what was known-good, what was unknown, what failed, and how recovery was validated.
 ```
 
-Then extend the path only where it teaches a boundary:
+## How To Navigate This Phase
+
+1. Read this README.
+2. Open [LABS.md](LABS.md).
+3. Complete the core labs in order.
+4. Establish healthy behavior before running failure challenges.
+5. Use [architecture/](architecture/) when studying request paths.
+6. Use [challenges/](challenges/) after guided labs.
+7. Record your own evidence in [AnswersByGetty/phase-02.md](../../AnswersByGetty/phase-02.md).
+
+## Directory Map
 
 ```text
-Browser
-  |
-  v
-NGINX
-  |
-  v
-Flask support-ticket API
-  |-- PostgreSQL
-  |     |-- users
-  |     |-- tickets
-  |     |-- ticket messages
-  |     `-- audit events
-  |
-  |-- Redis
-  |     |-- sessions
-  |     |-- cache
-  |     `-- queue
-  |
-  |-- Background worker
-  |     `-- notification or diagnostic jobs
-  |
-  |-- Webhook delivery
-  |     `-- external event consumers
-  |
-  `-- WebSocket/SSE/polling path
-        `-- real-time ticket updates
+phase-02-tracing-service-boundaries/
+|-- README.md
+|-- LABS.md
+|-- architecture/
+|   |-- current-architecture.md
+|   |-- service-boundaries.md
+|   `-- microservice-reading-exercise.md
+|-- challenges/
+|   `-- README.md
+`-- sql/
+    `-- 001_support_tickets.sql
 ```
 
-These mechanisms solve different problems:
-
-```text
-PostgreSQL is the durable source of truth.
-Redis stores temporary state and queue data.
-Workers process asynchronous jobs.
-Webhooks and WebSockets are light architecture comparisons in this phase. They are useful boundaries, but they should not dominate the curriculum.
-```
-
-![Three-tier architecture request flow](assets/three-tier-request-flow.png)
-
-For the current implemented Phase 2 architecture through Lab 06, use the editable Mermaid view and database concept notes:
-
-[Labs 01-06 current architecture](assets/lab-06-current-architecture.md)
-
-Architecture-first references:
-
-- [Core service-boundary diagrams](architecture/service-boundaries.md)
-- [Microservice request-path reading exercise](architecture/microservice-request-path.md)
-- [Troubleshooting worksheet](worksheets/evidence-first-troubleshooting.md)
-- [Challenge scenarios](challenges/README.md)
-
-## Lab Order
+## Required Core Path
 
 | Lab | Focus | Outcome |
 | --- | --- | --- |
-| [01](LABS.md#lab-01-three-tier-architecture) | Three-tier architecture | Draw the system, name each layer, and define the request path before coding |
-| [02](LABS.md#lab-02-nginx-reverse-proxy) | NGINX reverse proxy | Put NGINX in front of Flask and prove how traffic is routed |
-| [03](LABS.md#lab-03-postgresql-persistence) | PostgreSQL as a durable boundary | Add durable data and prove basic reads/writes, connection behavior, and failure symptoms |
-| [04](LABS.md#lab-04-redis-cache-and-session-support) | Redis as a temporary-state boundary | Add Redis for one temporary responsibility and prove hit, miss, expiry, fallback, and connection failure behavior |
-| [05](LABS.md#lab-05-support-ticket-data-model) | Support ticket data model | Evolve notes into users, tickets, messages, admin actions, authorization, indexes, and request-traced database evidence |
-| [06](LABS.md#lab-06-database-operations-performance-and-resilience) | Database dependency troubleshooting | Investigate connection, query latency, transaction, and backup evidence without turning Phase 2 into a database course |
-| [07](LABS.md#lab-07-api-design-and-authentication) | API design and authentication | Explain REST resources, status codes, validation, sessions, JWT comparison, authorization, and idempotency |
-| [08](LABS.md#lab-08-webhooks-and-asynchronous-delivery) | Webhooks as an optional outbound boundary | Map a durable ticket event to an outbound callback and reason about timeout, retry, duplicate delivery, and idempotency |
-| [09](LABS.md#lab-09-workers-and-queues) | Workers and queues | Trace request accepted -> work queued -> worker processed later, including backlog and failed-job evidence |
-| [10](LABS.md#lab-10-websockets-and-real-time-updates) | Real-time communication comparison | Compare polling, SSE, WebSockets, and webhooks conceptually without making real-time implementation the center of Phase 2 |
-| [11](LABS.md#lab-11-health-and-readiness) | Health and readiness | Decide which dependencies are critical, degraded, or optional for safe traffic |
-| [12](LABS.md#lab-12-logs-metrics-traces-and-request-ids) | Observability and request correlation | Correlate logs, metrics, traces, request IDs, DB, Redis, worker, webhook, and WebSocket evidence |
-| [13](LABS.md#lab-13-container-foundation) | Container foundation | Manually containerize the Flask API and prepare for Phase 3 without building the full orchestration platform |
-| [14](LABS.md#lab-14-production-readiness-review) | Service-boundary readiness review | Review request paths, failure boundaries, observability, focused load checks, escalation quality, and improvement opportunities |
+| [01](LABS.md#lab-01-starting-request-path-architecture) | Architecture and request path | Draw the starting model and evidence points |
+| [02](LABS.md#lab-02-nginx-reverse-proxy) | NGINX reverse proxy | Prove client -> proxy -> upstream behavior |
+| [03](LABS.md#lab-03-postgresql-persistence) | PostgreSQL dependency | Prove durable writes and database failure symptoms |
+| [04](LABS.md#lab-04-redis-cache-and-session-support) | Redis dependency | Prove temporary state, cache behavior, and fallback |
+| [05](LABS.md#lab-05-support-ticket-data-model) | Ticket workflow | Prove ownership, authorization, and audit evidence |
+| [06](LABS.md#lab-06-database-operations-performance-and-resilience) | Database dependency troubleshooting | Investigate connection, query timing, transactions, and backup evidence |
+| [07](LABS.md#lab-07-api-design-and-authentication) | API boundary | Prove session auth, authorization, status codes, and request IDs |
+| [12](LABS.md#lab-12-logs-metrics-traces-and-request-ids) | Evidence correlation | Connect client, NGINX, Flask, Redis, and database evidence |
+| [14](LABS.md#lab-14-production-readiness-review) | Service-boundary review | Explain what is ready, risky, known-good, or still unknown |
 
-## How To Use These Labs
+## Optional Extensions
 
-Do not race through the files. For each lab:
+These are useful, but they are not the core Phase 2 path.
+
+| Lab | Why It Is Optional |
+| --- | --- |
+| [08](LABS.md#lab-08-webhooks-and-asynchronous-delivery) | Webhooks are a light outbound-boundary concept here |
+| [09](LABS.md#lab-09-workers-and-queues) | Workers and queues introduce async architecture without dominating Phase 2 |
+| [10](LABS.md#lab-10-websockets-and-real-time-updates) | Real-time updates are a comparison topic, not the center of this phase |
+| [11](LABS.md#lab-11-health-and-readiness) | Basic health is useful here; deeper readiness/liveness belongs in Phase 3 |
+| [13](LABS.md#lab-13-container-foundation) | Container foundations prepare for Phase 3; deep Docker work belongs in Phase 3 |
+
+## Architecture References
+
+- [Current architecture](architecture/current-architecture.md): the system implemented and studied in Phase 2.
+- [Service boundaries](architecture/service-boundaries.md): how to recognize boundaries and failure propagation.
+- [Microservice reading exercise](architecture/microservice-reading-exercise.md): a slightly more advanced reading exercise, not the current running system.
+
+## Challenge Work
+
+Use [challenges/README.md](challenges/README.md) after you have a healthy baseline. Challenges are where you practice the loop:
 
 ```text
-1. Build one small thing.
-2. Send one request.
-3. Capture evidence.
-4. Break one related thing.
-5. Explain the symptom.
-6. Explain the failed layer.
-7. Write the retained takeaway.
-```
-
-Each completed lab belongs in:
-
-```text
-AnswersByGetty/phase-02.md
+symptom -> request path -> evidence -> failed boundary -> hypothesis -> test -> fix -> validation -> improvement
 ```
 
 ## Evidence Standard
 
-Use this worksheet unless the lab gives a more specific one:
+For your personal notes, prefer this shape:
 
 ```text
 Goal:
-Architecture or request path:
-Commands run:
-Expected healthy behavior:
-Observed behavior:
-Client evidence:
-NGINX evidence:
-Flask evidence:
-PostgreSQL evidence:
-Redis evidence:
-Worker or queue evidence:
-Webhook evidence:
-WebSocket evidence:
-Request ID:
-Trace ID:
-Logs, metrics, traces, or latency evidence:
-Failure tested:
-What was ruled out:
-Mitigation:
-RCA:
-Conclusion:
-Overall summary:
+Request path:
+I did:
+I ran:
+I captured:
+Known-good boundaries:
+First unknown boundary:
+Hypothesis:
+Test:
+Root cause:
+Fix:
+Validation:
+Improvement:
 Retained takeaway:
 ```
 
 ## Finish Line
 
-Phase 2 is complete when you can explain:
+Phase 2 is complete when you can explain one successful and one failed request through:
 
 ```text
-30-second version:
-Browser traffic enters through NGINX, Flask owns support-ticket behavior, PostgreSQL owns durable data, Redis supports temporary cache/session/queue behavior, workers process async jobs, webhooks notify external systems, and WebSockets support live client updates.
-
-2-minute version:
-Trace one successful ticket request end to end, name the evidence from each layer, and explain how request IDs connect client, proxy, app, database, Redis, worker, webhook, and real-time behavior.
-
-Deep-dive version:
-Compare NGINX routing failure, Flask exception, bad database credentials, database latency, Redis cache/session/queue failure, worker backlog, webhook failure, WebSocket disconnect, failed readiness, high request latency, CPU or memory pressure, and replica sizing tradeoffs.
+Client -> NGINX -> Flask -> Redis/PostgreSQL
 ```
+
+and identify exactly what evidence proves where the request succeeded, where it stopped, what was ruled out, and how recovery was validated.

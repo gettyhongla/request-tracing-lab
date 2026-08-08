@@ -80,11 +80,8 @@ request-tracing-lab/
 |   |   |-- README.md
 |   |   |-- LABS.md
 |   |   |-- sql/
-|   |   |-- configs/
 |   |   |-- architecture/
-|   |   |-- challenges/
-|   |   |-- worksheets/
-|   |   `-- assets/
+|   |   `-- challenges/
 |   `-- phase-03-kubernetes-operations-troubleshooting/
 |       |-- README.md
 |       |-- LABS.md
@@ -98,8 +95,7 @@ request-tracing-lab/
 |-- AnswersByGetty/
 |   |-- phase-01.md
 |   |-- phase-02.md
-|   |-- phase-03.md
-|   `-- assets/
+|   `-- phase-03.md
 `-- tests/
 ```
 

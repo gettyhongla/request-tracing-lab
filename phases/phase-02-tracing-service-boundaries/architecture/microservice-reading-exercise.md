@@ -1,4 +1,4 @@
-# Microservice Request-Path Reading Exercise
+# Microservice Reading Exercise
 
 This is an architecture reading lab, not a feature build.
 

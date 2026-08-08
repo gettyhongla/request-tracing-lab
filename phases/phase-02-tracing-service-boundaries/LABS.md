@@ -2,7 +2,7 @@
 
 ## Table Of Contents
 
-1. [Lab 01: Three-Tier Architecture](#lab-01-three-tier-architecture)
+1. [Lab 01: Starting Request Path Architecture](#lab-01-starting-request-path-architecture)
 2. [Lab 02: NGINX Reverse Proxy](#lab-02-nginx-reverse-proxy)
 3. [Lab 03: PostgreSQL Persistence](#lab-03-postgresql-persistence)
 4. [Lab 04: Redis Cache And Session Support](#lab-04-redis-cache-and-session-support)
@@ -19,12 +19,11 @@
 - [Lab 05 Setup Reference](#lab-05-setup-reference)
 - [Production Review Scenarios](#production-review-scenarios)
 - [Challenge Scenarios](challenges/README.md)
-- [Evidence-First Worksheet](worksheets/evidence-first-troubleshooting.md)
 - [Service Boundary Diagrams](architecture/service-boundaries.md)
 
-## Lab 01: Three-Tier Architecture
+## Lab 01: Starting Request Path Architecture
 
-Start with the mental model before writing code.
+Start with the request path before writing code.
 
 You are designing the first production-style version of the app:
 
@@ -476,7 +475,7 @@ Use the support-ticket architecture from Labs 01-05 and prove how PostgreSQL beh
 
 This lab is the exercise. The teaching/reference material lives here:
 
-[Phase 2 Labs 01-06 Request Path And Database Model](assets/lab-06-current-architecture.md)
+[Phase 2 current architecture](architecture/current-architecture.md)
 
 Read that reference before running the commands, then capture only the evidence that proves the result.
 

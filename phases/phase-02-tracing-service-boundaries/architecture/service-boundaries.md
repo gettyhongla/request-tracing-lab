@@ -1,8 +1,10 @@
-# Phase 2 Service Boundary Diagrams
+# Service Boundaries
 
-Use these diagrams before running commands. The purpose is to predict the healthy path, then compare the prediction with evidence.
+A service boundary is a place where one component has to communicate with another component through a defined interface.
 
-## Core Request Path
+In Phase 2, boundaries matter because each one can fail independently. Troubleshooting gets easier when you stop saying "the app is down" and start asking, "which boundary has evidence of failure?"
+
+## Current Boundary Map
 
 ```mermaid
 flowchart LR
@@ -12,7 +14,19 @@ flowchart LR
     API -->|"TCP :5432\nSQL boundary"| Postgres["5. PostgreSQL\ndurable state"]
 ```
 
-## What Each Boundary Proves
+## How To Recognize A Boundary
+
+Ask:
+
+```text
+Does one component initiate a connection?
+Does another component accept it?
+Is there a protocol, port, hostname, route, key, or credential?
+Does each side leave different evidence?
+Can one side be healthy while the boundary still fails?
+```
+
+## Ownership
 
 | Boundary | Healthy Evidence | If It Fails | What It Does Not Prove |
 | --- | --- | --- | --- |
@@ -20,19 +34,6 @@ flowchart LR
 | NGINX -> Flask upstream | NGINX access log plus Flask request log with matching path/request ID | 502/504, NGINX error log, missing Flask request log | Database or Redis root cause |
 | Flask -> Redis | Flask cache/session/queue log and Redis command evidence | Cache miss, connection refused, timeout, fallback path | PostgreSQL availability |
 | Flask -> PostgreSQL | Flask DB log and SQL result | 503, connection error, slow query, transaction failure | NGINX routing failure |
-
-## Small Microservice Variant
-
-```mermaid
-flowchart LR
-    Client["Client"] -->|"HTTP"| Nginx["NGINX"]
-    Nginx -->|"HTTP"| API["API service"]
-    API -->|"HTTP internal call"| Internal["Internal service"]
-    Internal -->|"TCP :6379"| Redis["Redis"]
-    API -->|"TCP :5432"| Postgres["PostgreSQL"]
-```
-
-Use this variant as an architecture-reading exercise even if the local app stays small. One healthy service does not prove the entire request path is healthy.
 
 ## Explain Every Arrow
 

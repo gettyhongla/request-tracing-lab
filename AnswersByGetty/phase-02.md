@@ -6,7 +6,7 @@ This document records completed Phase 2 evidence, commands, conclusions, and ret
 
 | Lab | Topic |
 | --- | --- |
-| [Lab 01](#lab-01-three-tier-architecture) | Three-tier architecture |
+| [Lab 01](#lab-01-starting-request-path-architecture) | Starting request path architecture |
 | [Lab 02](#lab-02-nginx-reverse-proxy) | NGINX reverse proxy |
 | [Lab 03](#lab-03-postgresql-persistence) | PostgreSQL persistence |
 | [Lab 04](#lab-04-redis-cache-and-session-support) | Redis cache and session support |
@@ -17,7 +17,7 @@ This document records completed Phase 2 evidence, commands, conclusions, and ret
 | [Lab 09](#lab-09-workers-and-queues) | Workers and queues |
 | [Lab 10](#lab-10-websockets-and-real-time-updates) | WebSockets and real-time updates |
 
-## Lab 01: Three-Tier Architecture
+## Lab 01: Starting Request Path Architecture
 
 ### Build
 
@@ -444,7 +444,7 @@ This lab does not require deep DBA knowledge. The practical goal is to start Pos
 
 ### Why PostgreSQL
 
-PostgreSQL fits the three-tier model:
+PostgreSQL fits the starting service-boundary model:
 
 ```text
 NGINX routes traffic.
@@ -1383,7 +1383,7 @@ This lab used the existing support-ticket architecture from Labs 01-05 and inspe
 
 Reference model:
 
-[Phase 2 Labs 01-06 Request Path And Database Model](../phases/phase-02-tracing-service-boundaries/assets/lab-06-current-architecture.md)
+[Phase 2 current architecture](../phases/phase-02-tracing-service-boundaries/architecture/current-architecture.md)
 
 Request path under test:
 

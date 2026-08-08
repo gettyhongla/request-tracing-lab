@@ -1,12 +1,12 @@
-# Phase 2 Labs 01-06 Request Path And Database Model
+# Phase 2 Current Architecture
 
-This note shows the current synchronous request path through Labs 01-06 and explains the database concepts used by the support-ticket app.
+This note shows the current Phase 2 synchronous request path and explains the boundaries used by the support-ticket app.
 
-The request starts when a browser or `curl` sends an HTTP request to NGINX. The request stops when NGINX returns the HTTP response to the client. Lab 06 does not add a new runtime component; it adds the database-operations lens used to inspect the PostgreSQL part of the same request.
+The request starts when a browser or `curl` sends an HTTP request to NGINX. The request stops when NGINX returns the HTTP response to the client.
 
 This page is the reference model. Commands, logs, SQL output, and break-test proof belong in [AnswersByGetty/phase-02.md](../../../AnswersByGetty/phase-02.md).
 
-## Current Architecture
+## Current Request Path
 
 ```mermaid
 flowchart LR
@@ -26,7 +26,7 @@ flowchart LR
     Tables["7a. Database tables<br/>users<br/>tickets<br/>ticket_messages<br/>ticket_events<br/>request_notes"]
     Events["7b. Audit evidence<br/>ticket_events.request_id"]
 
-    DbChecks["7c. Lab 06 inspection<br/>connections and pool concept<br/>transactions and locks<br/>query timing and EXPLAIN<br/>backup, replica, failover concepts"]
+    DbChecks["7c. Database inspection<br/>connections<br/>transactions<br/>query timing<br/>backup concepts"]
 
     Finish(("8. FINISH<br/>Client receives HTTP response<br/>status + body + X-Request-ID"))
 
@@ -48,7 +48,7 @@ flowchart LR
     Postgres -.->|"stores rows in"| Tables
     Tables -.->|"request_id proves change"| Events
 
-    Postgres -.->|"inspected by Lab 06"| DbChecks
+    Postgres -.->|"database evidence"| DbChecks
 
     Notes -->|"JSON result"| Flask
     Tickets -->|"JSON result"| Flask
@@ -85,7 +85,7 @@ PostgreSQL is the durable source of truth. If Flask restarts, Redis expires, or 
 
 Redis is temporary support infrastructure. In this phase, Redis supports cache/session behavior. Queue/worker Redis belongs to the async production architecture path later, not the durable data model.
 
-The current Flask app opens PostgreSQL connections through `psycopg.connect(...)` when a route needs the database. It does not currently implement a real application-side connection pool, but Lab 06 studies pooling because production services need to limit and reuse database connections.
+The current Flask app opens PostgreSQL connections through `psycopg.connect(...)` when a route needs the database. It does not currently implement a real application-side connection pool, but the phase introduces pooling as an operational concept because production services need to limit and reuse database connections.
 
 Request IDs connect the request path to the database evidence. In this project, `ticket_events.request_id` helps prove which client request caused an important database change.
 
@@ -212,7 +212,7 @@ Return safe errors to users, keep enough evidence for troubleshooting, and prove
 
 ## What Is Not In This Request Yet
 
-These are not part of the current Lab 06 request path:
+These are not part of the current synchronous request path:
 
 ```text
 Async worker:
