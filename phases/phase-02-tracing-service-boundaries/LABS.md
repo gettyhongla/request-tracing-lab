@@ -1898,15 +1898,29 @@ Explanation standard:
 Retained takeaway:
 ```
 
-### Troubleshooting Checklist
+### Evidence Walkthrough Checklist
 
 ```text
-Is the user connected?
-Is the user authorized for this ticket?
-Did the server emit an update?
-Did the proxy close the connection?
-Would another app replica know about this update?
-Should this feature use polling, SSE, or WebSockets?
+Connection evidence:
+Record the connection-open log, connection ID, user ID, ticket ID, and disconnect log.
+
+Authorization evidence:
+Record the session identity and the ticket ownership/admin check before joining the ticket room.
+
+Server emit evidence:
+Record the event type, ticket ID, event ID, and server log line for the emitted update.
+
+Client receive evidence:
+Record the browser console output or UI update that proves the event reached the client.
+
+Proxy close evidence:
+Record NGINX or load-balancer timeout/close logs if the connection drops unexpectedly.
+
+Replica-awareness evidence:
+Record whether shared pub/sub or sticky routing exists. Without one of those, another app replica may not know about the update.
+
+Pattern decision:
+Document why polling, SSE, or WebSockets fits the feature. Use WebSockets only when live bidirectional updates justify persistent connection complexity.
 ```
 
 ### Explanation Standard
@@ -1934,6 +1948,8 @@ Design health and readiness checks for the support-ticket application.
 ### Why This Lab Exists
 
 Health checks help operators and platforms decide whether an application process is alive and whether it is safe to receive traffic. A support-ticket app can be partially available: Redis or a worker may fail while read-only ticket history still works, but PostgreSQL failure may make ticket creation unsafe.
+
+This is an application-level health/readiness lab. It introduces the operational contract the app should expose before traffic is sent to it. Full Kubernetes probe behavior, deployment rollouts, and platform-level readiness troubleshooting belong in Phase 3.
 
 ### Architecture Before
 
@@ -2009,13 +2025,19 @@ Redis check or fallback decision:
 
 Stop PostgreSQL and call both endpoints. Then stop Redis and repeat.
 
-Answer:
+Record:
 
 ```text
-Should /health still pass?
-Should /ready fail?
-Should Redis failure make /ready fail, or should the app stay ready with degraded cache behavior?
-Why?
+PostgreSQL stopped:
+/health status:
+/ready status:
+Reason:
+
+Redis stopped:
+/health status:
+/ready status:
+Readiness decision:
+Reason:
 ```
 
 ### Evidence To Capture
@@ -2031,15 +2053,26 @@ Explanation standard:
 Retained takeaway:
 ```
 
-### Troubleshooting Checklist
+### Evidence Walkthrough Checklist
 
 ```text
-Is the process alive?
-Can the application safely accept traffic?
-Which dependencies are required for ticket creation?
-Which dependencies are optional or degradable?
-Should Redis outage make the whole ticket API unavailable?
-Should worker outage block ticket creation?
+Process evidence:
+Record the /health response that proves the Flask process is alive.
+
+Traffic-readiness evidence:
+Record the /ready response that proves whether this instance can safely receive customer traffic.
+
+Critical dependency evidence:
+Record PostgreSQL connectivity because durable ticket creation depends on it.
+
+Degradable dependency evidence:
+Record Redis behavior and decide whether cache/session degradation should remove the app from traffic.
+
+Async dependency evidence:
+Record whether webhook or worker failure blocks ticket creation or only degrades follow-up work.
+
+Status-code evidence:
+Use 200 for ready and 503 when a required dependency prevents useful request handling.
 ```
 
 ### Explanation Standard

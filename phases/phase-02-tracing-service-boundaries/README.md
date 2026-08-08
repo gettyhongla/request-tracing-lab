@@ -112,6 +112,7 @@ phase-02-tracing-service-boundaries/
 | [05](LABS.md#lab-05-support-ticket-data-model) | Ticket workflow | Prove ownership, authorization, and audit evidence |
 | [06](LABS.md#lab-06-database-operations-performance-and-resilience) | Database dependency troubleshooting | Investigate connection, query timing, transactions, and backup evidence |
 | [07](LABS.md#lab-07-api-design-and-authentication) | API boundary | Prove session auth, authorization, status codes, and request IDs |
+| [11](LABS.md#lab-11-health-and-readiness) | Application health/readiness | Decide which dependencies make the app ready or degraded |
 | [12](LABS.md#lab-12-logs-metrics-traces-and-request-ids) | Evidence correlation | Connect client, NGINX, Flask, Redis, and database evidence |
 | [14](LABS.md#lab-14-production-readiness-review) | Service-boundary review | Explain what is ready, risky, known-good, or still unknown |
 
@@ -124,7 +125,6 @@ These are useful, but they are not the core Phase 2 path.
 | [08](LABS.md#lab-08-webhooks-and-asynchronous-delivery) | Webhooks are a light outbound-boundary concept here |
 | [09](LABS.md#lab-09-workers-and-queues) | Workers and queues introduce async architecture without dominating Phase 2 |
 | [10](LABS.md#lab-10-websockets-and-real-time-updates) | Real-time updates are a comparison topic, not the center of this phase |
-| [11](LABS.md#lab-11-health-and-readiness) | Basic health is useful here; deeper readiness/liveness belongs in Phase 3 |
 | [13](LABS.md#lab-13-container-foundation) | Container foundations prepare for Phase 3; deep Docker work belongs in Phase 3 |
 
 ## Architecture References
@@ -148,9 +148,9 @@ For your personal notes, prefer this shape:
 ```text
 Goal:
 Request path:
-I did:
-I ran:
-I captured:
+Action taken:
+Command or check:
+Evidence captured:
 Known-good boundaries:
 First unknown boundary:
 Hypothesis:

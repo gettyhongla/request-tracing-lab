@@ -1890,319 +1890,355 @@ Database operations are about protecting customer records and proving where data
 
 ### Exercise Summary
 
-This lab validates the support-ticket API boundary through NGINX, Flask, session authentication, authorization checks, and PostgreSQL evidence.
+This lab validates the support-ticket API boundary through Flask, session authentication, authorization checks, and PostgreSQL evidence.
 
 ```text
-curl -> NGINX :8080 -> Flask REST API -> session auth / authorization -> PostgreSQL
+curl -> Flask REST API -> session auth / authorization -> PostgreSQL
 ```
 
-Evidence status:
-
-```text
-Steps 1-4 are captured. Steps 5-7 still need hands-on evidence.
-```
+Local note: ports `5000` and `8080` were occupied by Apple/AirTunes responses during this walkthrough, so Flask was run on `127.0.0.1:5055`. The API, auth, and database evidence remains valid; the NGINX hop should be rerun later after freeing the expected ports.
 
 ### Step 1: Register A Customer Session
 
-I did this:
+Create a new customer account and store the session cookie for later authenticated requests.
 
-```text
-Created a new customer account through the public API and stored the session cookie for later authenticated requests.
-```
-
-I ran:
+Command:
 
 ```bash
 curl -i -c /tmp/rtl-customer.cookie \
   -H "Content-Type: application/json" \
-  -H "X-Request-ID: lab07-register-customer" \
-  -d '{"username":"lab07_customer","email":"lab07_customer@example.com","password":"cloudpass"}' \
-  http://127.0.0.1:8080/api/auth/register
+  -H "X-Request-ID: lab07-register-customer-20260808090730" \
+  -d '{"username":"lab07_customer_20260808090730","email":"lab07_customer_20260808090730@example.com","password":"cloudpass"}' \
+  http://127.0.0.1:5055/api/auth/register
 ```
 
-I captured:
+Observed response:
 
 ```text
-Status code:
-201 Created.
+HTTP/1.1 201 CREATED
+X-Request-ID: lab07-register-customer-20260808090730
+Set-Cookie: session=...; HttpOnly; Path=/
 
-Set-Cookie header:
-`Set-Cookie: session=...; HttpOnly; Path=/`
-
-Response request_id:
-07fdf1e4b464d8bd2bce4e46e67c0ace.
-
-PostgreSQL user row:
-The API response created user id 6 with username `lab07_customer`, email `lab07_customer@example.com`, role `customer`, and `is_active=true`.
+user.id: 7
+user.username: lab07_customer_20260808090730
+user.email: lab07_customer_20260808090730@example.com
+user.role: customer
+user.is_active: true
 ```
 
-Result:
+Database verification:
+
+```bash
+psql request_tracing_lab -c "SELECT id, username, email, role, is_active FROM users WHERE username = 'lab07_customer_20260808090730';"
+```
+
+Observed output:
 
 ```text
-The request reached NGINX, was proxied to Flask, created the customer user, and returned a server-managed session cookie.
+ id |           username            |                   email                   |   role   | is_active
+----+-------------------------------+-------------------------------------------+----------+-----------
+  7 | lab07_customer_20260808090730 | lab07_customer_20260808090730@example.com | customer | t
 ```
+
+What this proves:
+
+- the API accepted valid registration input;
+- Flask created a durable user row in PostgreSQL;
+- the response returned a server-managed session cookie;
+- the new user has the `customer` role.
 
 ### Step 2: Create A Ticket As The Customer
 
-I did this:
+Use the customer session cookie to create a support ticket.
 
-```text
-Used the customer session cookie to create a support ticket through NGINX.
-```
-
-I ran:
+Command:
 
 ```bash
 curl -i -b /tmp/rtl-customer.cookie \
   -H "Content-Type: application/json" \
-  -H "X-Request-ID: lab07-create-ticket" \
+  -H "X-Request-ID: lab07-create-ticket-20260808090730" \
   -d '{"title":"Cannot trace request","description":"Need help reading request logs.","category":"technical_question","priority":"medium"}' \
-  http://127.0.0.1:8080/api/tickets
+  http://127.0.0.1:5055/api/tickets
 ```
 
-I captured:
+Observed response:
 
 ```text
-Status code:
-201 Created.
+HTTP/1.1 201 CREATED
+X-Request-ID: lab07-create-ticket-20260808090730
 
-Response body:
-The response returned ticket id 6, ticket number TCK-22248145, created_by 6, category technical_question, priority medium, and status open.
-
-Ticket ID or ticket number:
-id=6, ticket_number=TCK-22248145.
-
-Request ID:
-5e5e6097c45b68a15433284a15f63994.
+ticket.id: 7
+ticket.ticket_number: TCK-DD7052B0
+ticket.created_by: 7
+ticket.category: technical_question
+ticket.priority: medium
+ticket.status: open
 ```
 
-I verified in PostgreSQL:
+Database verification:
 
 ```bash
-psql request_tracing_lab -c "SELECT id, ticket_number, created_by, status, priority FROM tickets ORDER BY id DESC LIMIT 1;"
-psql request_tracing_lab -c "SELECT id, ticket_id, author_id, message_type FROM ticket_messages ORDER BY id DESC LIMIT 5;"
-psql request_tracing_lab -c "SELECT id, ticket_id, action, request_id FROM ticket_events ORDER BY id DESC LIMIT 5;"
+psql request_tracing_lab -c "SELECT id, ticket_number, created_by, status, priority FROM tickets WHERE id = 7;"
+psql request_tracing_lab -c "SELECT id, ticket_id, author_id, message_type FROM ticket_messages WHERE ticket_id = 7;"
+psql request_tracing_lab -c "SELECT id, ticket_id, action, request_id FROM ticket_events WHERE ticket_id = 7;"
 ```
 
-Result:
-
-```text
-The API created the ticket, the first customer message, and the ticket audit event. The `ticket_events.request_id` matched the ticket creation response request ID.
-```
-
-Database evidence:
+Observed output:
 
 ```text
 tickets:
-id=6, ticket_number=TCK-22248145, created_by=6, status=open, priority=medium
+id=7, ticket_number=TCK-DD7052B0, created_by=7, status=open, priority=medium
 
 ticket_messages:
-id=9, ticket_id=6, author_id=6, message_type=customer_reply
+id=10, ticket_id=7, author_id=7, message_type=customer_reply
 
 ticket_events:
-id=9, ticket_id=6, action=ticket_created, request_id=5e5e6097c45b68a15433284a15f63994
+id=10, ticket_id=7, action=ticket_created, request_id=lab07-create-ticket-20260808090730
 ```
+
+What this proves:
+
+- the authenticated customer created a durable ticket;
+- the first customer message was saved separately from the ticket row;
+- the audit table recorded `ticket_created`;
+- the event row preserved the original request ID.
 
 ### Step 3: List Tickets With A Valid Session
 
-I did this:
+Use the same customer session cookie to list tickets.
 
-```text
-Used the same customer session cookie to confirm the API returns that customer's ticket list.
-```
-
-I ran:
+Command:
 
 ```bash
 curl -i -b /tmp/rtl-customer.cookie \
-  -H "X-Request-ID: lab07-list-customer-tickets" \
-  http://127.0.0.1:8080/api/tickets
+  -H "X-Request-ID: lab07-list-customer-tickets-20260808090730" \
+  http://127.0.0.1:5055/api/tickets
 ```
 
-I captured:
+Observed response:
 
 ```text
-Status code:
-200 OK.
+HTTP/1.1 200 OK
+X-Request-ID: lab07-list-customer-tickets-20260808090730
 
-Ticket count or ticket number returned:
-The response returned one ticket: TCK-22248145.
-
-Request ID:
-24d79b63643ee0dbf14579418d18e666.
+tickets[0].id: 7
+tickets[0].ticket_number: TCK-DD7052B0
+tickets[0].created_by: 7
 ```
 
-Result:
+What this proves:
 
-```text
-The same customer session cookie authorized the ticket list request, and the API returned only that customer's ticket.
-```
+- the stored session cookie authenticated the customer;
+- the list route returned that customer's ticket data;
+- the API response preserved the request ID.
 
 ### Step 4: Prove Missing Session Fails
 
-I did this:
+Call a protected ticket route without sending a session cookie.
 
-```text
-Called a protected ticket route without sending the session cookie.
-```
-
-I ran:
+Command:
 
 ```bash
 curl -i \
-  -H "X-Request-ID: lab07-missing-session" \
-  http://127.0.0.1:8080/api/tickets
+  -H "X-Request-ID: lab07-missing-session-20260808090730" \
+  http://127.0.0.1:5055/api/tickets
 ```
 
-I captured:
+Observed response:
 
 ```text
-Status code:
-401 Unauthorized.
+HTTP/1.1 401 UNAUTHORIZED
+X-Request-ID: lab07-missing-session-20260808090730
 
-Response body:
-`authentication required` with category `unauthenticated`.
-
-Failed layer:
-Application authentication/session boundary.
+category: unauthenticated
+error: authentication required
 ```
 
-Result:
+What this proves:
 
-```text
-The request reached NGINX and Flask, but Flask rejected it because no valid session cookie was present. This rules out proxy routing and application availability for this failure.
-```
+- the route is protected by session authentication;
+- the request reached Flask and received a controlled application response;
+- this failure is not a database write failure or application outage.
 
 ### Step 5: Prove Authorization Is Separate From Authentication
 
-I did this:
+Register a second customer, then use that valid session to read the first customer's ticket.
 
-```text
-Used a second authenticated customer session to attempt access to the first customer's ticket.
-```
-
-I ran:
+Command:
 
 ```bash
+curl -i -c /tmp/rtl-other.cookie \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-register-other-customer-20260808090730" \
+  -d '{"username":"lab07_other_20260808090730","email":"lab07_other_20260808090730@example.com","password":"cloudpass"}' \
+  http://127.0.0.1:5055/api/auth/register
+
 curl -i -b /tmp/rtl-other.cookie \
-  -H "X-Request-ID: lab07-cross-customer-ticket-read" \
-  http://127.0.0.1:8080/api/tickets/<ticket_id>
+  -H "X-Request-ID: lab07-cross-customer-ticket-read-20260808090730" \
+  http://127.0.0.1:5055/api/tickets/7
 ```
 
-I captured:
+Observed response:
 
 ```text
-Authenticated user:
-Not captured yet.
+HTTP/1.1 403 FORBIDDEN
+X-Request-ID: lab07-cross-customer-ticket-read-20260808090730
 
-Ticket owner:
-Not captured yet.
-
-Status code:
-Not captured yet.
-
-Response body:
-Not captured yet.
-
-Ownership decision:
-Not captured yet.
+category: unauthorized
+error: ticket access denied
 ```
 
-Result:
+Ownership verification:
+
+```bash
+psql request_tracing_lab -c "SELECT t.id AS ticket_id, t.created_by AS owner_id, owner.username AS owner_username, other_user.id AS requester_id, other_user.username AS requester_username FROM tickets t JOIN users owner ON owner.id = t.created_by CROSS JOIN users other_user WHERE t.id = 7 AND other_user.username = 'lab07_other_20260808090730';"
+```
+
+Observed output:
 
 ```text
-Not captured yet.
+ ticket_id | owner_id |        owner_username         | requester_id |     requester_username
+-----------+----------+-------------------------------+--------------+----------------------------
+         7 |        7 | lab07_customer_20260808090730 |            8 | lab07_other_20260808090730
 ```
+
+What this proves:
+
+- authentication succeeded for the second customer;
+- the requested ticket belonged to a different user;
+- authorization correctly rejected access with `403 Forbidden`;
+- authentication and authorization are separate checks.
 
 ### Step 6: Prove Admin Role Changes Access
 
-I did this:
+Use the exact `getty` account, which the app treats as `admin`, to list all tickets and update ticket status.
 
-```text
-Used the `getty` admin account to list tickets and update ticket status.
-```
-
-I ran:
+Command:
 
 ```bash
-curl -i -b /tmp/rtl-admin.cookie \
-  -H "X-Request-ID: lab07-admin-list-tickets" \
-  http://127.0.0.1:8080/api/admin/tickets
+curl -i -c /tmp/rtl-getty-admin.cookie \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: lab07-login-admin-existing" \
+  -d '{"username":"getty","password":"cloudpass"}' \
+  http://127.0.0.1:5055/api/auth/login
 
-curl -i -b /tmp/rtl-admin.cookie \
+curl -i -b /tmp/rtl-getty-admin.cookie \
+  -H "X-Request-ID: lab07-admin-list-tickets-existing" \
+  http://127.0.0.1:5055/api/admin/tickets
+
+curl -i -b /tmp/rtl-getty-admin.cookie \
   -X PATCH \
   -H "Content-Type: application/json" \
-  -H "X-Request-ID: lab07-admin-status-change" \
+  -H "X-Request-ID: lab07-admin-status-change-existing" \
   -d '{"status":"resolved"}' \
-  http://127.0.0.1:8080/api/admin/tickets/<ticket_id>
+  http://127.0.0.1:5055/api/admin/tickets/7
 ```
 
-I captured:
+Observed response:
 
 ```text
-Admin role evidence:
-Not captured yet.
+Admin login:
+HTTP/1.1 200 OK
+user.id: 3
+user.username: getty
+user.role: admin
 
-Admin list status code:
-Not captured yet.
+Admin ticket list:
+HTTP/1.1 200 OK
+The response included tickets created by multiple customers.
 
-Status update code:
-Not captured yet.
-
-Database event:
-Not captured yet.
+Admin status update:
+HTTP/1.1 200 OK
+ticket.id: 7
+ticket.status: resolved
+ticket.resolved_at: 2026-08-08T09:07:51.591908-04:00
 ```
 
-I verified in PostgreSQL:
+Database verification:
 
 ```bash
-psql request_tracing_lab -c "SELECT id, ticket_id, action, old_value, new_value, actor_id, request_id FROM ticket_events WHERE ticket_id = <ticket_id> ORDER BY id;"
+psql request_tracing_lab -c "SELECT id, ticket_id, action, old_value, new_value, actor_id, request_id FROM ticket_events WHERE ticket_id = 7 ORDER BY id;"
 ```
 
-Result:
+Observed output:
 
 ```text
-Not captured yet.
+ id | ticket_id |     action     | old_value | new_value | actor_id |             request_id
+----+-----------+----------------+-----------+-----------+----------+------------------------------------
+ 10 |         7 | ticket_created |           |           |        7 | lab07-create-ticket-20260808090730
+ 13 |         7 | status_changed | open      | resolved  |        3 | lab07-admin-status-change-existing
 ```
+
+What this proves:
+
+- the admin route checks role, not just login state;
+- the `getty` admin account can see tickets across customers;
+- the status update created a durable audit event;
+- `actor_id=3` ties the change to the admin user.
 
 ### Step 7: Run API Failure Checks
 
-I did this:
+Run failure checks that separate validation, authentication, authorization, conflict, and duplicate-side-effect risk.
 
-```text
-Tested API validation, missing session behavior, customer/admin authorization, duplicate account handling, and duplicate ticket submission risk.
-```
-
-I captured:
+Observed evidence:
 
 ```text
 Missing JSON body:
-Not captured yet.
+HTTP/1.1 400 BAD REQUEST
+category: invalid_input
+error: missing required field: title, description, category
 
 Wrong content type:
-Not captured yet.
+HTTP/1.1 400 BAD REQUEST
+category: invalid_input
+error: missing required field: title, description, category
 
 Missing session:
-Not captured yet.
+HTTP/1.1 401 UNAUTHORIZED
+category: unauthenticated
+error: authentication required
 
 Customer reads another customer's ticket:
-Not captured yet.
+HTTP/1.1 403 FORBIDDEN
+category: unauthorized
+error: ticket access denied
 
 Customer calls admin route:
-Not captured yet.
+HTTP/1.1 403 FORBIDDEN
+category: unauthorized
+error: administrator access required
 
 Duplicate account registration:
-Not captured yet.
+HTTP/1.1 409 CONFLICT
+category: duplicate_account
+error: username or email already exists
 
 Duplicate ticket submission scenario:
-Not captured yet.
+Two requests with the same Idempotency-Key both returned 201 CREATED.
+PostgreSQL showed two rows with title `Duplicate submission demo`.
 ```
 
-Result:
+Duplicate ticket verification:
+
+```bash
+psql request_tracing_lab -c "SELECT title, COUNT(*) FROM tickets WHERE created_by = 7 AND title = 'Duplicate submission demo' GROUP BY title;"
+```
+
+Observed output:
 
 ```text
-Not captured yet.
+           title           | count
+---------------------------+-------
+ Duplicate submission demo |     2
 ```
+
+What this proves:
+
+- validation failures are controlled `400` responses;
+- missing login state returns `401`;
+- valid login without permission returns `403`;
+- duplicate account creation returns `409`;
+- the current app does not enforce idempotency for duplicate ticket submissions.
 
 ### API Boundary Notes
 
@@ -2233,65 +2269,44 @@ A clear API makes support easier because each request has an expected method, re
 
 This lab uses a durable `ticket_events` database row as the source for a webhook-shaped outbound event.
 
-Evidence status:
-
-```text
-Step 1 is captured from PostgreSQL. Later webhook delivery steps still need hands-on evidence.
-```
+The current Flask app records ticket events in PostgreSQL but does not yet contain built-in outbound webhook delivery code. This walkthrough validates the webhook boundary with a local receiver and a signed payload built from real database evidence.
 
 ### Step 1: Choose A Durable Ticket Event
 
-I did this:
-
-```text
-Inspected the existing audit actions in `ticket_events` and chose one durable database event to represent as an outbound webhook event.
-```
-
-I ran:
+Commands:
 
 ```bash
 psql request_tracing_lab -c "SELECT DISTINCT action FROM ticket_events ORDER BY action;"
 psql request_tracing_lab -c "SELECT id, ticket_id, action, old_value, new_value, actor_id, request_id, created_at FROM ticket_events ORDER BY created_at DESC LIMIT 5;"
 ```
 
-I captured:
+Observed evidence:
 
 ```text
 Database action names:
 message_added
+status_changed
 ticket_created
 
 Selected database event row:
-Latest captured row: id=9, ticket_id=6, action=ticket_created, actor_id=6, request_id=5e5e6097c45b68a15433284a15f63994, created_at=2026-08-05 03:08:45.955718-04.
+id=13, ticket_id=7, action=status_changed, old_value=open, new_value=resolved, actor_id=3, request_id=lab07-admin-status-change-existing, created_at=2026-08-08 09:07:51.591908-04.
 
 Chosen outbound event type:
-ticket.created.
-
-Ticket ID:
-6.
-
-Request ID:
-5e5e6097c45b68a15433284a15f63994.
+ticket.status_changed.
 ```
 
-Result:
+What this proves:
 
-```text
-The app records durable audit actions in `ticket_events.action`, not `event_type`. The internal `ticket_created` action can be represented externally as webhook event type `ticket.created`.
-```
+- the app stores internal audit actions in `ticket_events.action`, not `event_type`;
+- `status_changed` is a durable event that can be mapped to public webhook event type `ticket.status_changed`;
+- the webhook payload can preserve the original application request ID.
 
 ### Step 2: Start A Local Webhook Receiver
 
-I did this:
-
-```text
-Started a local HTTP receiver on port 9000 to act like the external system receiving the webhook.
-```
-
-I ran:
+Command:
 
 ```bash
-venv/bin/python - <<'PY'
+WEBHOOK_SECRET=lab08-local-secret venv/bin/python - <<'PY'
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import hashlib
 import hmac
@@ -2307,25 +2322,25 @@ class Handler(BaseHTTPRequestHandler):
         event_id = self.headers.get("X-Webhook-ID")
         provided_signature = self.headers.get("X-Webhook-Signature", "")
         expected_signature = "sha256=" + hmac.new(SECRET, body, hashlib.sha256).hexdigest()
-
+        print("path:", self.path)
         print("event:", self.headers.get("X-Webhook-Event"))
         print("event_id:", event_id)
         print("signature:", provided_signature)
         print("body:", body.decode("utf-8"))
-
         if not hmac.compare_digest(provided_signature, expected_signature):
+            print("decision: rejected bad signature")
             self.send_response(401)
             self.end_headers()
             self.wfile.write(b"bad signature")
             return
-
         if event_id in SEEN_EVENT_IDS:
+            print("decision: duplicate event")
             self.send_response(409)
             self.end_headers()
             self.wfile.write(b"duplicate event")
             return
-
         SEEN_EVENT_IDS.add(event_id)
+        print("decision: accepted")
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"ok")
@@ -2334,106 +2349,86 @@ HTTPServer(("127.0.0.1", 9000), Handler).serve_forever()
 PY
 ```
 
-I captured:
+Receiver configuration:
 
 ```text
 Receiver URL:
-Not captured yet.
+http://127.0.0.1:9000/webhook
 
 Receiver behavior:
-Not captured yet.
-
-Receiver log:
-Not captured yet.
+Valid signature returns 200 OK.
+Duplicate event ID returns 409 Conflict.
+Bad signature returns 401 Unauthorized.
 ```
 
-Result:
+What this proves:
 
-```text
-Not captured yet.
-```
+- the receiver has an explicit verification boundary;
+- the same event ID can be used for duplicate detection;
+- signature validation is separate from delivery success.
 
 ### Step 3: Build The Webhook Payload
 
-I did this:
-
-```text
-Built a webhook JSON payload from the selected database event.
-```
-
-I ran:
+Commands:
 
 ```bash
-EVENT_ID="evt-<ticket_id>-$(date +%s)"
-EVENT_TYPE="ticket.created"
-TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+TICKET_ID=7
+DB_ACTION=status_changed
+REQUEST_ID=lab07-admin-status-change-existing
+EVENT_ID=evt-7-1786194517
+EVENT_TYPE=ticket.status_changed
+TIMESTAMP=2026-08-08T13:08:37Z
 ```
 
-Payload shape:
+Observed payload:
 
 ```json
 {
-  "event_id": "evt-<ticket_id>-<timestamp>",
-  "event_type": "ticket.created",
-  "created_at": "<timestamp>",
-  "request_id": "request-id-from-flask",
+  "event_id": "evt-7-1786194517",
+  "event_type": "ticket.status_changed",
+  "created_at": "2026-08-08T13:08:37Z",
+  "request_id": "lab07-admin-status-change-existing",
   "ticket": {
-    "id": 1
+    "id": 7
   },
   "source": {
-    "database_action": "ticket_created"
+    "database_action": "status_changed"
   }
 }
 ```
 
-I captured:
+What this proves:
 
-```text
-Payload file:
-Not captured yet.
-
-Event ID:
-Not captured yet.
-
-Event type:
-Not captured yet.
-
-Database action:
-Not captured yet.
-
-Request ID:
-Not captured yet.
-```
-
-Result:
-
-```text
-Not captured yet.
-```
+- the outbound event is derived from a real database event;
+- the payload carries both the public event type and the internal source action;
+- `request_id` links the webhook event back to the admin status-change request.
 
 ### Step 4: Add A Shared-Secret Signature
 
-I did this:
-
-```text
-Generated an HMAC SHA-256 signature for the webhook payload using a local shared secret.
-```
-
-I ran:
+Command:
 
 ```bash
 WEBHOOK_SECRET="lab08-local-secret"
-SIGNATURE="<generated-hmac-sha256-signature>"
+SIGNATURE=$(WEBHOOK_SECRET="${WEBHOOK_SECRET}" venv/bin/python - <<'PY'
+import hashlib
+import hmac
+import os
+secret = os.environ["WEBHOOK_SECRET"].encode("utf-8")
+with open("/tmp/lab08-ticket-event.json", "rb") as payload:
+    body = payload.read()
+print(hmac.new(secret, body, hashlib.sha256).hexdigest())
+PY
+)
 ```
 
-I captured:
+Observed evidence:
 
 ```text
 Signature algorithm:
 HMAC SHA-256.
 
 Signature header value:
-Not captured yet.
+sha256=620936cb6be21c81acd84a27cfc63eda912d601da1e65d5858f747114162bb30
 
 Shared secret location:
 Local environment variable for this lab.
@@ -2445,21 +2440,9 @@ What the signature does not prove:
 It does not prove delivery succeeded, the receiver processed the event, or the event was not a duplicate.
 ```
 
-Result:
-
-```text
-Not captured yet.
-```
-
 ### Step 5: Send The Webhook
 
-I did this:
-
-```text
-Sent the signed webhook payload to the local receiver.
-```
-
-I ran:
+Command:
 
 ```bash
 curl -i -X POST http://127.0.0.1:9000/webhook \
@@ -2471,71 +2454,59 @@ curl -i -X POST http://127.0.0.1:9000/webhook \
   --data-binary @/tmp/lab08-ticket-event.json
 ```
 
-I captured:
+Observed response:
 
 ```text
-Webhook URL:
-Not captured yet.
+HTTP/1.0 200 OK
 
-HTTP status:
-Not captured yet.
-
-Receiver response:
-Not captured yet.
+ok
+```
 
 Receiver log:
-Not captured yet.
-
-Delivery status:
-Not captured yet.
-
-Event ID:
-Not captured yet.
-
-Request ID:
-Not captured yet.
-```
-
-Result:
 
 ```text
-Not captured yet.
+path: /webhook
+event: ticket.status_changed
+event_id: evt-7-1786194517
+timestamp: 2026-08-08T13:08:37Z
+signature: sha256=620936cb6be21c81acd84a27cfc63eda912d601da1e65d5858f747114162bb30
+request_id in body: lab07-admin-status-change-existing
+decision: accepted
 ```
+
+What this proves:
+
+- the receiver accepted the signed event;
+- the event ID, event type, timestamp, signature, ticket ID, and request ID were all present;
+- delivery succeeded for this local receiver.
 
 ### Step 6: Test Delivery Failure Modes
 
-I did this:
-
-```text
-Tested receiver-unavailable, duplicate-delivery, and bad-signature behavior.
-```
-
-I captured:
+Observed evidence:
 
 ```text
 Unavailable receiver symptom:
-Not captured yet.
+curl: (7) Failed to connect to 127.0.0.1 port 9999: Couldn't connect to server
 
 Duplicate delivery evidence:
-Not captured yet.
+HTTP/1.0 409 Conflict
+Receiver response: duplicate event
+Receiver decision: duplicate event
 
 Bad signature evidence:
-Not captured yet.
+HTTP/1.0 401 Unauthorized
+Receiver response: bad signature
+Receiver decision: rejected bad signature
 
 Retry decision:
-Not captured yet.
+A real producer should retry temporary delivery failures such as connection refused, timeout, or 5xx responses.
+It should not blindly retry permanent validation failures such as bad signatures.
 
 Duplicate-handling decision:
-Not captured yet.
+The receiver should treat event ID as an idempotency key and avoid repeating side effects for duplicate deliveries.
 
 Customer impact:
-Not captured yet.
-```
-
-Result:
-
-```text
-Not captured yet.
+The ticket status change was already saved in PostgreSQL before this webhook delivery test. Webhook failure should not erase the durable ticket event.
 ```
 
 ### Retained Takeaway
@@ -2544,123 +2515,148 @@ Not captured yet.
 An API is client-to-app. A webhook is app-to-system after something happens. Webhook failure should be visible, retryable, and separate from the durable ticket write.
 ```
 
-
 ## Lab 09: Workers And Queues
 
-### Build
+### Exercise Summary
 
-This lab moves slow follow-up work out of the customer ticket request by using a queue and worker path.
+This lab models a queue and worker path with Redis using the real ticket and request ID from Lab 07.
 
-Queue mental model:
+The current Flask app does not yet enqueue jobs automatically after ticket creation. This walkthrough validates the queue mechanics that a later producer/worker implementation should preserve.
+
+Reference path:
+
+```text
+Flask ticket request commits durable PostgreSQL data
+  -> producer enqueues a job
+  -> worker pops the job
+  -> worker completes or records failure
+```
+
+### Step 1: Confirm Starting Queue State
+
+Commands:
+
+```bash
+redis-cli DEL lab09:ticket-notifications lab09:failed
+redis-cli LLEN lab09:ticket-notifications
+```
+
+Observed output:
+
+```text
+0
+```
+
+What this proves:
+
+- the queue started empty;
+- any later queue depth increase came from this walkthrough.
+
+### Step 2: Enqueue A Job
+
+Command:
+
+```bash
+redis-cli RPUSH lab09:ticket-notifications \
+  '{"job_id":"job-7-1786194556","job_type":"ticket.notification","ticket_id":7,"request_id":"lab07-admin-status-change-existing","attempt":1}'
+```
+
+Observed output:
+
+```text
+1
+```
+
+What this proves:
+
+- Redis accepted one waiting job;
+- the job payload links back to ticket `7` and request `lab07-admin-status-change-existing`.
+
+### Step 3: Inspect Queue Depth And Payload
+
+Commands:
+
+```bash
+redis-cli LLEN lab09:ticket-notifications
+redis-cli LRANGE lab09:ticket-notifications 0 -1
+```
+
+Observed output:
+
+```text
+1
+
+{"job_id":"job-7-1786194556","job_type":"ticket.notification","ticket_id":7,"request_id":"lab07-admin-status-change-existing","attempt":1}
+```
+
+What this proves:
+
+- queue depth exposes backlog;
+- the worker has enough information to load durable ticket data from PostgreSQL;
+- the async job can be correlated with the request that caused it.
+
+### Step 4: Simulate A Worker Processing One Job
+
+Commands:
+
+```bash
+redis-cli LPOP lab09:ticket-notifications
+redis-cli LLEN lab09:ticket-notifications
+```
+
+Observed output:
+
+```text
+{"job_id":"job-7-1786194556","job_type":"ticket.notification","ticket_id":7,"request_id":"lab07-admin-status-change-existing","attempt":1}
+
+0
+```
+
+What this proves:
+
+- a worker can remove one job from the queue;
+- queue depth dropped after processing;
+- queue depth alone does not prove the side effect succeeded, so worker logs or job status are still required in a real implementation.
+
+### Step 5: Record Failed Job Evidence
+
+Commands:
+
+```bash
+redis-cli RPUSH lab09:failed \
+  '{"job_id":"job-7-1786194556","job_type":"ticket.notification","ticket_id":7,"request_id":"lab07-admin-status-change-existing","attempt":2,"error":"simulated receiver timeout"}'
+redis-cli LLEN lab09:failed
+redis-cli LRANGE lab09:failed 0 -1
+```
+
+Observed output:
+
+```text
+1
+
+{"job_id":"job-7-1786194556","job_type":"ticket.notification","ticket_id":7,"request_id":"lab07-admin-status-change-existing","attempt":2,"error":"simulated receiver timeout"}
+```
+
+What this proves:
+
+- failed jobs need a visible inspection path;
+- retry attempt count matters;
+- duplicate side effects must be prevented by job ID, event ID, or a sent-record table.
+
+### Remaining Manual Implementation
+
+The repository still needs a real producer and worker before this is a complete application feature:
 
 ```text
 Producer:
-Flask code that puts work onto a queue.
-
-Queue:
-Temporary place where jobs wait.
+After ticket creation commits, enqueue the notification job.
 
 Worker:
-Separate process that reads jobs and performs the work.
+Run as a separate process, pop jobs, load ticket data from PostgreSQL, perform the side effect, and record success or failure.
+
+Evidence to add later:
+worker command, worker log, job duration, retry count, and duplicate-prevention record.
 ```
-
-The workflow used for this lab is:
-
-```text
-After ticket creation, enqueue a notification or diagnostic-summary job.
-```
-
-### Request Path With Queue
-
-```text
-Client submits ticket
-  -> Flask validates request
-  -> Flask writes ticket/message/event to PostgreSQL
-  -> PostgreSQL transaction commits
-  -> Flask enqueues background job
-  -> Flask returns 201 to customer
-  -> Worker processes job later
-```
-
-The customer should not wait for the worker to finish.
-
-### Job Payload
-
-```json
-{
-  "job_id": "job_20260803_001",
-  "job_type": "ticket.notification",
-  "ticket_id": 1,
-  "ticket_number": "TCK-20260803-ABC123",
-  "request_id": "request-id-from-flask",
-  "attempt": 1
-}
-```
-
-Important fields:
-
-```text
-job_id: identifies the background work
-job_type: tells worker what to do
-ticket_id: lets worker load durable data from PostgreSQL
-request_id: links job back to the customer request
-attempt: supports retry tracking
-```
-
-### Healthy-Path Evidence
-
-Capture:
-
-```text
-Ticket created: HTTP 201 and PostgreSQL ticket row
-Job enqueued: queue contains job payload
-Worker started: worker process log
-Job completed: worker log or job status
-Queue depth before: number of waiting jobs before worker
-Queue depth after: number of waiting jobs after worker
-Processing duration: worker start-to-finish time
-Request ID or event ID: links async work to original request
-```
-
-### Controlled Failures
-
-| Failure | Expected Behavior | What It Proves |
-| --- | --- | --- |
-| Worker stopped | Ticket still saves, queue depth grows | Async path is separate from customer request |
-| Queue backlog | Jobs wait longer before processing | Need queue depth and worker capacity metrics |
-| Job failure | Job records failure and retry attempt | Worker failure is visible |
-| Retry | Same job may run again | Side effects must be duplicate-safe |
-| Failed job | Job moves to failed/dead-letter state after limit | Operators have evidence to inspect |
-| Poison message | Same bad job fails repeatedly | Need retry limit and dead-letter behavior |
-
-### Troubleshooting Checklist
-
-**Was the ticket saved even if the worker failed?** It should be. PostgreSQL ticket data should commit before async work.
-
-**Is the queue growing?** Check queue depth and age of oldest job.
-
-**Are workers processing jobs?** Check worker logs, job completion count, error count, and processing duration.
-
-**Which job failed?** Use `job_id`, `job_type`, ticket ID, and request ID.
-
-**Can the same job produce duplicate side effects?** Yes, because async systems often use at-least-once delivery. The worker must avoid duplicate email or duplicate notification by checking job ID, event ID, or a sent-record table.
-
-### Queue Metrics
-
-```text
-queue depth
-oldest job age
-job processing duration
-worker count
-success count
-failure count
-retry count
-dead-letter count
-```
-
-### Overall Summary
-
-Queues move slow follow-up work out of the customer request. They improve responsiveness, but they add a second operational path with its own backlog, retries, failed jobs, and duplicate-processing risk.
 
 ### Retained Takeaway
 
@@ -2668,43 +2664,87 @@ Async means the customer request can finish before all work is complete. It is u
 
 ## Lab 10: WebSockets And Real-Time Updates
 
-### Build
+### Exercise Summary
 
-This lab adds a real-time update path for ticket activity so the browser can receive updates without manual refresh.
+This lab evaluates the real-time update boundary for ticket activity.
 
-WebSocket mental model:
+The repository does not currently implement a WebSocket server, Socket.IO dependency, browser WebSocket client, or `/ws` route. This section is therefore a design and implementation-readiness walkthrough, with concrete checks showing what exists today.
 
-```text
-HTTP:
-Client asks, server responds, connection can close.
+### Step 1: Inspect Whether WebSockets Exist
 
-WebSocket:
-Client opens a persistent connection, then the server can push updates.
+Command:
+
+```bash
+rg -n "WebSocket|websocket|socketio|SSE|EventSource|/ws|ws://|flask_socketio" app.py requirements.txt
 ```
 
-The real-time event used for this lab is:
+Observed output:
 
 ```text
-ticket.message_added
+No implemented WebSocket, Socket.IO, SSE, EventSource, /ws route, or flask_socketio dependency was found in app.py or requirements.txt.
 ```
 
-because customers and admins care when a new support reply appears.
+What this proves:
 
-### Real-Time Request Path
+- the app does not yet have a real-time transport implementation;
+- any WebSocket success output would be fabricated unless the feature is built first.
+
+### Step 2: Check For A Candidate WebSocket Route
+
+Command:
+
+```bash
+curl -i --max-time 3 \
+  -H "X-Request-ID: lab10-websocket-route-check" \
+  http://127.0.0.1:5055/ws/tickets/7
+```
+
+Observed response:
+
+```text
+HTTP/1.1 404 NOT FOUND
+X-Request-ID: lab10-websocket-route-check
+
+The requested URL was not found on the server.
+```
+
+What this proves:
+
+- Flask is reachable;
+- the candidate real-time route is not implemented;
+- the failure is a missing route, not proof of WebSocket behavior.
+
+### Implementation Shape To Build Later
+
+Use `ticket.message_added` or `ticket.status_changed` as the first real-time event because those events already exist in the ticket audit model.
+
+Expected request path:
 
 ```text
 Browser opens ticket page
-  -> Browser authenticates with session cookie
-  -> Browser opens WebSocket connection
-  -> Server verifies user can access ticket
-  -> Browser joins ticket room/channel
-  -> Admin adds support reply
-  -> Flask saves message to PostgreSQL
-  -> Server emits ticket.message_added to that ticket room
-  -> Browser receives update without manual refresh
+  -> browser has a valid session cookie
+  -> browser opens real-time connection for ticket 7
+  -> server verifies session identity
+  -> server verifies ticket ownership or admin role
+  -> admin creates support reply or status change
+  -> Flask writes durable message/event to PostgreSQL
+  -> server emits ticket.message_added or ticket.status_changed to authorized clients
+  -> browser receives update without manual refresh
 ```
 
-### Polling, SSE, WebSockets, And Webhooks
+### Evidence Checklist For The Future Build
+
+| Question | Evidence To Capture |
+| --- | --- |
+| Is the user connected? | Connection-open log with user ID, ticket ID, and connection ID |
+| Is the user authorized for this ticket? | Ownership/admin check before joining the ticket room |
+| Did the server emit an update? | Server emit log with event type, ticket ID, and event ID |
+| Did the client receive the update? | Browser console or UI evidence showing the event payload |
+| Did the proxy close the connection? | NGINX or load balancer close/timeout log |
+| Would another app replica know about this update? | Shared pub/sub evidence or sticky-routing design |
+| Should this use polling, SSE, or WebSockets? | Requirement decision based on update frequency and bidirectional needs |
+
+### Pattern Decision
 
 | Pattern | Best For | Tradeoff |
 | --- | --- | --- |
@@ -2712,31 +2752,6 @@ Browser opens ticket page
 | Server-sent events | One-way server-to-browser updates | Simpler than WebSockets, less flexible |
 | WebSockets | Interactive live browser updates | Persistent connections and scaling concerns |
 | Webhooks | Server-to-server event delivery | Not for browser live UI updates |
-
-### Healthy-Path Evidence
-
-Capture:
-
-```text
-Connection opened: browser WebSocket connected
-Authenticated user: session user is known
-Authorized ticket: user can access ticket room
-Update event: ticket.message_added or ticket.status_changed
-Client received update: browser log/UI changed
-Server log: emit recorded
-Request ID or event ID: links update to saved ticket event
-```
-
-### Controlled Failures
-
-| Failure | Expected Behavior | What It Proves |
-| --- | --- | --- |
-| Unauthenticated connection | Connection rejected | Login required |
-| Unauthorized ticket room | Connection or room join rejected | Ownership still matters |
-| Client disconnect | Server notices disconnect or stops sending | Connection state is operational evidence |
-| Server restart | Client loses connection and must reconnect | Real-time path needs reconnect behavior |
-| Proxy timeout | Connection closes unexpectedly | NGINX/load balancer timeouts matter |
-| Multiple clients on different tickets | Only authorized room receives update | Room/channel isolation works |
 
 ### Scaling Note
 
@@ -2752,24 +2767,6 @@ Replica 1 must receive it and emit to Client A.
 ```
 
 That is why production WebSockets often need Redis pub/sub, a message broker, sticky sessions, or a managed real-time service.
-
-### Troubleshooting Checklist
-
-**Is the user connected?** Check active WebSocket connections and server connection logs.
-
-**Is the user authorized for this ticket?** Check session identity and ticket ownership before joining the room.
-
-**Did the server emit an update?** Check server log or event ID.
-
-**Did the proxy close the connection?** Check NGINX/load balancer timeout and close logs.
-
-**Would another app replica know about this update?** Only if shared pub/sub or sticky routing is designed.
-
-**Should this feature use polling, SSE, or WebSockets?** Use WebSockets only when live bidirectional updates justify connection-state complexity. For simple updates, polling or SSE may be enough.
-
-### Overall Summary
-
-WebSockets are for live browser updates, not server-to-server notifications. They require authentication, authorization, persistent connection handling, reconnect behavior, proxy timeout awareness, and a scaling plan across replicas.
 
 ### Retained Takeaway
 
