@@ -58,7 +58,7 @@ flowchart LR
 | Lab 06 | Database dependency lens | Connection, latency, transactions, backup evidence at a practical level |
 | Lab 07 | API boundary | Methods, status codes, validation, session auth, authorization |
 | Labs 08-10 | Optional boundaries | Webhooks, queues/workers, and real-time communication as architecture comparisons |
-| Labs 11-14 | Review and readiness | Health basics, evidence correlation, light load checks, escalation quality |
+| Labs 11-14 | Review and readiness | Health basics, evidence correlation, container foundation, and Phase 2 checkpoint |
 
 ## What You Will Learn
 
@@ -114,7 +114,7 @@ phase-02-tracing-service-boundaries/
 | [07](LABS.md#lab-07-api-design-and-authentication) | API boundary | Prove session auth, authorization, status codes, and request IDs |
 | [11](LABS.md#lab-11-health-and-readiness) | Application health/readiness | Decide which dependencies make the app ready or degraded |
 | [12](LABS.md#lab-12-logs-metrics-traces-and-request-ids) | Evidence correlation | Connect client, NGINX, Flask, Redis, and database evidence |
-| [14](LABS.md#lab-14-production-readiness-review) | Service-boundary review | Explain what is ready, risky, known-good, or still unknown |
+| [14](LABS.md#lab-14-phase-2-architecture-and-operations-review) | Service-boundary review | Explain what is ready, risky, known-good, or still unknown |
 
 ## Optional Extensions
 

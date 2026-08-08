@@ -15,7 +15,7 @@
 11. [Lab 11: Health And Readiness](#lab-11-health-and-readiness)
 12. [Lab 12: Logs, Metrics, Traces, And Request IDs](#lab-12-logs-metrics-traces-and-request-ids)
 13. [Lab 13: Container Foundation](#lab-13-container-foundation)
-14. [Lab 14: Production-Readiness Review](#lab-14-production-readiness-review)
+14. [Lab 14: Phase 2 Architecture And Operations Review](#lab-14-phase-2-architecture-and-operations-review)
 - [Lab 05 Setup Reference](#lab-05-setup-reference)
 - [Production Review Scenarios](#production-review-scenarios)
 - [Challenge Scenarios](challenges/README.md)
@@ -1898,7 +1898,7 @@ Explanation standard:
 Retained takeaway:
 ```
 
-### Evidence Walkthrough Checklist
+### Troubleshooting Checklist
 
 ```text
 Connection evidence:
@@ -2053,7 +2053,7 @@ Explanation standard:
 Retained takeaway:
 ```
 
-### Evidence Walkthrough Checklist
+### Troubleshooting Checklist
 
 ```text
 Process evidence:
@@ -2404,184 +2404,211 @@ The learner can explain each Dockerfile line and run the Flask API container wit
 Containers package the service; orchestration operates the service. Learn the package before the platform.
 ```
 
-## Lab 14: Production-Readiness Review
+## Lab 14: Phase 2 Architecture And Operations Review
 
-Review whether the Phase 2 support-ticket application is ready to move into containerized operations.
+Review the Phase 2 system as a checkpoint before moving the same application into containerized operation.
 
 ### Why This Lab Exists
 
-This lab pulls the Phase 2 learning together: support-ticket behavior, database durability, Redis temporary state, API boundaries, webhooks, queues, real-time updates, health/readiness, observability, basic load testing, and failure evidence.
+This lab consolidates Phase 2. It is not a release approval, capacity exercise, or new failure-injection lab.
 
-It maps directly to production-readiness prompts like:
+Use it to answer:
 
 ```text
-Management wants this app in production next week. What do you need before saying yes?
+What did the architecture look like before Phase 2?
+What components and boundaries were added?
+How does a request move through the final Phase 2 system?
+Which components hold durable state versus temporary state?
+Which paths are synchronous versus asynchronous?
+What failure boundaries have already been explored?
+What evidence is available at each boundary?
+What operational gaps remain?
+What concepts should carry into Phase 3?
 ```
 
 ### Architecture Before
 
+At the end of Phase 1 and beginning of Phase 2, the core request path was the single-service Flask app:
+
 ```text
-Browser -> NGINX -> Flask support-ticket API
-  |-- PostgreSQL
-  |-- Redis
-  |-- worker/queue path
-  |-- webhook delivery
-  `-- WebSocket/SSE/polling path
+Client -> Flask
 ```
+
+The learner had already practiced request IDs, successful and failed HTTP requests, sessions, JWT examples, logs, and local Flask behavior. The browser or curl talked directly to Flask.
 
 ### Architecture After
 
-No major new component is required. This lab produces a launch review and RCA evidence.
+The core Phase 2 system adds service boundaries around the same application:
 
-### Key Terms
+```mermaid
+flowchart TD
+    Client["Browser / curl"] --> NGINX["NGINX reverse proxy"]
+    NGINX --> Flask["Flask support-ticket API"]
+    Flask --> Postgres[("PostgreSQL durable state")]
+    Flask --> Redis[("Redis temporary state")]
+```
 
-| Term | Meaning |
-| --- | --- |
-| Functional readiness | Core user workflows work |
-| Database readiness | Durable data, backups, and recovery are understood |
-| RPO/RTO | Data-loss and recovery-time targets |
-| Capacity assumption | Current belief about traffic, CPU, memory, DB, and replicas |
-| Rollback plan | How to return to a known-good version |
-| Incident communication | Clear update for customers, support, and engineering |
-| RCA | Evidence-backed root-cause analysis |
-
-### Must Review
+Core synchronous path:
 
 ```text
-Functional readiness:
-Database readiness:
-Backup and restore strategy:
-RPO/RTO:
-Queue and worker behavior:
-Webhook delivery:
-WebSocket behavior:
+Client -> NGINX -> Flask API -> PostgreSQL
+```
+
+Temporary-state path:
+
+```text
+Flask API -> Redis
+```
+
+Optional or service-boundary paths explored conceptually or with local simulations:
+
+```text
+Flask API -> webhook receiver
+Flask API -> Redis queue -> worker
+Browser -> real-time update path
+```
+
+Only treat those optional paths as implemented when the repository contains working code and evidence for them. Otherwise, record them as design boundaries to carry forward.
+
+### Architecture Evolution
+
+```text
+Phase 1 end:
+Client -> Flask
+
+Early Phase 2:
+Client -> NGINX -> Flask
+
+Then:
+Client -> NGINX -> Flask -> PostgreSQL
+
+Then:
+                       -> Redis
+Client -> NGINX -> Flask
+                       -> PostgreSQL
+
+Later optional service-boundary studies:
+webhook delivery, queue/worker behavior, real-time update behavior
+```
+
+### Review Areas
+
+Review what Phase 2 actually taught:
+
+```text
+Core user workflows:
+Can a user register, log in, create a ticket, list tickets, and view allowed ticket data?
+
+NGINX/reverse-proxy path:
+What proves the client reached NGINX and NGINX reached Flask?
+
+PostgreSQL durable state:
+Which tables prove users, tickets, messages, and ticket events were saved?
+
+Redis temporary state:
+What behavior depends on Redis, and what happens when Redis is unavailable?
+
 Authentication and authorization:
-Logs, metrics, and traces:
-Security and secret handling:
-Capacity assumptions:
-Basic load testing:
-Rollback considerations:
-Incident communication:
-RCA:
+What proves a user is logged in, and what proves ownership or admin authorization was enforced?
+
+Webhook behavior, if implemented or simulated:
+What event was sent, what signature was used, and what happened on duplicate or failed delivery?
+
+Worker/queue behavior, if implemented or simulated:
+What job was queued, what queue depth changed, and what failed-job evidence exists?
+
+Real-time behavior, if implemented:
+What proves the connection opened, the user was authorized, and the client received the update?
+
+Application health/readiness:
+What does /health prove, and what should /ready prove about required dependencies?
+
+Logs and request IDs:
+Which request IDs connect client, Flask, database, Redis, or service-boundary evidence?
+
+Configuration and secrets:
+Which values are runtime configuration, and which should not be committed to code?
+
+Recovery and rollback considerations:
+What can be restored, rerun, retried, or rolled back based on Phase 2 evidence?
+
+Runbook/documentation gaps:
+What would a future operator still need before running this in containers?
 ```
 
-### Basic k6 Scenarios
+### Evidence Review
 
-Use k6 only for focused scenarios after the behavior exists:
-
-```text
-Login:
-List tickets:
-Create ticket:
-Add reply:
-API latency under concurrency:
-```
+Use existing evidence from earlier Phase 2 labs. Do not generate a large new evidence set.
 
 Capture:
 
 ```text
-k6 command:
-Virtual users:
-Duration:
-Request rate:
-p95 latency:
-Error rate:
-CPU evidence:
-Memory evidence:
-Database connection evidence:
-Redis evidence:
-Replica sizing reasoning:
-```
-
-### Controlled Failures
-
-Inject at least four failures:
-
-```text
-Database unavailable:
-Slow query:
-Redis unavailable:
-Worker stopped:
-Queue backlog:
-Webhook receiver returns 500:
-Webhook receiver times out:
-Duplicate webhook delivery:
-WebSocket disconnect:
-Application exception:
-Reverse-proxy routing error:
-```
-
-For each failure, answer:
-
-```text
-What did the user see?
-Which layer saw the request?
-Which layer did not see the request?
-What log or metric proves the failed layer?
-What did you rule out?
-What is the first mitigation?
-What would prevent this next time?
-```
-
-### Evidence To Capture
-
-```text
-Launch decision:
-Known risks:
-Customer-impacting failure modes:
-Monitoring required:
-Backup and recovery strategy:
-Rollback plan:
-Runbook gaps:
-Evidence collected:
-RCA for one injected incident:
-Request ID:
-Trace ID:
-Mitigation:
+Phase 2 starting architecture:
+Phase 2 final architecture:
+Core request path:
+Durable dependency:
+Temporary dependency:
+One synchronous failure boundary:
+One asynchronous failure boundary, if implemented:
+One readiness/dependency example:
+Most useful evidence source:
+Known operational limitation:
+Runbook/documentation gap:
+What should be carried into Phase 3:
 Retained takeaway:
 ```
 
-### Troubleshooting Checklist
+### One RCA Review
+
+Reuse one incident already explored during Phase 2. Choose a small example, such as a proxy routing failure, database dependency failure, authorization failure, webhook delivery failure, or queue failure simulation.
+
+Capture:
 
 ```text
-Can users register, log in, create tickets, list tickets, and receive support replies?
-Can admins view and update tickets without exposing internal notes?
-Can PostgreSQL data be backed up and restored?
-What happens when Redis is unavailable?
-What happens when the worker is stopped?
-Are webhook failures visible?
-Are real-time disconnects understandable?
-What would alert before customers report the issue?
-What is the first mitigation?
-What must be fixed before Phase 3?
+Observed symptom:
+Expected request path:
+First failed boundary:
+Evidence:
+Root cause:
+Fix:
+Validation:
+What would make this easier to detect next time:
 ```
 
-### Launch Decision
+### Phase 3 Readiness Check
+
+Decide whether the Phase 2 application is ready to be used as the basis for containerized operation.
 
 Choose one:
 
 ```text
-Ready to operate locally.
-Ready for a production-like environment.
-Not ready because these blockers remain:
+Ready to move into containerized operation.
+
+Ready with known limitations:
+- ...
+
+Not ready to move forward because:
+- ...
 ```
+
+This is a curriculum checkpoint. It is not a deployment approval decision.
 
 ### Explanation Standard
 
 ```text
-Do not call the support-ticket app ready just because the happy path works. Verify core workflows, authorization, database durability, backup and restore expectations, health/readiness behavior, observability, async delivery, real-time update behavior, and a rollback plan. Then use focused load tests and injected failures to prove where the service breaks and what evidence supports mitigation.
+Do not finish Phase 2 by memorizing individual components in isolation. Be able to explain how the final Phase 2 architecture evolved, how requests move through it, where state lives, which boundaries can fail, what evidence proves those failures, and which operational concerns should carry into containerized operation.
 ```
 
 ### Completion Standard
 
 ```text
-The learner can give a two-minute production-readiness review, name known risks, and support one RCA with evidence.
+The learner can explain the Phase 2 architecture end to end, compare it with the Phase 1 starting point, trace the main request path, explain several important failure boundaries using existing evidence, identify current limitations, and describe what must be preserved when the application moves into containers.
 ```
 
 ### Retained Takeaway
 
 ```text
-Readiness is a decision backed by evidence, not a feeling that the app seems to work.
+Architecture becomes easier to troubleshoot when every boundary has a clear responsibility, observable evidence, and a known failure mode.
 ```
 
 ## Lab 05 Setup Reference
